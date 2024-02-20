@@ -1,0 +1,7 @@
+In modern data systems, particularly for write-intensive workloads, log-structured merge (LSM) trees have become the most 
+widely used technique. The idea of out-of-place updates, which logically 
+invalidate keys that may exists on multiple levels, helps LSM-trees excel for write heavy workloads. However, current 
+LSM-tree designs do not capitalize on the sort-merge operations performed for the range queries, which leads to carrying 
+out almost the same amount of work for each range query, even when they are same or overlapping. This inefficiency can 
+result in the wastage of CPU cycles and unnecessary I/O operations in worst-case scenarios due to presence of logically 
+invalid keys. \cite{sarkar2021}
