@@ -1,1 +1,18 @@
 Here are the descriptions of all buffer implementations.
+
+\begin{enumerate}
+    \item \textbf{SkipList:} The default datastructure implementation of a 
+    memtable is a skiplist.  A skiplist consists of layers of linked 
+    lists, with each layer containing fewer elements (nodes) than the one below it. 
+    The last layer contains all the elements in a sorted order like a regular linked list.
+    The upper layers contain pointers that can be used to skip elements to reach target elements faster. 
+    This probabilistic datastructure allows an $O(logn)$ search, insertion and deletion time.   
+    
+    In RocksDB, the SkipList is indexed using binary search that takes $O(logn)$ time.
+    SkipList based memtable implementation naturally supports totally ordered DB scan.
+
+    
+    \item HashSkipList: 
+    \item HashLinkList:
+    \item Vector:
+\end{enumerate}
