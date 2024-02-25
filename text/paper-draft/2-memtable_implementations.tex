@@ -1,0 +1,63 @@
+A Memtable, also known as a write buffer, serves as a staging area for write operations prior to their being flushed to 
+disk. Its primary function is to enhance write performance by batching the most recent writes in memory. This approach 
+eliminates the need for immediate disk input/output (I/O) operations for each write request. Instead, the writes are
+grouped together and flushed to disk in a single operation. On the other hand, It also enhance read performance by 
+providing a fast lookup for the most recent writes, since the lookup path in LSM tree is first to the memtable and then 
+to the disk. There are several existing memtable implementations with their own trade-offs in terms of performance,
+memory consumption, and write amplification. Let's discuss a few existing memtable implementations and later we will
+propose new memtable implementations. We will also discuss the performance metrics and modeling for the memtable
+implementations.
+
+\subsection{Existing Memtables}
+
+\Paragraph{Skip List} 
+The default Memtable implementation in many systems like RocksDB~\cite{Facebook2021} and LevelDB is the Skip List. 
+This structure is built with multiple layers of linked lists, each layer containing progressively fewer elements to 
+ease navigation. The lowest layer encompasses all elements in sorted order, akin to a standard linked list, while the 
+upper layers introduce shortcuts that expedite element access. This probabilistic arrangement guarantees logarithmic 
+$O(\log n)$ search, insertion, and deletion times by enabling quick traversal across its layers—not through binary 
+search, but via a strategic, level-by-level method. Consequently, Skip Lists are exceptionally suited for achieving 
+balanced read and write operations, as well as efficiently supporting fully ordered database scans.
+
+However, the layered structure and the necessity to maintain pointers for each element increase the memory requirements 
+of Skip Lists. Typically, a four-layered Skip List, with each upper layer containing approximately one-fourth of the 
+elements in the layer immediately below it, is utilized. This configuration demands roughly 1.33 times more memory than 
+the actual data stored.
+
+\Paragraph{Vector} A Vector functions as a dynamic, automatically resizing array, providing contiguous storage for 
+efficient iteration. Insertions are optimally performed at the Vector's end, making it particularly advantageous for 
+write-intensive tasks. However, its dependence on linear search $O(n)$ for indexing renders it less effective for point 
+queries and deletions, as these operations necessitate sequential traversal of the Vector. The memory overhead for a 
+Vector is relatively minimal, requiring only additional space for resizing along with a modest amount of metadata. Due 
+to its lower memory demands, a Vector can potentially store more data, leading to fewer disk flushes. Nonetheless, 
+Vectors are not well-suited for handling range queries and point queries due to the linear search requirement.
+
+\Paragraph{Hash Skip List} The Hash Skip List combines a hash table with Skip Lists within each bucket. Keys are 
+partitioned by prefix for bucket allocation, facilitating targeted insertions and lookups through a combination of 
+hashing and binary search. This structure excels in handling small range queries within specific key prefixes. 
+Nonetheless, executing range scans across multiple prefixes is resource-intensive, as it necessitates copying and 
+sorting, thereby impacting time and memory efficiency.
+
+The memory overhead of the Hash Skip List is higher than that of a traditional Skip List due to the extra space needed 
+for the hash table and the pointers to each Skip List. The Hash Skip List is particularly well-suited for workloads
+involving a high volume of small range queries within specific key prefixes.
+
+\Paragraph{Hash Link List} Similar to the Hash Skip List, the Hash Link List incorporates a hash table framework; 
+however, it differs by linking each bucket to a single linked list. This arrangement is particularly tailored for 
+efficiently handling range queries limited to narrow key prefixes, typically involving a modest number of entries. 
+Despite utilizing hashing for quick bucket identification, the Hash Link List relies on linear search within each 
+linked list for indexing, which may reduce its efficiency for point queries and deletions compared to other structures.
+
+\todo{Verify the following statement again.}
+\textcolor{blue}{The Hash Link List presents a lower memory overhead compared to the Hash Skip List, primarily because it 
+eschews the layered structure inherent to Skip Lists. Consequently, this streamlined setup makes it an excellent choice 
+for scenarios characterized by frequent small range queries within specific key prefixes, especially when each prefix 
+is associated with a limited dataset.}
+
+\subsection{Proposed Memtables} \lipsum[1]
+
+\Paragraph{Trie} \lipsum[1]
+
+\Paragraph{Tree} \lipsum[1]
+
+\subsection{Performance Modeling \& Metrics} \lipsum[1]

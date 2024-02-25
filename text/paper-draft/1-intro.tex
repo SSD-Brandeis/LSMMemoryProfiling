@@ -1,1 +1,51 @@
-This is the Introduction section.
+\Paragraph{Log-structured Merge Tree (LSM)} organizes data across multiple levels, with each level typically consisting 
+of one sorted runs, each run being a collection of Sorted String Tables (SSTables). These SSTables are immutable and are 
+merged to form new SSTables at the next adjacent level down. This structure follows an out-of-place update strategy, 
+wherein new data is initially written to the top level and subsequently merged into lower levels. The efficiency in 
+writing is primarily due to the process of writing new data to an in-memory buffer, known as the Memtable, which is 
+later flushed to disk as an SSTable. This paper places a significant emphasis on the Memtable, exploring it in detail 
+in the subsequent section.
+
+\Paragraph{Write Buffer} commonly referred to as the Memtable, acts as the primary storage for new writes awaiting 
+persistence. It temporarily stores data in memory until it reaches a predetermined size. The choice of data structure 
+for the Memtable allows for a trade-off between memory usage and the time complexity of write operations. For instance, 
+a Vector-based Memtable offers a time complexity of $O(1)$ for write operations, while a Skip List-based Memtable 
+presents a time complexity of $O(\log n)$. This comparison highlights that although Vector-based Memtables offer better 
+time complexity for writes, the amount of CPU resources requierd for flushing the Memtable to disk is much higher 
+than Skip List-based Memtables due to the fact that the data is not sorted in the Vector-based Memtables. On the other 
+hand, Skip List-based Memtable needs extra memory to store pointers for each element and the additional layer of 
+indirection which results in higher memory usage. Consequently, this increased memory footprint limits the number of 
+elements a Memtable can hold, leading to a greater number of files in the flushed Sorted String Table. This trade-off 
+between memory usage and time complexity is a critical factor in the performance of the LSM tree which is explored in 
+this paper.
+
+\Paragraph{Problem and Motivation} Understanding the nuances of underlying data structures and their impact on 
+performance is crucial for optimizing the Log-structured Merge Tree (LSM) framework. Despite the availability of 
+detailed workload characteristics, selecting the most suitable Memtable implementation remains a daunting task. Often, 
+a less-than-optimal choice is made—such as the prevalent use of Skip List-based Memtables in RocksDB—due to a lack of
+comprehensive performance analysis across various scenarios. This common oversight can lead to suboptimal LSM tree 
+performance, underscoring the need for a deeper investigation into Memtable configurations and their efficiency under 
+different workloads.
+
+\Paragraph{Contributions} The primary objective of this paper is to elucidate the role of Memtables within 
+Log-structured Merge Trees (LSM), examine how various implementations affect memory usage and performance, and provide 
+a framework for selecting the optimal Memtable based on specific workloads and available resources. We make the 
+following contributions:
+
+\begin{enumerate}[leftmargin=*,labelindent=0mm, itemsep=0.2\baselineskip]
+    \item \textbf{Memtable Analysis}: A thorough examination of the memory footprint and performance across different Memtable 
+    implementations, including Skip List, Vector, Hash Skip List, and Hash Link List, is provided. Additionally, we 
+    introduce two novel Memtable implementations, Trie and Tree, and assess their performance relative to existing 
+    options.
+    \item \textbf{Performance Modeling}: We develop a performance model for Memtable implementations that details the time 
+    complexity of write operations and memory consumption. This model facilitates a comparative analysis of the 
+    performance of various Memtable types under differing workload conditions.
+    \item \textbf{Memtable Selection Insights}: Based on our performance analysis and modeling, we offer recommendations for 
+    choosing the most appropriate Memtable implementation, taking into account the specific demands of the workload and 
+    the resources at hand.
+\end{enumerate}
+These contributions aim to enhance understanding and decision-making regarding Memtable configurations within LSM trees, 
+addressing both theoretical and practical considerations in database management and optimization. To underscore the 
+real-world applicability of our research, we employ RocksDB—a widely recognized key-value store—as a case study. This 
+choice allows us to validate our findings in a practical setting, demonstrating their relevance and utility in 
+optimizing data storage solutions.

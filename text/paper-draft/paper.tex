@@ -1,6 +1,4 @@
-
 \documentclass[sigconf]{acmart}
-
 
 \usepackage{booktabs} % For formal tables
 \usepackage[ruled,vlined]{algorithm2e}
@@ -23,6 +21,8 @@
 \usepackage{bm}
 \usepackage{balance}
 
+\usepackage{lipsum}
+
 \newcommand{\newtext}[1]{{\color{blue} #1}}
 \newcommand{\margincomment}[1]{\marginnote{{[{\sf {\color{red}\scriptsize #1}}]}}}
 \newcommand{\Margincomment}[1]{\marginnote{{[{\sf {\color{blue}\scriptsize #1}}]}}}
@@ -32,6 +32,7 @@
 \definecolor{myRed}{rgb}{0.73, 0.31, 0.28}
 \definecolor{myBlue}{rgb}{0, 0.44, 1}
 \definecolor{myGrey}{rgb}{0.57, 0.64, 0.69}
+\definecolor{warning}{rgb}{1, 0.5, 0}
 
 \usepackage{array}
 \newcommand{\PreserveBackslash}[1]{\let\temp=\\#1\let\\=\temp}
@@ -46,8 +47,9 @@
 \newcommand\Textcolor[2]{\hspace*{-3mm} \textcolor{#1}{#2} }
 
 \newcommand{\shubham}[1]{\textcolor{myGreen}{#1}}
-\newcommand{\manos}[1]{\textcolor{myRed}{#1}}
+\newcommand{\arpita}[1]{\textcolor{myRed}{#1}}
 \newcommand{\subhadeep}[1]{\textcolor{myBlue}{#1}}
+\newcommand{\todo}[1]{\textcolor{warning}{\textbf{Todo: }#1}}
 
 
 % \AtBeginDocument{%
@@ -74,103 +76,27 @@
 
 \author{****}
 \affiliation{%
-    \institution{}
-    \country{}
+    \institution{Brandeis University}
+    \country{USA}
 }
 
 \author{****}
 \affiliation{%
-    \institution{}
-    \country{}
+    \institution{Brandeis University}
+    \country{USA}
 }
 
 \author{****}
 \affiliation{%
-    \institution{}
-    \country{}
+    \institution{Brandeis University}
+    \country{USA}
 }
-
-% \author{Ben Trovato}
-% \authornote{Both authors contributed equally to this research.}
-% \email{trovato@corporation.com}
-% \orcid{1234-5678-9012}
-% \author{G.K.M. Tobin}
-% \authornotemark[1]
-% \email{webmaster@marysville-ohio.com}
-% \affiliation{%
-%   \institution{Institute for Clarity in Documentation}
-%   \streetaddress{P.O. Box 1212}
-%   \city{Dublin}
-%   \state{Ohio}
-%   \country{USA}
-%   \postcode{43017-6221}
-% }
-
-% \author{Lars Th{\o}rv{\"a}ld}
-% \affiliation{%
-%   \institution{The Th{\o}rv{\"a}ld Group}
-%   \streetaddress{1 Th{\o}rv{\"a}ld Circle}
-%   \city{Hekla}
-%   \country{Iceland}}
-% \email{larst@affiliation.org}
-
-% \author{Valerie B\'eranger}
-% \affiliation{%
-%   \institution{Inria Paris-Rocquencourt}
-%   \city{Rocquencourt}
-%   \country{France}
-% }
-
-% \author{Aparna Patel}
-% \affiliation{%
-%  \institution{Rajiv Gandhi University}
-%  \streetaddress{Rono-Hills}
-%  \city{Doimukh}
-%  \state{Arunachal Pradesh}
-%  \country{India}}
-
-% \author{Huifen Chan}
-% \affiliation{%
-%   \institution{Tsinghua University}
-%   \streetaddress{30 Shuangqing Rd}
-%   \city{Haidian Qu}
-%   \state{Beijing Shi}
-%   \country{China}}
-
-% \author{Charles Palmer}
-% \affiliation{%
-%   \institution{Palmer Research Laboratories}
-%   \streetaddress{8600 Datapoint Drive}
-%   \city{San Antonio}
-%   \state{Texas}
-%   \country{USA}
-%   \postcode{78229}}
-% \email{cpalmer@prl.com}
-
-% \author{John Smith}
-% \affiliation{%
-%   \institution{The Th{\o}rv{\"a}ld Group}
-%   \streetaddress{1 Th{\o}rv{\"a}ld Circle}
-%   \city{Hekla}
-%   \country{Iceland}}
-% \email{jsmith@affiliation.org}
-
-% \author{Julius P. Kumquat}
-% \affiliation{%
-%   \institution{The Kumquat Consortium}
-%   \city{New York}
-%   \country{USA}}
-% \email{jpkumquat@consortium.net}
-
-
-% \renewcommand{\shortauthors}{Trovato et al.}
-
 
 \begin{abstract}
-  \input{0-abstract.tex}  
+  \input{0-abstract.tex}   
 \end{abstract}
 
-% \keywords{datasets, neural networks, gaze detection, text tagging}
+\keywords{LSM-tree, Write-buffer, Memtable, Sorted String Table}
 
 
 
@@ -180,18 +106,17 @@
 \label{sec:intro}
 \input{1-intro}
 
-\section{Background}
+\section{Memtable}
 \label{sec:background}
-\input{2-background} 
+\input{2-memtable_implementations} 
 
-
-\section{Problem}
-\label{sec:design_space}
-\input{3-design_space}
+% \section{Problem}
+% \label{sec:design_space}
+% \input{3-design_space}
  
-\section{Solution Name}
-\label{sec:solution}
-\input{4-solution}
+% \section{Solution Name}
+% \label{sec:solution}
+% \input{4-solution}
 
 % \section{Results}
 % \label{sec:results}

@@ -1,7 +1,15 @@
-In modern data systems, particularly for write-intensive workloads, log-structured merge (LSM) trees have become the most 
-widely used technique. The idea of out-of-place updates, which logically 
-invalidate keys that may exists on multiple levels, helps LSM-trees excel for write heavy workloads. However, current 
-LSM-tree designs do not capitalize on the sort-merge operations performed for the range queries, which leads to carrying 
-out almost the same amount of work for each range query, even when they are same or overlapping. This inefficiency can 
-result in the wastage of CPU cycles and unnecessary I/O operations in worst-case scenarios due to presence of logically 
-invalid keys. \cite{sarkar2021}
+The Log-structured Merge Tree (LSM) is a widely used technique in modern data stores, becoming increasingly popular as 
+data volume grows and access patterns evolve. Key data stores like LevelDB, RocksDB, Cassandra, HBase, and Bigtable rely 
+on LSM trees for their foundational structure. These systems are optimized to deliver high write throughput and low 
+latency during write operations. Data is initially ingested through an in-memory buffer within the LSM tree, known as 
+the Memtable. This buffer, designed for write optimization, temporarily holds the latest database writes and is 
+periodically flushed to disk as a Sorted String Table (SSTable) once it reaches a certain size. Memtables come in 
+various implementations, including Skip List, Vector, Hash Skip List, and Hash Link List, each with its unique memory 
+footprint and performance characteristics. The choice of Memtable implementation can impact the overall performance of 
+the LSM tree, especially in memory-constrained environments where the Memtable size is limited.\\
+\todo{Have to explore other data stores memtable implementations.}
+
+In this paper, we focus on analyzing the memory usage of different Memtable implementations and comparing their 
+performance. Additionally, we offer guidance on selecting the most suitable Memtable implementation based on specific 
+workloads and available resources.
+ 
