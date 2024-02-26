@@ -48,11 +48,10 @@ efficiently handling range queries limited to narrow key prefixes, typically inv
 Despite utilizing hashing for quick bucket identification, the Hash Link List relies on linear search within each 
 linked list for indexing, which may reduce its efficiency for point queries and deletions compared to other structures.
 
-\todo{Verify the following statement again.}
-\textcolor{blue}{The Hash Link List presents a lower memory overhead compared to the Hash Skip List, primarily because it 
+The Hash Link List presents a lower memory overhead compared to the Hash Skip List, primarily because it 
 eschews the layered structure inherent to Skip Lists. Consequently, this streamlined setup makes it an excellent choice 
 for scenarios characterized by frequent small range queries within specific key prefixes, especially when each prefix 
-is associated with a limited dataset.}
+is associated with a limited dataset.
 
 \subsection{Proposed Memtables} \lipsum[1]
 
