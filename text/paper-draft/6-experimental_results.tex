@@ -1,14 +1,110 @@
-
-\lipsum[1]
+In this section, we outline our approach to empirically assess the performance of various Memtable implementations 
+against the metrics established in last section. To ensure a comprehensive evaluation, we have selected three distinct types 
+of workloads, each designed to test the Memtables under different operational scenarios: (a) inserts with interleaved 
+point queries, (b) inserts with interleaved range queries (small selectivity), and (c) inserts with interleaved range
+queries (large selectivity).
 
 \subsection{Experimental Setup}
-\lipsum[1]
+To conduct these experiments, we used a Chameleon machine equipped with a configuration of 187 GiB of RAM and 
+48 cores. We used the RocksDB~\cite{Facebook2021} storage engine to evaluate the performance of the memtable 
+implementations. The RocksDB was configured to use only one thread for compactions and one thread for flushes to ensure
+that the performance is not affected by the compaction and flush threads. We also disabled the write-ahead log (WAL)
+to ensure that the performance is not affected by the WAL. Below are the parameters that we use across all the 
+experiments:
+\begin{itemize}[leftmargin=*,labelindent=0mm, itemsep=0.2\baselineskip]
+    \item \textit{E} (entry size) = 64 bytes
+    \item \textit{B} (number of entries that fit into a page) = 64
+    \item \textit{P} (size of buffer in pages) = 4096
+    \item \textit{T} (size ratio between adjacent levels) = 4
+    \item \textit{M} (main memory allocated to write buffer) = 16 MB
+\end{itemize}
 
-\subsection{Footprint Profiling}
-\lipsum[1]
+\subsection{Memory Footprint}
+The memory requirements of various memtable structures vary when tasked with storing the same volume of data. For 
+instance, a \textit{Skip List} generally requires more memory than a \textit{Vector} due to its layered structure and 
+the necessity to maintain pointers. Similarly, a \textit{Hash Skip List} has a higher memory footprint than a 
+\textit{Skip List} because of the additional overhead from a hash table and pointers. This experiment seeks to reveal 
+the trade-offs between the memory footprint and the storage capacity (number of entries) of each memtable 
+implementation, providing insights into their efficiency and appropriateness for different scenarios.
 
-\subsection{Performance Profiling}
-\lipsum[1]
+\begin{figure}
+    \includegraphics[scale=0.5]{Figures/data-size-comparison-per-memtable.png}
+    \caption{The \textit{Hash Skip List} implementation requires more memory to store the entries, and 
+    it only uses 75 percent of the allocated space whereas the \textit{Vector} implementation uses 88 percent
+    of the memory allocated. Similar patterns are observed for the different buffer sizes.}
+    \label{fig:memory_footprint}
+\end{figure}
+
+We conducted the experiment by inserting 1 million entries into each memtable implementation and measured the memory 
+footprint. The bucket count (\textit{bck}) and the prefix length (\textit{l}) for the \textit{Hash Skip List} and 
+\textit{Hash Link List} were set to 1 and 0, respectively. Figure~\ref{fig:memory_footprint} demonstrates that the 
+\textit{Vector} exhibits the lowest memory footprint due to its contiguous storage and absence of pointers, whereas 
+the \textit{Hash Skip List} displays the highest memory footprint, reflecting its larger memory requirement. 
+The \textit{Skip List} and \textit{Hash Link List} have memory footprints that lie between the \textit{Vector} and 
+the \textit{Hash Skip List}.
+
+% The different memtable structures have varying memory requirements to store the same amount of data. For instance, a 
+% \textit{Skip List} typically uses more memory than a \textit{Vector} because of its layered structure and the need to maintain pointers. 
+% Similarly, a \textit{Hash Skip List} consumes more memory than a \textit{Skip List} due to the additional requirements of a hash table 
+% and pointers. This experiment aims to uncover the trade-offs between the memory footprint and the capacity (number of 
+% entries) of each memtable implementation, providing insights into their efficiency and suitability for different 
+% scenarios.
+
+% We ran the experiment by inserting 1 million entries into each memtable implementation and measured the memory footprint.
+% The bucket count (\textit{bck}) and the prefix length (\textit{l}) in case of \textit{Hash Skip List} and \textit{Hash 
+% Link List} are set to 1 and 0, respectively. The Figure~\ref{fig:entries_flushed_per_memtble} shows the 
+% \textit{Vector} exhibits the lowest memory footprint, because of its contiguous storage and absence of pointers. In 
+% contrast, the \textit{Hash Skip List} demonstrates the highest memory footprint, highlighting its greater memory 
+% requirement. The \textit{Skip List} and \textit{Hash Link List} fall between the \textit{Vector} and \textit{Hash Skip 
+% List} in terms of memory footprint.
+
+\subsection{Reads Performance}
+
+\Paragraph{Point Queries} The performance of point queries is a critical factor in the selection of a memtable 
+implementation. In the case of a \textit{Vector}, point queries exhibit an $O(n)$ complexity, as the memtable must be 
+scanned linearly to locate the required key. In contrast, \textit{Skip List} and \textit{Hash Skip List} implementations 
+offer improved read performance, with point queries achieving $O(\log n)$ complexity. The \textit{Hash Skip List}, in 
+particular, can deliver the best performance for point queries if the prefix length and the number of buckets are 
+optimally tuned. It is noteworthy that the performance can vary with different configurations. Meanwhile, 
+the performance of the \textit{Hash Link List} falls between that of the \textit{Vector} and the \textit{Skip List}.
+
+The prefix length (\textit{l}) and the number of buckets (\textit{bck}) can fairly influence the performance of the
+\textit{Hash Skip List} and the \textit{Hash Link List}. There are two extreme cases: $\left. 1\right)$ setting the prefix length too 
+small, for example, to 0, results in all keys being stored in a single bucket, $\left. 2\right)$ increasing the prefix length to the 
+maximum length of the keys while maintaining only one bucket leads to the same bottleneck. Ideally, the number of 
+buckets should approximate $256^{\textit{l}}$ (assuming the hash is computed based on char bytes) to optimize performance. 
+This strategy, however, poses a challenge as it 
+necessitates a substantial increase in the number of buckets—approximately 65K for a \textit{l} of 2 and about 16M for 
+a \textit{l} of 3—thereby significantly raising the memory overhead due to the need for each bucket to maintain a 
+pointer to a \textit{Skip List}, unless it is empty. For point queries, achieving an $O(1)$ complexity is possible when 
+the \textit{l} is adjusted to the maximum key length, coupled with $256^{\textit{l}}$ buckets, provided that sufficient 
+memory is available. Moreover, the efficiency of point queries is further optimized when the distribution of keys across 
+buckets is uniform. Thus, the \textit{Hash Skip List} can attain optimal performance for point queries through careful 
+adjustment of the prefix length and the number of buckets.
+
+Given the inherent increase in memory overhead attributed to the layered structure of the \textit{Hash Skip List}, 
+the \textit{Hash Link List} emerges as a more memory-efficient alternative. Despite this, point queries can still 
+maintain commendable performance provided that the buckets are uniformly filled and contain a smaller number of 
+entries in each bucket.
+
+The performance of point queries for memtable 
+
+
+\Paragraph{Range Queries}\\
+
+\textbf{\textit{Vector}} will have the worst performance because of the linear search. (sort and search is $O(n \log n)$)
+
+\textbf{\textit{Skip List}} Better read performance (range query is just search first key and sequentially scan the nodes further - $O(\log n)$)
+
+\textbf{\textit{Hash Skip List}} \& \textbf{\textit{Hash Link List}}
+
+    The range queries will be faster based on the prefix\_len and the number of buckets that are configured. If prefix length 
+    is small and the number of buckets are less then the longer range queries will be faster for every prefix we will return 
+    more keys and we need not to filter the keys. If we have 
+
+\subsection{Writes Performance}
+
+\Paragraph{\textit{Vector}} 
 
 % \begin{figure}[h]
 %   \centering
@@ -17,4 +113,13 @@
 %  \label{fig:placeholder}
 % \end{figure}
 
+% \textit{Vector}
+% \item best write performance (Write is $O(1)$)
+% \item less number of flushes
+% \item less number of compactions because we have comparatively less number of files at l-0
 
+
+% \textit{Skip List}
+% \item bad write performance (Write is $O(\log n)$)
+% \item more number of flushes
+% \item more number of compactions because we have comparatively more number of files at l-0

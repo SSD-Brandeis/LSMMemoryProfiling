@@ -33,6 +33,7 @@
 \definecolor{myBlue}{rgb}{0, 0.44, 1}
 \definecolor{myGrey}{rgb}{0.57, 0.64, 0.69}
 \definecolor{warning}{rgb}{1, 0.5, 0}
+\definecolor{myYellow}{rgb}{1, 0.64, 0.8}
 
 \usepackage{array}
 \newcommand{\PreserveBackslash}[1]{\let\temp=\\#1\let\\=\temp}
@@ -50,6 +51,7 @@
 \newcommand{\arpita}[1]{\textcolor{myRed}{#1}}
 \newcommand{\subhadeep}[1]{\textcolor{myBlue}{#1}}
 \newcommand{\todo}[1]{\textcolor{warning}{\textbf{Todo: }#1}}
+\newcommand{\note}[1]{\textcolor{myYellow}{\textbf{Note: }#1}}
 
 
 % \AtBeginDocument{%
@@ -122,7 +124,7 @@
 % \label{sec:results}
 % \input{5-analytical_results}
 
-\section{Evaluation}
+\section{Memory Profiling}
 \label{sec:experimental_results}
 \input{6-experimental_results}
 

@@ -5,13 +5,13 @@ grouped together and flushed to disk in a single operation. On the other hand, I
 providing a fast lookup for the most recent writes, since the lookup path in LSM tree is first to the memtable and then 
 to the disk. There are several existing memtable implementations with their own trade-offs in terms of performance,
 memory consumption, and write amplification. Let's discuss a few existing memtable implementations and later we will
-propose new memtable implementations. We will also discuss the performance metrics and modeling for the memtable
-implementations.
+discuss the performance metrics and how they impact the overall performance of the LSM tree. Table~\ref{table:terms} gives a list of 
+terms we use throughout this paper.
 
-\subsection{Existing Memtables}
+\subsection{Memtables Implementations}
 
 \Paragraph{Skip List} 
-The default Memtable implementation in many systems like RocksDB~\cite{Facebook2021} and LevelDB is the Skip List. 
+The default memtable implementation in many systems like RocksDB~\cite{Facebook2021} and LevelDB is the Skip List. 
 This structure is built with multiple layers of linked lists, each layer containing progressively fewer elements to 
 ease navigation. The lowest layer encompasses all elements in sorted order, akin to a standard linked list, while the 
 upper layers introduce shortcuts that expedite element access. This probabilistic arrangement guarantees logarithmic 
@@ -24,10 +24,45 @@ of Skip Lists. Typically, a four-layered Skip List, with each upper layer contai
 elements in the layer immediately below it, is utilized. This configuration demands roughly 1.33 times more memory than 
 the actual data stored.
 
+\begin{table}
+    \begin{tabular}{|c|l|c|}
+        \hline
+        \textbf{Term} & \textbf{Description} & \textbf{Unit} \\
+        \hline
+        \textit{E} & entry size & Bytes \\
+        \hline
+        \textit{N} & total number of entries & entries \\
+        \hline
+        \textit{L} & number of levels & levels \\
+        \hline
+        \textit{B} & number of entries that fit into a page & entries \\
+        \hline
+        \textit{P} & size of buffer in pages & pages \\
+        \hline
+        \textit{T} & size ratio between adjacent levels &  \\
+        \hline
+        \textit{M} & main memory allocated to write buffer & Bytes \\
+        \hline 
+        \textit{Q} & number of point queries & queries \\
+        \hline
+        \textit{S} & number of range queries & queries \\
+        \hline
+        \textit{Y} & selectivity of range queries w.r.t N & percent \\ 
+        \hline
+        \textit{l} & prefix length & chars \\
+        \hline
+        \textit{bck} & number of buckets in hash table & buckets \\
+        \hline
+    \end{tabular}
+    \vspace{0.5em}
+    \caption{Table of terms used throughout the paper.}
+    \label{table:terms}
+\end{table}
+
 \Paragraph{Vector} A Vector functions as a dynamic, automatically resizing array, providing contiguous storage for 
 efficient iteration. Insertions are optimally performed at the Vector's end, making it particularly advantageous for 
 write-intensive tasks. However, its dependence on linear search $O(n)$ for indexing renders it less effective for point 
-queries and deletions, as these operations necessitate sequential traversal of the Vector. The memory overhead for a 
+queries and scans, as these operations necessitate sequential traversal of the Vector. The memory overhead for a 
 Vector is relatively minimal, requiring only additional space for resizing along with a modest amount of metadata. Due 
 to its lower memory demands, a Vector can potentially store more data, leading to fewer disk flushes. Nonetheless, 
 Vectors are not well-suited for handling range queries and point queries due to the linear search requirement.
@@ -42,21 +77,43 @@ The memory overhead of the Hash Skip List is higher than that of a traditional S
 for the hash table and the pointers to each Skip List. The Hash Skip List is particularly well-suited for workloads
 involving a high volume of small range queries within specific key prefixes.
 
+\todo{explain about the buckets, prefix\_len and hashtable in the Hash Skip List - how it is formed and how it is used.}
+
 \Paragraph{Hash Link List} Similar to the Hash Skip List, the Hash Link List incorporates a hash table framework; 
-however, it differs by linking each bucket to a single linked list. This arrangement is particularly tailored for 
+however, it differs by linking each bucket to a single sorted linked list. This arrangement is particularly tailored for 
 efficiently handling range queries limited to narrow key prefixes, typically involving a modest number of entries. 
 Despite utilizing hashing for quick bucket identification, the Hash Link List relies on linear search within each 
-linked list for indexing, which may reduce its efficiency for point queries and deletions compared to other structures.
+linked list for indexing, which may reduce its efficiency for point queries compared to other structures.
 
 The Hash Link List presents a lower memory overhead compared to the Hash Skip List, primarily because it 
 eschews the layered structure inherent to Skip Lists. Consequently, this streamlined setup makes it an excellent choice 
 for scenarios characterized by frequent small range queries within specific key prefixes, especially when each prefix 
 is associated with a limited dataset.
 
-\subsection{Proposed Memtables} \lipsum[1]
+\todo{explain how the Hash Link List is formed and how it is used with the buckets, prefix\_len and hashtable.}
 
-\Paragraph{Trie} \lipsum[1]
+% \subsection{Proposed memtables} \lipsum[1]
 
-\Paragraph{Tree} \lipsum[1]
+% \Paragraph{Trie} \lipsum[1]
 
-\subsection{Performance Modeling \& Metrics} \lipsum[1]
+% \Paragraph{Tree} \lipsum[1]
+
+\subsection{Performance Modeling and Evaluation}
+The choice of memtable implementation influences LSM tree performance. We will evaluate each implementation based on 
+the below parameters. Note that the in-place updates occur only when the size of the key-value pair matches that of a 
+previous insert.
+\begin{itemize}[leftmargin=*,labelindent=0mm, itemsep=0.2\baselineskip]
+    \item \textbf{Memory footprint} \-- This assesses the additional memory required by each memtable implementation to 
+    store $N$ entries, including both the metadata and the actual data (i.e.\ key-value pairs) within the memtable.
+    \item \textbf{Reads latency} \-- This focuses exclusively on the read operations performed within the memtable to analyze 
+    the performance of both point queries and range queries. The aim is to gauge the read efficiency of memtable more accurately.
+    \item \textbf{Writes latency} \-- Analogous to read efficiency, this evaluates the performance of write operations within 
+    the memtable, highlighting how effectively and swiftly data is written.
+    \item \textbf{Flush count} \-- The high frequencies of flushing, particularly of smaller files, can augment write 
+    amplification, thereby necessitating repetitive read-write cycles for identical datasets.
+    \item \textbf{Compactions count} \-- The frequency of compactions is directly correlated with increase in write 
+    amplification and read amplification, making it essential for understanding the overall performance of the LSM tree.
+\end{itemize}
+The goal is to provide a detailed analysis of how various memtable designs can affect overall database system 
+efficiency, focusing more on memory usage, reads and write latency. By examining these key performance metrics, we 
+intend to highlight the strengths and limitations of each memtable implementation in the context of LSM trees.
