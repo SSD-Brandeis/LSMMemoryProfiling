@@ -43,31 +43,15 @@ the \textit{Hash Skip List} displays the highest memory footprint, reflecting it
 The \textit{Skip List} and \textit{Hash Link List} have memory footprints that lie between the \textit{Vector} and 
 the \textit{Hash Skip List}.
 
-% The different memtable structures have varying memory requirements to store the same amount of data. For instance, a 
-% \textit{Skip List} typically uses more memory than a \textit{Vector} because of its layered structure and the need to maintain pointers. 
-% Similarly, a \textit{Hash Skip List} consumes more memory than a \textit{Skip List} due to the additional requirements of a hash table 
-% and pointers. This experiment aims to uncover the trade-offs between the memory footprint and the capacity (number of 
-% entries) of each memtable implementation, providing insights into their efficiency and suitability for different 
-% scenarios.
-
-% We ran the experiment by inserting 1 million entries into each memtable implementation and measured the memory footprint.
-% The bucket count (\textit{bck}) and the prefix length (\textit{l}) in case of \textit{Hash Skip List} and \textit{Hash 
-% Link List} are set to 1 and 0, respectively. The Figure~\ref{fig:entries_flushed_per_memtble} shows the 
-% \textit{Vector} exhibits the lowest memory footprint, because of its contiguous storage and absence of pointers. In 
-% contrast, the \textit{Hash Skip List} demonstrates the highest memory footprint, highlighting its greater memory 
-% requirement. The \textit{Skip List} and \textit{Hash Link List} fall between the \textit{Vector} and \textit{Hash Skip 
-% List} in terms of memory footprint.
-
 \subsection{Reads Performance}
 
 \begin{figure*}
-    \includegraphics[scale=0.5]{Figures/point-queries.png}
+    \includegraphics[scale=0.45]{Figures/point-queries.png}
     \caption{Comparison of point queries performance for different memtable implementations. The \textit{Vector}
-    implementation exhibits the poorest performance w.r.t increase in number of entries inserted, while the \textit{Hash 
-    Skip List} (for \textit{l} 6 and \textit{bck} 100K) demonstrates the best performance for point queries.
-    \textit{(a)} shows comparison between \textit{Vector} and \textit{Skip List}, \textit{(b)} shows comparison
-    between \textit{Skip List} and \textit{Hash Skip List}, and \textit{(c)} shows comparison between \textit{
-        Skip List} and \textit{Hash Link List}.}
+    implementation exhibits the poorest performance w.r.t the ingestion, while the \textit{Hash 
+    Skip List} (for \textit{l} 6 and \textit{bck} 100K) demonstrates better performance for point queries. The choice
+    of prefix length and the number of buckets can leads to suboptimal performance.
+    }
     \label{fig:point-queries}
 \end{figure*}
 
@@ -105,7 +89,11 @@ which aligns with expectations due to its linear search complexity. In Rocksdb, 
 first sorting the memtable and then performing a binary search. Notably, the graph's spikes can be attributed to 
 the overhead incurred by sorting the Vector Memtable prior to performing a binary search for the point queries. The 
 sort function of the standard library of C++ uses different sorting algorithms to optimize performance.
-\todo{lookup for C++ sort function}
+\todo{lookup for C++ sort function} Figure~\ref{fig:point-queries} (b) and (c) demonstrate that the \textit{Hash Skip
+List} (for \textit{l} 6 and \textit{bck} 100K) exhibits the best performance for point queries, while the \textit{Hash 
+Link List} performs better than the \textit{Vector} and the \textit{Skip List}. Figure~\ref{fig:point-queries} (d), (e) 
+and (f) illustrate that the bad choice of prefix length and the number of buckets can lead to suboptimal performance
+for point queries. 
 
 
 
