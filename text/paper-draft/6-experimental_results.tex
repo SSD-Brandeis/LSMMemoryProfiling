@@ -29,7 +29,7 @@ implementation, providing insights into their efficiency and appropriateness for
 
 \begin{figure}
     \includegraphics[scale=0.5]{Figures/data-size-comparison-per-memtable.png}
-    \caption{The \textit{Hash Skip List} implementation requires more memory to store the entries, and 
+    \caption{The \textit{Hash Skip List} (for \textit{l} 0 with \textit{bck} 1) implementation requires more memory to store the entries, and 
     it only uses 75 percent of the allocated space whereas the \textit{Vector} implementation uses 88 percent
     of the memory allocated. Similar patterns are observed for the different buffer sizes.}
     \label{fig:memory_footprint}
@@ -60,6 +60,17 @@ the \textit{Hash Skip List}.
 
 \subsection{Reads Performance}
 
+\begin{figure*}
+    \includegraphics[scale=0.5]{Figures/point-queries.png}
+    \caption{Comparison of point queries performance for different memtable implementations. The \textit{Vector}
+    implementation exhibits the poorest performance w.r.t increase in number of entries inserted, while the \textit{Hash 
+    Skip List} (for \textit{l} 6 and \textit{bck} 100K) demonstrates the best performance for point queries.
+    \textit{(a)} shows comparison between \textit{Vector} and \textit{Skip List}, \textit{(b)} shows comparison
+    between \textit{Skip List} and \textit{Hash Skip List}, and \textit{(c)} shows comparison between \textit{
+        Skip List} and \textit{Hash Link List}.}
+    \label{fig:point-queries}
+\end{figure*}
+
 \Paragraph{Point Queries} The performance of point queries is a critical factor in the selection of a memtable 
 implementation. In the case of a \textit{Vector}, point queries exhibit an $O(n)$ complexity, as the memtable must be 
 scanned linearly to locate the required key. In contrast, \textit{Skip List} and \textit{Hash Skip List} implementations 
@@ -72,7 +83,7 @@ The prefix length (\textit{l}) and the number of buckets (\textit{bck}) can fair
 \textit{Hash Skip List} and the \textit{Hash Link List}. There are two extreme cases: $\left. 1\right)$ setting the prefix length too 
 small, for example, to 0, results in all keys being stored in a single bucket, $\left. 2\right)$ increasing the prefix length to the 
 maximum length of the keys while maintaining only one bucket leads to the same bottleneck. Ideally, the number of 
-buckets should approximate $256^{\textit{l}}$ (assuming the hash is computed based on char bytes) to optimize performance. 
+buckets should approximate $256^{\textit{l}}$ (assuming the character based prefix) to optimize performance. 
 This strategy, however, poses a challenge as it 
 necessitates a substantial increase in the number of buckets—approximately 65K for a \textit{l} of 2 and about 16M for 
 a \textit{l} of 3—thereby significantly raising the memory overhead due to the need for each bucket to maintain a 
@@ -87,7 +98,16 @@ the \textit{Hash Link List} emerges as a more memory-efficient alternative. Desp
 maintain commendable performance provided that the buckets are uniformly filled and contain a smaller number of 
 entries in each bucket.
 
-The performance of point queries for memtable 
+To assess the performance of point queries on Memtables, we conducted an experiment in which we inserted 140K entries, 
+each 64 bytes in size, with random interleaved 200 point queries and recorded the time taken to execute each query. 
+Figure~\ref{fig:point-queries} (a) illustrates that the \textit{Vector} implementation exhibits the poorest performance, 
+which aligns with expectations due to its linear search complexity. In Rocksdb, the point queries are performed by
+first sorting the memtable and then performing a binary search. Notably, the graph's spikes can be attributed to 
+the overhead incurred by sorting the Vector Memtable prior to performing a binary search for the point queries. The 
+sort function of the standard library of C++ uses different sorting algorithms to optimize performance.
+\todo{lookup for C++ sort function}
+The prefix length \textit{(l)} of 6 and the number of buckets \textit{(bck)} of 100K with 140 K entries makes the 
+
 
 
 \Paragraph{Range Queries}\\
