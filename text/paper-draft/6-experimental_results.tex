@@ -60,8 +60,8 @@ implementation. In the case of a \textit{Vector}, point queries exhibit an $O(n)
 scanned linearly to locate the required key. In contrast, \textit{Skip List} and \textit{Hash Skip List} implementations 
 offer improved read performance, with point queries achieving $O(\log n)$ complexity. The \textit{Hash Skip List}, in 
 particular, can deliver the best performance for point queries if the prefix length and the number of buckets are 
-optimally tuned. It is noteworthy that the performance can vary with different configurations. Meanwhile, 
-the performance of the \textit{Hash Link List} falls between that of the \textit{Vector} and the \textit{Skip List}.
+optimally tuned. It is noteworthy that the performance varies based on configuration, 
+the \textit{Hash Link List} falls between that of the \textit{Vector} and the \textit{Skip List}.
 
 The prefix length (\textit{l}) and the number of buckets (\textit{bck}) can fairly influence the performance of the
 \textit{Hash Skip List} and the \textit{Hash Link List}. There are two extreme cases: $\left. 1\right)$ setting the prefix length too 
@@ -77,10 +77,10 @@ memory is available. Moreover, the efficiency of point queries is further optimi
 buckets is uniform. Thus, the \textit{Hash Skip List} can attain optimal performance for point queries through careful 
 adjustment of the prefix length and the number of buckets.
 
-Given the inherent increase in memory overhead attributed to the layered structure of the \textit{Hash Skip List}, 
-the \textit{Hash Link List} emerges as a more memory-efficient alternative. Despite this, point queries can still 
-maintain commendable performance provided that the buckets are uniformly filled and contain a smaller number of 
-entries in each bucket.
+The inherent increase in memory attributes to the layered structure of the \textit{Hash Skip List}. 
+The \textit{Hash Link List} emerges as a more memory-efficient alternative. Despite this, point queries can still 
+maintain commendable performance provided that the buckets are uniformly filled and contains a smaller number of 
+entries.
 
 To assess the performance of point queries on Memtables, we conducted an experiment in which we inserted 140K entries, 
 each 64 bytes in size, with random interleaved 200 point queries and recorded the time taken to execute each query. 
