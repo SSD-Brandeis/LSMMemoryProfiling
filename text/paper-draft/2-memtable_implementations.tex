@@ -65,7 +65,7 @@ write-intensive tasks. However, its dependence on linear search $O(n)$ for index
 queries and scans, as these operations necessitate sequential traversal of the Vector. The memory overhead for a 
 Vector is relatively minimal, requiring only additional space for resizing along with a modest amount of metadata. Due 
 to its lower memory demands, a Vector can potentially store more data, leading to fewer disk flushes. Nonetheless, 
-Vectors are not well-suited for handling range queries and point queries due to the linear search requirement.
+Vectors are not well-suited for handling point queries due to the linear search requirement.
 
 \Paragraph{Hash Skip List} The Hash Skip List combines a hash table with Skip Lists within each bucket. Keys are 
 partitioned by prefix for bucket allocation, facilitating targeted insertions and lookups through a combination of 

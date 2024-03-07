@@ -19,6 +19,25 @@ elements a Memtable can hold, leading to a greater number of files in the flushe
 between memory usage and time complexity is a critical factor in the performance of the LSM tree which is explored in 
 this paper.
 
+\begin{figure}
+    \raggedright
+    \includegraphics[scale=0.4]{Figures/motivation1-color.png}
+    \caption{Illustrate the trade-off between memory usage and time complexity for different Memtable implementations.}
+    \label{fig:motivation1}
+\end{figure}
+
+\begin{figure}
+    \raggedleft
+    \includegraphics[scale=0.35]{Figures/motivation2-color-small.png}
+    \label{fig:motivation2}
+\end{figure}
+
+\begin{figure}
+    \raggedleft
+    \includegraphics[scale=0.35]{Figures/motivation3-color-small.png}
+    \label{fig:motivation3}
+\end{figure}
+
 \section{Problem and Motivation}
 Understanding the nuances of underlying data structures and their impact on 
 performance is crucial for optimizing the Log-structured Merge Tree (LSM) framework. Despite the availability of 
