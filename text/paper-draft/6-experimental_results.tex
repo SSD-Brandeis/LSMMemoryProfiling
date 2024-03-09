@@ -19,13 +19,6 @@ experiments:
     \item \textit{M} (main memory allocated to write buffer) = 16 MB
 \end{itemize}
 
-\subsection{Memory Footprint}
-The memory requirements of various memtable structures vary when tasked with storing the same volume of data. For 
-instance, a \textit{Skip List} generally requires more memory than a \textit{Vector} due to its layered structure and 
-the necessity to maintain pointers. Similarly, a \textit{Hash Skip List} has a higher memory footprint than a 
-\textit{Skip List} because of the additional overhead from a hash table and pointers. This experiment seeks to reveal 
-the trade-offs between the memory footprint and the storage capacity (number of entries) of each memtable 
-implementation, providing insights into their efficiency and appropriateness for different scenarios.
 
 \begin{figure}
     \includegraphics[scale=0.5]{Figures/data-size-comparison-per-memtable.png}
@@ -34,17 +27,6 @@ implementation, providing insights into their efficiency and appropriateness for
     of the memory allocated. Similar patterns are observed for the different buffer sizes.}
     \label{fig:memory_footprint}
 \end{figure}
-
-
-We conducted the experiment by inserting 1 million entries into each memtable implementation and measured the memory 
-footprint. The bucket count (\textit{bck}) and the prefix length (\textit{l}) for the \textit{Hash Skip List} and 
-\textit{Hash Link List} were set to 1 and 0, respectively. Figure~\ref{fig:memory_footprint} demonstrates that the 
-\textit{Vector} exhibits the lowest memory footprint due to its contiguous storage and absence of pointers, whereas 
-the \textit{Hash Skip List} displays the highest memory footprint, reflecting its larger memory requirement. 
-The \textit{Skip List} and \textit{Hash Link List} have memory footprints that lie between the \textit{Vector} and 
-the \textit{Hash Skip List}.
-
-\subsection{Reads Performance}
 
 \begin{figure*}
     \includegraphics[scale=0.45]{Figures/point-queries.png}
@@ -55,6 +37,24 @@ the \textit{Hash Skip List}.
     }
     \label{fig:point-queries}
 \end{figure*}
+
+\subsection{Memory Footprint}
+The memory requirements of various memtable structures vary when tasked with storing the same volume of data. For 
+instance, a \textit{Skip List} generally requires more memory than a \textit{Vector} due to its layered structure and 
+the necessity to maintain pointers. Similarly, a \textit{Hash Skip List} has a higher memory footprint than a 
+\textit{Skip List} because of the additional overhead from a hash table and pointers. This experiment seeks to reveal 
+the trade-offs between the memory footprint and the storage capacity (number of entries) of each memtable 
+implementation, providing insights into their efficiency and appropriateness for different scenarios.
+
+We conducted the experiment by inserting 1 million entries into each memtable implementation and measured the memory 
+footprint. The bucket count (\textit{bck}) and the prefix length (\textit{l}) for the \textit{Hash Skip List} and 
+\textit{Hash Link List} were set to 1 and 0, respectively. Figure~\ref{fig:memory_footprint} demonstrates that the 
+\textit{Vector} exhibits the lowest memory footprint due to its contiguous storage and absence of pointers, whereas 
+the \textit{Hash Skip List} displays the highest memory footprint, reflecting its larger memory requirement. 
+The \textit{Skip List} and \textit{Hash Link List} have memory footprints that lie between the \textit{Vector} and 
+the \textit{Hash Skip List}.
+
+\subsection{Reads Performance}
 
 \Paragraph{Point Queries} The performance of point queries is a critical factor in the selection of a memtable 
 implementation. In the case of a \textit{Vector}, point queries exhibit an $O(n)$ complexity, as the memtable must be 

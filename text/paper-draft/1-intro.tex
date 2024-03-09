@@ -5,6 +5,7 @@ wherein new data is initially written to the top level and subsequently merged i
 writing is primarily due to the process of writing new data to an in-memory buffer, known as the Memtable, which is 
 later flushed to disk as an SSTable. This paper places a significant emphasis on the Memtable, exploring it in detail 
 in the subsequent section.
+\todo{show the line plots for changing latency with changing prefix length and number of buckets}
 
 \Paragraph{Write Buffer} commonly referred to as the Memtable, acts as the primary storage for new writes awaiting 
 persistence. It temporarily stores data in memory until it reaches a predetermined size. The choice of data structure 
@@ -20,23 +21,22 @@ between memory usage and time complexity is a critical factor in the performance
 this paper.
 
 \begin{figure}
-    \raggedright
-    \includegraphics[scale=0.4]{Figures/motivation1-color.png}
+    \includegraphics[scale=0.40]{Figures/motivation.png}
     \caption{Illustrate the trade-off between memory usage and time complexity for different Memtable implementations.}
     \label{fig:motivation1}
 \end{figure}
 
-\begin{figure}
-    \raggedleft
-    \includegraphics[scale=0.35]{Figures/motivation2-color-small.png}
-    \label{fig:motivation2}
-\end{figure}
+% \begin{figure}
+%     \raggedleft
+%     \includegraphics[scale=0.35]{Figures/motivation2-color-small.png}
+%     \label{fig:motivation2}
+% \end{figure}
 
-\begin{figure}
-    \raggedleft
-    \includegraphics[scale=0.35]{Figures/motivation3-color-small.png}
-    \label{fig:motivation3}
-\end{figure}
+% \begin{figure}
+%     \raggedleft
+%     \includegraphics[scale=0.35]{Figures/motivation3-color-small.png}
+%     \label{fig:motivation3}
+% \end{figure}
 
 \section{Problem and Motivation}
 Understanding the nuances of underlying data structures and their impact on 
@@ -45,7 +45,7 @@ detailed workload characteristics, selecting the most suitable Memtable implemen
 a less-than-optimal choice is made—such as the prevalent use of Skip List-based Memtables in RocksDB—due to a lack of
 comprehensive performance analysis across various scenarios. This common oversight can lead to suboptimal LSM tree 
 performance, underscoring the need for a deeper investigation into Memtable configurations and their efficiency under 
-different workloads.
+different workloads.\todo{add the description of the plots in the motivation figure}
 
 \Paragraph{Contributions} The primary objective of this paper is to elucidate the role of Memtables within 
 Log-structured Merge Trees (LSM), examine how various implementations affect memory usage and performance, and provide 
