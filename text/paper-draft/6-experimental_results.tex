@@ -78,7 +78,7 @@ scanned linearly to locate the required key. In contrast, \textit{skip list} imp
 offer improved read performance, with point queries achieving $O(\log n)$ complexity. The  \textit{hash skip list} and \textit{hash skip list}, in 
 particular, can deliver the best performance for point queries if the prefix length and the number of buckets are 
 optimally tuned. It is noteworthy that the performance varies based on configuration, 
-and it falls between that of the \textit{vector} and the  \textit{skip list}.
+and it falls between \textit{vector} and \textit{skip list}.
 
 The prefix length (\textit{l}) and the number of buckets (\textit{bck}) can fairly influence the performance of the
  \textit{hash skip list} and the  \textit{hash link list}. There are two extreme cases: $\left. 1\right)$ setting the prefix length too 
@@ -112,17 +112,22 @@ link list} performs better than the \textit{vector} and the \textit{skip list}. 
 and (f) illustrate that the bad choice of prefix length and the number of buckets can lead to suboptimal performance
 for point queries while using \textit{hash table} based memtable. 
 
-\Paragraph{Range Queries}\\
+\Paragraph{Range Queries} irrespective of their selectivity span, exhibit distinct performance traits compared to point queries.
+During a range query, the memtable is tasked with locating all keys within the query's bounds and returning them in an 
+ordered sequence. The \textit{vector}, due to its lack of inherent order, is less efficient in handling range queries,
+as it necessitates a linear search to locate the keys within the range or to sort the keys. In contrast, the \textit{skip list}
+offers improved handling of both short and long range queries. It operates by initially identifying the key that is 
+greater than or equal to the lower bound of the range, then traverses the list in sequence until it reaches the upper 
+bound or encounters a greater key. 
 
-\textbf{\textit{Vector}} will have the worst performance because of the linear search. (sort and search is $O(n \log n)$)
-
-\textbf{\textit{Skip List}} Better read performance (range query is just search first key and sequentially scan the nodes further - $O(\log n)$)
-
-\textbf{\textit{Hash Skip List}} \& \textbf{\textit{Hash Link List}}
-
-    The range queries will be faster based on the prefix\_len and the number of buckets that are configured. If prefix length 
-    is small and the number of buckets are less then the longer range queries will be faster for every prefix we will return 
-    more keys and we need not to filter the keys. If we have 
+\inprogress{The \textit{hash skip list} and \textit{hash link list} are designed to optimize range queries by leveraging the
+$O(1)$ time complexity of a hash table to locate the correct hash bucket. The range queries are then executed by
+either searching the \textit{skip list} or the \textit{link list} for the target key. The performance of range queries
+in these memtables is influenced by the prefix length and the number of buckets. The range queries will be faster
+based on the prefix length and the number of buckets that are configured. If prefix length is small and the number of
+buckets are less then the longer range queries will be faster as, for every prefix we will return more keys and we may need
+to filter a small number the keys. If a larger prefix is choosen with small number of buckets then the smaller range 
+queries will be faster as for every prefix we will return less keys and we might not need to filter the keys.}
 
 \subsection{Writes Performance}
 
@@ -137,11 +142,9 @@ leads to performance degradation due to the repetitive memory copying required d
 memory serves as a remedy to this inefficiency. As depicted in Figure~\ref{fig:insert-queries1} (a), the dynamic memory 
 allocation in a \textit{vector} leads to latency spikes during ingestion. In contrast, Figure~\ref{fig:insert-queries1} 
 (b) shows the enhanced performance for a pre-allocated \textit{vector}, where the memory of $N \times (E+10) \approx $ 
-11 MB was pre-allocated to memtable.
-
-The inherent sorting nature of \textit{skip list} also slow down write operations as it requires $O(\log n)$ time to 
-locate the correct insertion location for every new key whereas, a \textit{vector} simply append the new key to the 
-end of the array and shows a superior write performance over a \textit{skip list}.
+11 MB was pre-allocated to memtable. The inherent sorting nature of \textit{skip list} also slow down write operations 
+as it requires $O(\log n)$ time to locate the correct insertion location for every new key whereas, a \textit{vector} 
+simply append the new key to the end of the array and shows a superior write performance over a \textit{skip list}.
 
 Both the \textit{hash skip list} and the \textit{hash link list} exhibit improved write performance compared to the 
 \textit{skip list}. These structures capitalize on the $O(1)$ time complexity afforded by a hash table to identify the 
@@ -175,7 +178,9 @@ The memetable like \textit{hash skip list} and \textit{hash link list} with larg
 very quickly because of the hash table and pointers overhead. This leads to the frequent flushes which will 
 either increase the number of files in level-0 or the write amplification of the system. To measure the number of flushes 
 and compactions, we ran our experiements with unique 1 million inserts and recorded the number of flushes, compactions 
-and total number of bytes read and written to the disk.
+and total number of bytes read and written to the disk. Figure~\ref{fig:flush-compaction} shows the comparison of
+flushes and compactions for different memtable implementations. The \textit{hash skip list} due to its large memory
+requirement shows a significant increase in memory usage and I/O. The \textit{vector} implementation shows the least
 
 
 % \begin{figure}[h]
