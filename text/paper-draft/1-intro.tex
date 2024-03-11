@@ -5,26 +5,33 @@ wherein new data is initially written to the top level and subsequently merged i
 writing is primarily due to the process of writing new data to an in-memory buffer, known as the Memtable, which is 
 later flushed to disk as an SSTable. This paper places a significant emphasis on the Memtable, exploring it in detail 
 in the subsequent section.
-\todo{show the line plots for changing latency with changing prefix length and number of buckets}
 
 \Paragraph{Write Buffer} commonly referred to as the Memtable, acts as the primary storage for new writes awaiting 
 persistence. It temporarily stores data in memory until it reaches a predetermined size. The choice of data structure 
-for the Memtable allows for a trade-off between memory usage and the time complexity of write operations. For instance, 
-a Vector-based Memtable offers a time complexity of $O(1)$ for write operations, while a Skip List-based Memtable 
-presents a time complexity of $O(\log n)$. This comparison highlights that although Vector-based Memtables offer better 
+for the Memtable allows for a trade-off between memory usage and the time complexity of read and write operations. For instance, 
+a Vector-based Memtable offers a time complexity of $O(1)$ for write operations, as it writes at the end of a contiguous array of memory, while a Skip List-based Memtable 
+presents a time complexity of $O(\log n)$ due to its inherent nature of sortedness. This comparison highlights that although Vector-based Memtables offer better 
 time complexity for writes, the amount of CPU resources requierd for flushing the Memtable to disk is much higher 
 than Skip List-based Memtables due to the fact that the data is not sorted in the Vector-based Memtables. On the other 
 hand, Skip List-based Memtable needs extra memory to store pointers for each element and the additional layer of 
 indirection which results in higher memory usage. Consequently, this increased memory footprint limits the number of 
-elements a Memtable can hold, leading to a greater number of files in the flushed Sorted String Table. This trade-off 
-between memory usage and time complexity is a critical factor in the performance of the LSM tree which is explored in 
-this paper.
+elements a Memtable can hold, leading to a more number of files to be flushed as Sorted String Table. This trade-off 
+between memory usage and time complexity is a critical factor in the performance of the LSM tree which we tried to 
+explore in this paper.
 
 \begin{figure}
     \includegraphics[scale=0.40]{Figures/motivation.png}
-    \caption{Illustrate the trade-off between memory usage and time complexity for different Memtable implementations.}
+    \caption{Illustrate the trade-off between memory usage and time complexity for different Memtable implementations. 
+    VS is short for very small (0.0001) and L for large (0.8) selectivity.}
     \label{fig:motivation1}
 \end{figure}
+
+% \begin{figure}
+%     \includegraphics[scale=0.40]{Figures/motivation1-color.png}
+%     \caption{Illustrate the trade-off between memory usage and time complexity for different Memtable implementations.}
+%     \label{fig:motivation1}
+% \end{figure}
+
 
 % \begin{figure}
 %     \raggedleft
@@ -45,7 +52,10 @@ detailed workload characteristics, selecting the most suitable Memtable implemen
 a less-than-optimal choice is made—such as the prevalent use of Skip List-based Memtables in RocksDB—due to a lack of
 comprehensive performance analysis across various scenarios. This common oversight can lead to suboptimal LSM tree 
 performance, underscoring the need for a deeper investigation into Memtable configurations and their efficiency under 
-different workloads.\todo{add the description of the plots in the motivation figure}
+different workloads. Figure~\ref{fig:motivation1} shows the read and write latency for different memtables.
+The \textit{vector} memtable has the lowest write latency, but the highest read latency. The \textit{hash skip list} and 
+\textit{hash link list} are the combination of \textit{hash table} with \textit{skip list} and \textit{link list}, respectively.
+These memtables shows a better point read and write latency compared to \textit{skip list} memtable.
 
 \Paragraph{Contributions} The primary objective of this paper is to elucidate the role of Memtables within 
 Log-structured Merge Trees (LSM), examine how various implementations affect memory usage and performance, and provide 
@@ -53,12 +63,10 @@ a framework for selecting the optimal Memtable based on specific workloads and a
 following contributions:
 
 \begin{enumerate}[leftmargin=*,labelindent=0mm, itemsep=0.2\baselineskip]
-    \item \textbf{Memtable Analysis}: A thorough examination of the memory footprint and performance across different Memtable 
-    implementations, including Skip List, Vector, Hash Skip List, and Hash Link List, is provided. Additionally, we 
-    introduce two novel Memtable implementations, Trie and Tree, and assess their performance relative to existing 
-    options.
-    \item \textbf{Performance Modeling}: We develop a performance model for Memtable implementations that details the time 
-    complexity of write operations and memory consumption. This model facilitates a comparative analysis of the 
+    \item \textbf{Memtable Memory Analysis}: A thorough examination of the memory footprint across different Memtable 
+    implementations, including \textit{skip list, vector, hash skip list, and hash link list}, is provided.
+    \item \textbf{Memtable Performance Modeling}: We develop a performance model for Memtable implementations that details the time 
+    complexity of read and write operations. This model facilitates a comparative analysis of the 
     performance of various Memtable types under differing workload conditions.
     \item \textbf{Memtable Selection Insights}: Based on our performance analysis and modeling, we offer recommendations for 
     choosing the most appropriate Memtable implementation, taking into account the specific demands of the workload and 

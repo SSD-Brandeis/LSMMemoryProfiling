@@ -11,16 +11,16 @@ terms we use throughout this paper.
 \subsection{Memtables Implementations}
 
 \Paragraph{Skip List} 
-The default memtable implementation in many systems like RocksDB~\cite{Facebook2021} and LevelDB is the Skip List. 
+The default memtable implementation in many systems like RocksDB~\cite{Facebook2021} and LevelDB is the \textit{skip list}. 
 This structure is built with multiple layers of linked lists, each layer containing progressively fewer elements to 
 ease navigation. The lowest layer encompasses all elements in sorted order, akin to a standard linked list, while the 
 upper layers introduce shortcuts that expedite element access. This probabilistic arrangement guarantees logarithmic 
 $O(\log n)$ search, insertion, and deletion times by enabling quick traversal across its layers—not through binary 
-search, but via a strategic, level-by-level method. Consequently, Skip Lists are exceptionally suited for achieving 
+search, but via a strategic, level-by-level method. Consequently, \textit{skip lists} are exceptionally suited for achieving 
 balanced read and write operations, as well as efficiently supporting fully ordered database scans.
 
 However, the layered structure and the necessity to maintain pointers for each element increase the memory requirements 
-of Skip Lists. Typically, a four-layered Skip List, with each upper layer containing approximately one-fourth of the 
+of \textit{skip list}. Typically, a four-layered \textit{skip list}, with each upper layer containing approximately one-fourth of the 
 elements in the layer immediately below it, is utilized. This configuration demands roughly 1.33 times more memory than 
 the actual data stored.
 
@@ -59,38 +59,44 @@ the actual data stored.
     \label{table:terms}
 \end{table}
 
-\Paragraph{Vector} A Vector functions as a dynamic, automatically resizing array, providing contiguous storage for 
-efficient iteration. Insertions are optimally performed at the Vector's end, making it particularly advantageous for 
+\Paragraph{Vector} A \textit{vector} functions as a dynamic, automatically resizing array, providing contiguous storage for 
+efficient iteration. Insertions are optimally performed at the \textit{vector}'s end, making it particularly advantageous for 
 write-intensive tasks. However, its dependence on linear search $O(n)$ for indexing renders it less effective for point 
-queries and scans, as these operations necessitate sequential traversal of the Vector. The memory overhead for a 
-Vector is relatively minimal, requiring only additional space for resizing along with a modest amount of metadata. Due 
-to its lower memory demands, a Vector can potentially store more data, leading to fewer disk flushes. Nonetheless, 
-Vectors are not well-suited for handling point queries due to the linear search requirement.
+queries and scans, as these operations necessitate sequential traversal of the \textit{vector}. The memory overhead for a 
+\textit{vector} is relatively minimal, requiring only additional space for resizing along with a modest amount of metadata. Due 
+to its lower memory demands, a \textit{vector} can potentially store more data, leading to fewer disk flushes. Nonetheless, 
+\textit{vectors} are not well-suited for handling point queries due to the linear search requirement. It can also
+slow down the write operations when the size of the \textit{vector} grows and it needs to be resized for large
+buffer size (M). This problem can be mitigated by using a \textit{vector} of fixed size close to the write buffer.
 
-\Paragraph{Hash Skip List} The Hash Skip List combines a hash table with Skip Lists within each bucket. Keys are 
+\Paragraph{Hash Skip List} The \textit{hash skip list} combines a hash table with \textit{skip lists} within each bucket. Keys are 
 partitioned by prefix for bucket allocation, facilitating targeted insertions and lookups through a combination of 
-hashing and binary search. This structure excels in handling small range queries within specific key prefixes. 
-Nonetheless, executing range scans across multiple prefixes is resource-intensive, as it necessitates copying and 
-sorting, thereby impacting time and memory efficiency.
+hashing and binary search. This structure excels in handling point reads and write operations, including small range 
+queries within specific key prefixes particularly for uniformly distributed data. Nonetheless, executing range scans 
+across multiple prefixes is resource-intensive, as it necessitates copying and sorting, thereby impacting time and memory efficiency.
 
-The memory overhead of the Hash Skip List is higher than that of a traditional Skip List due to the extra space needed 
-for the hash table and the pointers to each Skip List. The Hash Skip List is particularly well-suited for workloads
+The design of the \textit{hash skip list} involves configuring the number of buckets (\textit{bck}) and specifying a 
+prefix extractor, typically the first $l$ characters of the key. The role of the prefix extractor is to isolate the 
+prefix from the key and hash it to identify the appropriate bucket. Each bucket, in turn, is a \textit{skip list} that 
+contains the key-value pairs. During the storage process, the entire key, including its prefix, is retained to 
+facilitate more precise range queries. If a bucket is unused, it points to \texttt{nullptr}; otherwise, it points to 
+the corresponding \textit{skip list}. The point queries are executed by simply hashing the prefix to lookup $O(1)$ the 
+appropriate bucket and then searching $O(\log n)$ the \textit{skip list} for the target key. The memory overhead of the 
+\textit{hash skip list} is higher than that of a traditional \textit{skip list} due to the extra space needed 
+for the hash table and the pointers to each \textit{skip list}. This additional memory requirement is also the reason
+for storing fewer entries in the \textit{hash skip list} compared to the \textit{skip list} and \textit{vector} which
+leads to more number of files to be flushed as SSTable. This limitation is addressed by the \textit{hash link list} which
+we will discuss in the next. The \textit{hash skip list} is particularly well-suited for workloads
 involving a high volume of small range queries within specific key prefixes.
 
-\todo{explain about the buckets, prefix\_len and hashtable in the Hash Skip List - how it is formed and how it is used.}
-
-\Paragraph{Hash Link List} Similar to the Hash Skip List, the Hash Link List incorporates a hash table framework; 
-however, it differs by linking each bucket to a single sorted linked list. This arrangement is particularly tailored for 
-efficiently handling range queries limited to narrow key prefixes, typically involving a modest number of entries. 
-Despite utilizing hashing for quick bucket identification, the Hash Link List relies on linear search within each 
-linked list for indexing, which may reduce its efficiency for point queries compared to other structures.
-
-The Hash Link List presents a lower memory overhead compared to the Hash Skip List, primarily because it 
-eschews the layered structure inherent to Skip Lists. Consequently, this streamlined setup makes it an excellent choice 
-for scenarios characterized by frequent small range queries within specific key prefixes, especially when each prefix 
-is associated with a limited dataset.
-
-\todo{explain how the Hash Link List is formed and how it is used with the buckets, prefix\_len and hashtable.}
+\Paragraph{Hash Link List} Similar to the \textit{hash skip list}, the \textit{hash link list} incorporates a hash table framework; 
+however, it differs by linking each bucket to a single sorted linked list. This arrangement is particularly tailored for
+efficiently handling range queries for specific key prefixes. It also offers the same write efficiency as the \textit{hash skip list}
+with less memory overhead. For point queries, the \textit{hash link list} relies on linear search within each linked list,
+which may also reduce its efficiency compared to \textit{hash skip list}. The \textit{hash link list} presents a lower memory 
+overhead compared to the \textit{hash skip list}, primarily because it eschews the layered structure inherent to 
+\textit{skip lists}. Consequently, this streamlined setup makes it an excellent choice for scenarios characterized by 
+frequent small range queries within specific key prefixes, especially when each prefix is associated with a limited dataset.
 
 % \subsection{Proposed memtables} \lipsum[1]
 

@@ -7,7 +7,6 @@ periodically flushed to disk as a Sorted String Table (SSTable) once it reaches 
 various implementations, including Skip List, Vector, Hash Skip List, and Hash Link List, each with its unique memory 
 footprint and performance characteristics. The choice of Memtable implementation can impact the overall performance of 
 the LSM tree, especially in memory-constrained environments where the Memtable size is limited.\\
-\todo{Have to explore other data stores memtable implementations.}
 
 In this paper, we focus on analyzing the memory usage of different Memtable implementations and comparing their 
 performance. Additionally, we offer guidance on selecting the most suitable Memtable implementation based on specific 
