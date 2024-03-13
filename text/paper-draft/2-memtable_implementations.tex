@@ -75,7 +75,7 @@ hashing and binary search. This structure excels in handling point reads and wri
 queries within specific key prefixes particularly for uniformly distributed data. Nonetheless, executing range scans 
 across multiple prefixes is resource-intensive, as it necessitates copying and sorting, thereby impacting time and memory efficiency.
 
-The design of the \textit{hash skip list} involves configuring the number of buckets (\textit{K}) and specifying a 
+The design of the \textit{hash skip list} involves configuring the number of buckets (\textit{H}) and specifying a 
 prefix extractor, typically the first $l$ characters of the key. The role of the prefix extractor is to isolate the 
 prefix from the key and hash it to identify the appropriate bucket. Each bucket, in turn, is a \textit{skip list} that 
 contains the key-value pairs. During the storage process, the entire key, including its prefix, is retained to 
@@ -85,15 +85,15 @@ appropriate bucket and then searching $O(\log n)$ the \textit{skip list} for the
 \textit{hash skip list} is higher than that of a traditional \textit{skip list} due to the extra space needed 
 for the hash table and the pointers to each \textit{skip list}. This additional memory requirement is also the reason
 for storing fewer entries in the \textit{hash skip list} compared to the \textit{skip list} and \textit{vector} which
-leads to more number of files to be flushed as file. This limitation is addressed by the \textit{hash link list} which
+leads to more number of files to be flushed as file. This limitation is addressed by the \textit{hash linked list} which
 we will discuss in the next. The \textit{hash skip list} is particularly well-suited for workloads
 involving a high volume of small range queries within specific key prefixes.
 
-\Paragraph{Hash Link List} Similar to the \textit{hash skip list}, the \textit{hash link list} incorporates a hash table framework; 
+\Paragraph{Hash Linked List} Similar to the \textit{hash skip list}, the \textit{hash linked list} incorporates a hash table framework; 
 however, it differs by linking each bucket to a single sorted linked list. This arrangement is particularly tailored for
 efficiently handling range queries for specific key prefixes. It also offers the same write efficiency as the \textit{hash skip list}
-with less memory overhead. For point queries, the \textit{hash link list} relies on linear search within each linked list,
-which may also reduce its efficiency compared to \textit{hash skip list}. The \textit{hash link list} presents a lower memory 
+with less memory overhead. For point queries, the \textit{hash linked list} relies on linear search within each linked list,
+which may also reduce its efficiency compared to \textit{hash skip list}. The \textit{hash linked list} presents a lower memory 
 overhead compared to the \textit{hash skip list}, primarily because it eschews the layered structure inherent to 
 \textit{skip lists}. Consequently, this streamlined setup makes it an excellent choice for scenarios characterized by 
 frequent small range queries within specific key prefixes, especially when each prefix is associated with a limited dataset.

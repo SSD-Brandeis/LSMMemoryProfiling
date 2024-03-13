@@ -4,7 +4,7 @@ on LSM-trees for their foundational structure. These systems are optimized to de
 latency during write operations. Data is initially ingested through an in-memory write buffer within the LSM-tree, known as 
 the Memtable. This buffer, designed for write optimization, temporarily holds the latest database writes and is 
 periodically flushed to disk as a sorted string file once it reaches a certain size. The write buffers come in 
-various implementations, including \textit{skip list}, \textit{vector}, \textit{hash skip list}, and \textit{hash link list}, each with its unique memory 
+various implementations, including \textit{skip list}, \textit{vector}, \textit{hash skip list}, and \textit{hash linked list}, each with its unique memory 
 footprint and performance characteristics. The choice of write buffer implementation can impact the overall performance of 
 the LSM-tree, especially in memory-constrained environments where the write buffer size is limited.
 
