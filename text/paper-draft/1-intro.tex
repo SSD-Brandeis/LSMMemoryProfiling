@@ -1,37 +1,38 @@
 \Paragraph{Log-structured Merge Tree (LSM)} organizes data across multiple levels, with each level typically consisting 
-of one sorted runs, each run being a collection of Sorted String Tables (SSTables). These SSTables are immutable and are 
-merged to form new SSTables at the next adjacent level down. This structure follows an out-of-place update strategy, 
+of one sorted runs, each run being a collection of sorted string file. These files are immutable and are 
+merged to form new files at the next adjacent level down. This structure follows an out-of-place update strategy, 
 wherein new data is initially written to the top level and subsequently merged into lower levels. The efficiency in 
-writing is primarily due to the process of writing new data to an in-memory buffer, known as the Memtable, which is 
-later flushed to disk as an SSTable. This paper places a significant emphasis on the Memtable, exploring it in detail 
+writing is primarily due to the process of writing new data to an in-memory buffer which is 
+later flushed to disk as an file. This paper places a significant emphasis on the write buffer, exploring it in detail 
 in the subsequent section.
 
 \Paragraph{Write Buffer} commonly referred to as the Memtable, acts as the primary storage for new writes awaiting 
 persistence. It temporarily stores data in memory until it reaches a predetermined size. The choice of data structure 
-for the Memtable allows for a trade-off between memory usage and the time complexity of read and write operations. For instance, 
-a Vector-based Memtable offers a time complexity of $O(1)$ for write operations, as it writes at the end of a contiguous array of memory, while a Skip List-based Memtable 
-presents a time complexity of $O(\log n)$ due to its inherent nature of sortedness. This comparison highlights that although Vector-based Memtables offer better 
-time complexity for writes, the amount of CPU resources requierd for flushing the Memtable to disk is much higher 
-than Skip List-based Memtables due to the fact that the data is not sorted in the Vector-based Memtables. On the other 
-hand, Skip List-based Memtable needs extra memory to store pointers for each element and the additional layer of 
+for the write buffer allows for a trade-off between memory usage and the time complexity of read and write operations. For instance, 
+a vector-based write buffer offers a time complexity of $O(1)$ for write operations, as it writes at the end of a contiguous array of memory, while a skip list-based write buffer 
+presents a time complexity of $O(\log n)$ due to its inherent nature of sortedness. This comparison highlights that although vector-based write buffers offer better 
+time complexity for writes, the amount of CPU resources requierd for flushing the write buffer to disk is much higher 
+than skip list-based write buffers due to the fact that the data is not sorted in the vector-based write buffers. On the other 
+hand, skip list-based write buffer needs extra memory to store pointers for each element and the additional layer of 
 indirection which results in higher memory usage. Consequently, this increased memory footprint limits the number of 
-elements a Memtable can hold, leading to a more number of files to be flushed as Sorted String Table. This trade-off 
-between memory usage and time complexity is a critical factor in the performance of the LSM tree which we tried to 
+elements a write buffer can hold, leading to a more number of files to be flushed as Sorted String Table. This trade-off 
+between memory usage and time complexity is a critical factor in the performance of the LSM-tree which we tried to 
 explore in this paper.
 
 \begin{figure}
-    \includegraphics[scale=0.40]{Figures/motivation.png}
-    \caption{\inprogress{Illustrate the trade-off between memory usage and time complexity for different Memtable implementations. 
-    VS is short for very small (0.0001) and L for large (0.8) selectivity.}}
+    \includegraphics[scale=0.5]{Figures/motivationf.png}
+    \caption{Illustrate the trade-off between memory usage and time complexity for different write buffer implementations. 
+    (a) shows the read, write and range query latencies (b) shows the latency with change in \textit{prefix 
+    length} and \textit{buffer count.}}
     \label{fig:motivation1}
 \end{figure}
 
 % \begin{figure}
 %     \includegraphics[scale=0.40]{Figures/motivation1-color.png}
-%     \caption{Illustrate the trade-off between memory usage and time complexity for different Memtable implementations.}
+%     \caption{Illustrate the trade-off between memory usage and time complexity for different write buffer implementations.}
 %     \label{fig:motivation1}
 % \end{figure}
-
+ 
 
 % \begin{figure}
 %     \raggedleft
@@ -48,31 +49,31 @@ explore in this paper.
 \section{Problem and Motivation}
 Understanding the nuances of underlying data structures and their impact on 
 performance is crucial for optimizing the Log-structured Merge Tree (LSM) framework. Despite the availability of 
-detailed workload characteristics, selecting the most suitable Memtable implementation remains a daunting task. Often, 
-a less-than-optimal choice is made—such as the prevalent use of Skip List-based Memtables in RocksDB—due to a lack of
-comprehensive performance analysis across various scenarios. This common oversight can lead to suboptimal LSM tree 
-performance, underscoring the need for a deeper investigation into Memtable configurations and their efficiency under 
-different workloads. Figure~\ref{fig:motivation1} shows the read and write latency for different memtables.
-The \textit{vector} memtable has the lowest write latency, but the highest read latency. The \textit{hash skip list} and 
+detailed workload characteristics, selecting the most suitable write buffer implementation remains a daunting task. Often, 
+a less-than-optimal choice is made—such as the prevalent use of skip list-based write buffers in RocksDB—due to a lack of
+comprehensive performance analysis across various scenarios. This common oversight can lead to suboptimal LSM-tree 
+performance, underscoring the need for a deeper investigation into write buffer configurations and their efficiency under 
+different workloads. Figure~\ref{fig:motivation1} shows the read and write latency for different write buffers.
+The \textit{vector} write buffer has the lowest write latency, but the highest read latency. The \textit{hash skip list} and 
 \textit{hash link list} are the combination of \textit{hash table} with \textit{skip list} and \textit{link list}, respectively.
-These memtables shows a better point read and write latency compared to \textit{skip list} memtable.
+These write buffers shows a better point read and write latency compared to \textit{skip list} write buffer.
 
-\Paragraph{Contributions} The primary objective of this paper is to elucidate the role of Memtables within 
+\Paragraph{Contributions} The primary objective of this paper is to elucidate the role of write buffers within 
 Log-structured Merge Trees (LSM), examine how various implementations affect memory usage and performance, and provide 
-a framework for selecting the optimal Memtable based on specific workloads and available resources. We make the 
+a framework for selecting the optimal write buffer based on specific workloads and available resources. We make the 
 following contributions:
 
 \begin{enumerate}[leftmargin=*,labelindent=0mm, itemsep=0.2\baselineskip]
-    \item \textbf{Memtable Memory Analysis}: A thorough examination of the memory footprint across different Memtable 
+    \item \textbf{Write buffer Memory Analysis}: A thorough examination of the memory footprint across different write buffer 
     implementations, including \textit{skip list, vector, hash skip list, and hash link list}, is provided.
-    \item \textbf{Memtable Performance Modeling}: We develop a performance model for Memtable implementations that details the time 
+    \item \textbf{Write buffer Performance Modeling}: We develop a performance model for write buffer implementations that details the time 
     complexity of read and write operations. This model facilitates a comparative analysis of the 
-    performance of various Memtable types under differing workload conditions.
-    \item \textbf{Memtable Selection Insights}: Based on our performance analysis and modeling, we offer recommendations for 
-    choosing the most appropriate Memtable implementation, taking into account the specific demands of the workload and 
+    performance of various write buffer types under differing workload conditions.
+    \item \textbf{Write buffer Selection Insights}: Based on our performance analysis and modeling, we offer recommendations for 
+    choosing the most appropriate write buffer implementation, taking into account the specific demands of the workload and 
     the resources at hand.
 \end{enumerate}
-These contributions aim to enhance understanding and decision-making regarding Memtable configurations within LSM trees, 
+These contributions aim to enhance understanding and decision-making regarding write buffer configurations within LSM-trees, 
 addressing both theoretical and practical considerations in database management and optimization. To underscore the 
 real-world applicability of our research, we employ RocksDB—a widely recognized key-value store—as a case study. This 
 choice allows us to validate our findings in a practical setting, demonstrating their relevance and utility in 

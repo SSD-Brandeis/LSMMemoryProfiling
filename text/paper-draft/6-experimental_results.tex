@@ -1,12 +1,12 @@
-In this section, we outline our approach to empirically assess the performance of various memtable implementations 
+In this section, we outline our approach to empirically assess the performance of various write buffer implementations 
 against the metrics established in last section. To ensure a comprehensive evaluation, we have selected three distinct types 
-of workloads, each designed to test the Memtables under different operational scenarios: (a) inserts with interleaved 
+of workloads, each designed to test the write buffers under different operational scenarios: (a) inserts with interleaved 
 point queries, (b) inserts with interleaved range queries (small selectivity), and (c) inserts with interleaved range
 queries (large selectivity).
 
 \begin{figure}
     \includegraphics[scale=0.48]{Figures/data-size-comparison-per-memtable.png}
-    \caption{The \textit{hash skip list} (for \textit{l} 0 with \textit{bck} 1) implementation requires more memory to store the entries, and 
+    \caption{The \textit{hash skip list} (for \textit{l} 0 with \textit{K} 1) implementation requires more memory to store the entries, and 
     it only uses 75 percent of the allocated space whereas the \textit{vector} implementation uses 88 percent
     of the memory allocated. Similar patterns are observed for the different buffer sizes.}
     \label{fig:memory_footprint}
@@ -14,9 +14,9 @@ queries (large selectivity).
 
 \begin{figure*}
     \includegraphics[scale=0.45]{Figures/point-queries.png}
-    \caption{Comparison of point queries performance for different memtable implementations. The \textit{vector}
+    \caption{Comparison of point queries performance for different write buffer implementations. The \textit{vector}
     implementation exhibits the poorest performance w.r.t the ingestion, while the \textit{Hash 
-    Skip List} (for \textit{l} 6 and \textit{bck} 100K) demonstrates better performance for point queries. The choice
+    Skip List} (for \textit{l} 6 and \textit{K} 100K) demonstrates better performance for point queries. The choice
     of prefix length and the number of buckets can leads to suboptimal performance.
     }
     \label{fig:point-queries}
@@ -25,7 +25,7 @@ queries (large selectivity).
 
 \subsection{Experimental Setup}
 To conduct these experiments, we used a Chameleon machine equipped with a configuration of 187 GiB of RAM and 
-48 cores. We used the RocksDB~\cite{Facebook2021} storage engine to evaluate the performance of the memtable 
+48 cores. We used the RocksDB~\cite{Facebook2021} storage engine to evaluate the performance of the write buffer 
 implementations. The RocksDB was configured to use only one thread for compactions and one thread for flushes to ensure
 that the performance is not affected by the compaction and flush threads. We also disabled the write-ahead log (WAL)
 to ensure that the performance is not affected by the WAL. Below are the parameters that we use across all the 
@@ -39,15 +39,15 @@ experiments:
 \end{itemize}
 
 \subsection{Memory Footprint}
-The memory requirements of various memtable structures vary when tasked with storing the same volume of data. For 
+The memory requirements of various write buffer structures vary when tasked with storing the same volume of data. For 
 instance, a \textit{skip list} generally requires more memory than a \textit{vector} due to its layered structure and 
 the necessity to maintain pointers. Similarly, a \textit{hash skip list} has a higher memory footprint than a 
  \textit{skip list} because of the additional overhead from a hash table and pointers. This experiment seeks to reveal 
-the trade-offs between the memory footprint and the storage capacity (number of entries) of each memtable 
+the trade-offs between the memory footprint and the storage capacity (number of entries) of each write buffer 
 implementation, providing insights into their efficiency and appropriateness for different scenarios.
 
-We conducted the experiment by inserting 1 million entries into each memtable implementation and measured the memory 
-footprint. The bucket count (\textit{bck}) and the prefix length (\textit{l}) for the \textit{hash skip list} and 
+We conducted the experiment by inserting 1 million entries into each write buffer implementation and measured the memory 
+footprint. The bucket count (\textit{K}) and the prefix length (\textit{l}) for the \textit{hash skip list} and 
  \textit{hash link list} were set to 1 and 0, respectively. Figure~\ref{fig:memory_footprint} demonstrates that the 
 \textit{vector} exhibits the lowest memory footprint due to its contiguous storage and absence of pointers, whereas 
 the \textit{hash skip list} displays the highest memory footprint, reflecting its larger memory requirement. 
@@ -56,31 +56,31 @@ the  \textit{hash skip list}.
 
 \begin{figure*}
     \includegraphics[scale=0.42]{Figures/insert-queries1.png}
-    \caption{Comparison of write performance across various memtable implementations reveals that while the default 
+    \caption{Comparison of write performance across various write buffer implementations reveals that while the default 
     \textit{vector} (a) offers commendable performance, a \textit{vector} (b) with pre-allocated memory surpasses it. 
     Furthermore, both \textit{hash link list} (c) and \textit{hash skip list} (d), particularly with \textit{l} 6 and 
-    \textit{bck} 100K, exceed the write performance of the  \textit{skip list}.}
+    \textit{K} 100K, exceed the write performance of the  \textit{skip list}.}
     \label{fig:insert-queries1}
 \end{figure*}
 
 \begin{figure}
     \includegraphics[scale=0.38]{Figures/range-queries1.png}
-    \caption{Sorting the memtable is the main slowdown for the \textit{vector} implementation. 
+    \caption{Sorting the write buffer is the main slowdown for the \textit{vector} implementation. 
     \textit{skip list} outperforms it for both short (a) and long (b) range queries.}
     \label{fig:range-queries1}
 \end{figure}
 
 \subsection{Reads Performance}
 
-\Paragraph{Point Queries} The performance of point queries is a critical factor in the selection of a memtable 
-implementation. In the case of a \textit{vector}, point queries exhibit an $O(n)$ complexity, as the memtable must be 
+\Paragraph{Point Queries} The performance of point queries is a critical factor in the selection of a write buffer 
+implementation. In the case of a \textit{vector}, point queries exhibit an $O(n)$ complexity, as the write buffer must be 
 scanned linearly to locate the required key. In contrast, \textit{skip list} implementations 
 offer improved read performance, with point queries achieving $O(\log n)$ complexity. The  \textit{hash skip list} and \textit{hash skip list}, in 
 particular, can deliver the best performance for point queries if the prefix length and the number of buckets are 
 optimally tuned. It is noteworthy that the performance varies based on configuration, 
 and it falls between \textit{vector} and \textit{skip list}.
 
-The prefix length (\textit{l}) and the number of buckets (\textit{bck}) can fairly influence the performance of the
+The prefix length (\textit{l}) and the number of buckets (\textit{K}) can fairly influence the performance of the
  \textit{hash skip list} and the  \textit{hash link list}. There are two extreme cases: $\left. 1\right)$ setting the prefix length too 
 small, for example, to 0, results in all keys being stored in a single bucket, $\left. 2\right)$ increasing the prefix length to the 
 maximum length of the keys while maintaining only one bucket leads to the same bottleneck. Ideally, the number of 
@@ -99,21 +99,21 @@ The \textit{hash link list} emerges as a more memory-efficient alternative. Desp
 maintain commendable performance provided that the buckets are uniformly filled and contains a smaller number of 
 entries.
 
-To assess the performance of point queries on Memtables, we conducted an experiment in which we inserted 140K entries, 
+To assess the performance of point queries on write buffers, we conducted an experiment in which we inserted 140K entries, 
 each 64 bytes in size, with random interleaved 200 point queries and recorded the time taken to execute each query. 
 Figure~\ref{fig:point-queries} (a) illustrates that the \textit{vector} implementation exhibits the poorest performance, 
 which aligns with expectations due to its linear search complexity. In Rocksdb, the point queries are performed by
-first sorting the memtable and then performing a binary search for \textit{vector}. Notably, the graph's spikes can be attributed to 
-the overhead incurred by sorting the \textit{vector} memtable prior to performing a binary search for the point queries. The 
+first sorting the write buffer and then performing a binary search for \textit{vector}. Notably, the graph's spikes can be attributed to 
+the overhead incurred by sorting the \textit{vector} write buffer prior to performing a binary search for the point queries. The 
 sort function of the standard library of C++ uses different sorting algorithms to optimize performance.
 Figure~\ref{fig:point-queries} (b) and (c) demonstrate that the \textit{hash skip
-list} (for \textit{l} 6 and \textit{bck} 100K) exhibits the best performance for point queries, while the \textit{hash 
+list} (for \textit{l} 6 and \textit{K} 100K) exhibits the best performance for point queries, while the \textit{hash 
 link list} performs better than the \textit{vector} and the \textit{skip list}. Figure~\ref{fig:point-queries} (d), (e) 
 and (f) illustrate that the bad choice of prefix length and the number of buckets can lead to suboptimal performance
-for point queries while using \textit{hash table} based memtable. 
+for point queries while using \textit{hash table} based write buffer. 
 
 \Paragraph{Range Queries} irrespective of their selectivity span, exhibit distinct performance traits compared to point queries.
-During a range query, the memtable is tasked with locating all keys within the query's bounds and returning them in an 
+During a range query, the write buffer is tasked with locating all keys within the query's bounds and returning them in an 
 ordered sequence. The \textit{vector}, due to its lack of inherent order, is less efficient in handling range queries,
 as it necessitates a linear search to locate the keys within the range or to sort the keys. In contrast, the \textit{skip list}
 offers improved handling of both short and long range queries. It operates by initially identifying the key that is 
@@ -123,7 +123,7 @@ bound or encounters a greater key.
 \inprogress{The \textit{hash skip list} and \textit{hash link list} are designed to optimize range queries by leveraging the
 $O(1)$ time complexity of a hash table to locate the correct hash bucket. The range queries are then executed by
 either searching the \textit{skip list} or the \textit{link list} for the target key. The performance of range queries
-in these memtables is influenced by the prefix length and the number of buckets. The range queries will be faster
+in these write buffers is influenced by the prefix length and the number of buckets. The range queries will be faster
 based on the prefix length and the number of buckets that are configured. If prefix length is small and the number of
 buckets are less then the longer range queries will be faster as, for every prefix we will return more keys and we may need
 to filter a small number the keys. If a larger prefix is choosen with small number of buckets then the smaller range 
@@ -131,55 +131,55 @@ queries will be faster as for every prefix we will return less keys and we might
 
 \subsection{Writes Performance}
 
-To measure the write performance of the memtable implementations, we conducted an experiment in which we inserted 140K 
+To measure the write performance of the write buffer implementations, we conducted an experiment in which we inserted 140K 
 entries, each 64 bytes in size, and recorded the time taken to execute each insert query. 
-Figure~\ref{fig:insert-queries1} illustrates the comparison of write performance across different memtable 
+Figure~\ref{fig:insert-queries1} illustrates the comparison of write performance across different write buffer 
 implementations.
 
-The ingestion process for a \textit{vector} memtable is analogous to appending bytes to an array. A typical vector 
+The ingestion process for a \textit{vector} write buffer is analogous to appending bytes to an array. A typical vector 
 implementation dynamically allocates memory, doubling the allocation when the existing space is exhausted. This can 
 leads to performance degradation due to the repetitive memory copying required during reallocation. The pre-allocation of 
 memory serves as a remedy to this inefficiency. As depicted in Figure~\ref{fig:insert-queries1} (a), the dynamic memory 
 allocation in a \textit{vector} leads to latency spikes during ingestion. In contrast, Figure~\ref{fig:insert-queries1} 
 (b) shows the enhanced performance for a pre-allocated \textit{vector}, where the memory of $N \times (E+10) \approx $ 
-11 MB was pre-allocated to memtable. The inherent sorting nature of \textit{skip list} also slow down write operations 
+11 MB was pre-allocated to write buffer. The inherent sorting nature of \textit{skip list} also slow down write operations 
 as it requires $O(\log n)$ time to locate the correct insertion location for every new key whereas, a \textit{vector} 
 simply append the new key to the end of the array and shows a superior write performance over a \textit{skip list}.
 
 Both the \textit{hash skip list} and the \textit{hash link list} exhibit improved write performance compared to the 
 \textit{skip list}. These structures capitalize on the $O(1)$ time complexity afforded by a hash table to identify the 
-correct hash bucket. This is followed by $O(\log \frac{P \times B}{bck})$ for searching a key within the \textit{hash 
-skip list}, and on average $O(\frac{P \times B}{bck})$ in the \textit{hash link list}. The improved performance (assuming uniform data distribution) 
-can be achieved with a careful choice of prefix length (\textit{l}) and bucket count (\textit{bck}). The results of our 
+correct hash bucket. This is followed by $O(\log \frac{P \times B}{K})$ for searching a key within the \textit{hash 
+skip list}, and on average $O(\frac{P \times B}{K})$ in the \textit{hash link list}. The improved performance (assuming uniform data distribution) 
+can be achieved with a careful choice of prefix length (\textit{l}) and bucket count (\textit{K}). The results of our 
 experiments, as plotted in Figure~\ref{fig:insert-queries1} (c) and (d), demonstrate the superior performance of these 
 hash-based structures. The latency profiles over 4K insert queries indicate that the \textit{skip list} is 5 times and 
 738 times slower than the \textit{hash skip list} and the \textit{hash link list}, respectively.
 
 \begin{figure}
-    \includegraphics[scale=0.38]{Figures/flush-compaction.png}
+    \includegraphics[scale=0.4]{Figures/flush-compaction.png}
     \caption{Comparative analysis of memory utilization and I/Os. (a) illustrates the total memory for writes to the disk and 
     reads during the insertion of 1 million records. (b) demonstrates the 
     count of compaction and flush operations with current buffer entries count. The \textit{hash skip list} 
-    (\textit{l}=6 and \textit{bck}=100K) shows a significant increase in memory usage and I/O due to its requirement of 
+    (\textit{l}=6 and \textit{K}=100K) shows a significant increase in memory usage and I/O due to its requirement of 
     more memory.}
     \label{fig:flush-compaction}
 \end{figure}
 
 \subsection{Flushes \& Compactions}
 The rate of flushes in LSM can also bump the overall write amplification and impact the performance of the system. For every 
-flush operation, the memtable is written to the disk as a new SSTable. Everytime the write buffer is flused to the disk,
-the system has two choices: $\left. 1\right)$ create a new SSTable and write to the level-0, or $\left. 2\right)$ merge
-the buffer with the existing SSTables on the level-0 and then write the merged SSTable back to the level-0. The first
+flush operation, the write buffer is written to the disk as a new file. Everytime the write buffer is flused to the disk,
+the system has two choices: $\left. 1\right)$ create a new file and write to the level-0, or $\left. 2\right)$ merge
+the buffer with the existing files on the level-0 and then write the merged file back to the level-0. The first
 choice might lead to the large number of smaller files to level-0, which will increase the number of files handle
 that a system has to manage. The second choice will increase the write amplification as the system has to read the
-existing SSTables, merge them with the buffer and then write the merged SSTable back to the level.
+existing files, merge them with the buffer and then write the merged file back to the level.
 
 The memetable like \textit{hash skip list} and \textit{hash link list} with large number of buckets can be full
 very quickly because of the hash table and pointers overhead. This leads to the frequent flushes which will 
 either increase the number of files in level-0 or the write amplification of the system. To measure the number of flushes 
 and compactions, we ran our experiements with unique 1 million inserts and recorded the number of flushes, compactions 
 and total number of bytes read and written to the disk. Figure~\ref{fig:flush-compaction} shows the comparison of
-flushes and compactions for different memtable implementations. The \textit{hash skip list} due to its large memory
+flushes and compactions for different write buffer implementations. The \textit{hash skip list} due to its large memory
 requirement shows a significant increase in memory usage and I/O. The \textit{vector} implementation shows the least
 
 

@@ -1,14 +1,14 @@
 The log-structured merge (LSM) tree is a widely used technique in modern data stores, becoming increasingly popular as 
 data volume grows~\cite{Sears2012} and access patterns evolve. Key data stores like LevelDB, RocksDB, Cassandra, HBase, and Bigtable rely 
-on LSM trees for their foundational structure. These systems are optimized to deliver high write throughput and low 
-latency during write operations. Data is initially ingested through an in-memory buffer within the LSM tree, known as 
+on LSM-trees for their foundational structure. These systems are optimized to deliver high write throughput and low 
+latency during write operations. Data is initially ingested through an in-memory write buffer within the LSM-tree, known as 
 the Memtable. This buffer, designed for write optimization, temporarily holds the latest database writes and is 
-periodically flushed to disk as a Sorted String Table (SSTable) once it reaches a certain size. Memtables come in 
-various implementations, including Skip List, Vector, Hash Skip List, and Hash Link List, each with its unique memory 
-footprint and performance characteristics. The choice of Memtable implementation can impact the overall performance of 
-the LSM tree, especially in memory-constrained environments where the Memtable size is limited.\\
+periodically flushed to disk as a sorted string file once it reaches a certain size. The write buffers come in 
+various implementations, including \textit{skip list}, \textit{vector}, \textit{hash skip list}, and \textit{hash link list}, each with its unique memory 
+footprint and performance characteristics. The choice of write buffer implementation can impact the overall performance of 
+the LSM-tree, especially in memory-constrained environments where the write buffer size is limited.
 
-In this paper, we focus on analyzing the memory usage of different Memtable implementations and comparing their 
-performance. Additionally, we offer guidance on selecting the most suitable Memtable implementation based on specific 
+In this paper, we focus on analyzing the memory usage of different write buffer implementations and comparing their 
+performance. Additionally, we offer guidance on selecting the most suitable write buffer implementation based on specific 
 workloads and available resources.
  

@@ -1,17 +1,17 @@
-A Memtable, also known as a write buffer, serves as a staging area for write operations prior to their being flushed to 
+A write buffer serves as a staging area for write operations prior to their being flushed to 
 disk. Its primary function is to enhance write performance by batching the most recent writes in memory. This approach 
 eliminates the need for immediate disk input/output (I/O) operations for each write request. Instead, the writes are
 grouped together and flushed to disk in a single operation. On the other hand, It also enhance read performance by 
-providing a fast lookup for the most recent writes, since the lookup path in LSM tree is first to the memtable and then 
-to the disk. There are several existing memtable implementations with their own trade-offs in terms of performance,
-memory consumption, and write amplification. Let's discuss a few existing memtable implementations and later we will
-discuss the performance metrics and how they impact the overall performance of the LSM tree. Table~\ref{table:terms} gives a list of 
+providing a fast lookup for the most recent writes, since the lookup path in LSM-tree is first to the write buffer and then 
+to the disk. There are several existing write buffer implementations with their own trade-offs in terms of performance,
+memory consumption, and write amplification. Let's discuss a few existing write buffer implementations and later we will
+discuss the performance metrics and how they impact the overall performance of the LSM-tree. Table~\ref{table:terms} gives a list of 
 terms we use throughout this paper.
 
-\subsection{Memtables Implementations}
+\subsection{Write Buffer Implementations}
 
 \Paragraph{Skip List} 
-The default memtable implementation in many systems like RocksDB~\cite{Facebook2021} and LevelDB is the \textit{skip list}. 
+The default write buffer implementation in many systems like RocksDB~\cite{Facebook2021} and LevelDB is the \textit{skip list}. 
 This structure is built with multiple layers of linked lists, each layer containing progressively fewer elements to 
 ease navigation. The lowest layer encompasses all elements in sorted order, akin to a standard linked list, while the 
 upper layers introduce shortcuts that expedite element access. This probabilistic arrangement guarantees logarithmic 
@@ -49,9 +49,9 @@ the actual data stored.
         \hline
         \textit{Y} & selectivity of range queries w.r.t N & percent \\ 
         \hline
-        \textit{l} & prefix length & chars \\
+        \textit{X} & prefix length & chars \\
         \hline
-        \textit{bck} & number of buckets in hash table & buckets \\
+        \textit{H} & number of buckets in hash table & buckets \\
         \hline
     \end{tabular}
     \vspace{0.5em}
@@ -75,7 +75,7 @@ hashing and binary search. This structure excels in handling point reads and wri
 queries within specific key prefixes particularly for uniformly distributed data. Nonetheless, executing range scans 
 across multiple prefixes is resource-intensive, as it necessitates copying and sorting, thereby impacting time and memory efficiency.
 
-The design of the \textit{hash skip list} involves configuring the number of buckets (\textit{bck}) and specifying a 
+The design of the \textit{hash skip list} involves configuring the number of buckets (\textit{K}) and specifying a 
 prefix extractor, typically the first $l$ characters of the key. The role of the prefix extractor is to isolate the 
 prefix from the key and hash it to identify the appropriate bucket. Each bucket, in turn, is a \textit{skip list} that 
 contains the key-value pairs. During the storage process, the entire key, including its prefix, is retained to 
@@ -85,7 +85,7 @@ appropriate bucket and then searching $O(\log n)$ the \textit{skip list} for the
 \textit{hash skip list} is higher than that of a traditional \textit{skip list} due to the extra space needed 
 for the hash table and the pointers to each \textit{skip list}. This additional memory requirement is also the reason
 for storing fewer entries in the \textit{hash skip list} compared to the \textit{skip list} and \textit{vector} which
-leads to more number of files to be flushed as SSTable. This limitation is addressed by the \textit{hash link list} which
+leads to more number of files to be flushed as file. This limitation is addressed by the \textit{hash link list} which
 we will discuss in the next. The \textit{hash skip list} is particularly well-suited for workloads
 involving a high volume of small range queries within specific key prefixes.
 
@@ -98,28 +98,28 @@ overhead compared to the \textit{hash skip list}, primarily because it eschews t
 \textit{skip lists}. Consequently, this streamlined setup makes it an excellent choice for scenarios characterized by 
 frequent small range queries within specific key prefixes, especially when each prefix is associated with a limited dataset.
 
-% \subsection{Proposed memtables} \lipsum[1]
+% \subsection{Proposed Write Buffer} \lipsum[1]
 
 % \Paragraph{Trie} \lipsum[1]
 
 % \Paragraph{Tree} \lipsum[1]
 
 \section{Performance and Evaluation}
-The choice of memtable implementation influences LSM tree performance. We will evaluate each implementation based on 
+The choice of write buffer implementation influences LSM-tree performance. We will evaluate each implementation based on 
 the below parameters. Note that the in-place updates occur only when the size of the key-value pair matches that of a 
 previous insert.
 \begin{itemize}[leftmargin=*,labelindent=0mm, itemsep=0.2\baselineskip]
-    \item \textbf{Memory footprint} \-- This assesses the additional memory required by each memtable implementation to 
-    store $N$ entries, including both the metadata and the actual data (i.e.\ key-value pairs) within the memtable.
-    \item \textbf{Reads latency} \-- This focuses exclusively on the read operations performed within the memtable to analyze 
-    the performance of both point queries and range queries. The aim is to gauge the read efficiency of memtable more accurately.
+    \item \textbf{Memory footprint} \-- This assesses the additional memory required by each write buffer implementation to 
+    store $N$ entries, including both the metadata and the actual data (i.e.\ key-value pairs) within the write buffer.
+    \item \textbf{Reads latency} \-- This focuses exclusively on the read operations performed within the write buffer to analyze 
+    the performance of both point queries and range queries. The aim is to gauge the read efficiency of write buffer more accurately.
     \item \textbf{Writes latency} \-- Analogous to read efficiency, this evaluates the performance of write operations within 
-    the memtable, highlighting how effectively and swiftly data is written.
+    the write buffer, highlighting how effectively and swiftly data is written.
     \item \textbf{Flush count} \-- The high frequencies of flushing, particularly of smaller files, can augment write 
     amplification, thereby necessitating repetitive read-write cycles for identical datasets.
     \item \textbf{Compactions count} \-- The frequency of compactions is directly correlated with increase in write 
-    amplification and read amplification, making it essential for understanding the overall performance of the LSM tree.
+    amplification and read amplification, making it essential for understanding the overall performance of the LSM-tree.
 \end{itemize}
-The goal is to provide a detailed analysis of how various memtable designs can affect overall database system 
+The goal is to provide a detailed analysis of how various write buffer designs can affect overall database system 
 efficiency, focusing more on memory usage, reads and write latency. By examining these key performance metrics, we 
-intend to highlight the strengths and limitations of each memtable implementation in the context of LSM trees.
+intend to highlight the strengths and limitations of each write buffer implementation in the context of LSM-trees.
