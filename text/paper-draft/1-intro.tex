@@ -1,4 +1,4 @@
-\Paragraph{Log-structured Merge Tree (LSM)} organizes data across multiple levels, with each level typically consisting 
+\Paragraph{Log-Structured Merge (LSM) Tree} organizes data across multiple levels, with each level typically consisting 
 of one sorted runs, each run being a collection of sorted string file. These files are immutable and are 
 merged to form new files at the next adjacent level down. This structure follows an out-of-place update strategy, 
 wherein new data is initially written to the top level and subsequently merged into lower levels. The efficiency in 
@@ -46,7 +46,7 @@ explore in this paper.
 %     \label{fig:motivation3}
 % \end{figure}
 
-\section{Problem and Motivation}
+\Paragraph{Problem: ...}
 Understanding the nuances of underlying data structures and their impact on 
 performance is crucial for optimizing the log-structured merge (LSM) tree framework. Despite the availability of 
 detailed workload characteristics, selecting the most suitable write buffer implementation remains a daunting task. Often, 
@@ -58,10 +58,12 @@ The \textit{vector} write buffer has the lowest write latency, but the highest r
 \textit{hash linked list} are the combination of \textit{hash table} with \textit{skip list} and \textit{link list}, respectively.
 These write buffers shows a better point read and write latency compared to \textit{skip list} write buffer.
 
-\Paragraph{Contributions} The primary objective of this paper is to elucidate the role of write buffers within 
+\Paragraph{Solution ...}
+The primary objective of this paper is to elucidate the role of write buffers within 
 Log-structured Merge Trees (LSM), examine how various implementations affect memory usage and performance, and provide 
-a framework for selecting the optimal write buffer based on specific workloads and available resources. We make the 
-following contributions:
+a framework for selecting the optimal write buffer based on specific workloads and available resources. 
+
+\Paragraph{Contributions} The contributions of our work is as follows.
 
 \begin{enumerate}[leftmargin=*,labelindent=0mm, itemsep=0.2\baselineskip]
     \item \textbf{Write buffer Memory Analysis}: A thorough examination of the memory footprint across different write buffer 

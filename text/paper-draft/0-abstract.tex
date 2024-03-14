@@ -1,14 +1,22 @@
-The log-structured merge (LSM) tree is a widely used technique in modern data stores, becoming increasingly popular as 
-data volume grows~\cite{Sears2012} and access patterns evolve. Key data stores like LevelDB, RocksDB, Cassandra, HBase, and Bigtable rely 
-on LSM-trees for their foundational structure. These systems are optimized to deliver high write throughput and low 
-latency during write operations. Data is initially ingested through an in-memory write buffer within the LSM-tree, known as 
-the Memtable. This buffer, designed for write optimization, temporarily holds the latest database writes and is 
-periodically flushed to disk as a sorted string file once it reaches a certain size. The write buffers come in 
-various implementations, including \textit{skip list}, \textit{vector}, \textit{hash skip list}, and \textit{hash linked list}, each with its unique memory 
-footprint and performance characteristics. The choice of write buffer implementation can impact the overall performance of 
-the LSM-tree, especially in memory-constrained environments where the write buffer size is limited.
+The log-structured merge (LSM) tree is an ingestion-optimized data structure that is widely used in modern NoSQL key-value stores. 
+To support high throughput for writes, LSM-trees maintain an in-memory buffer that absorbs the incoming entries before writing them to slower secondary storage. 
+We point out that that choice of the data structure and implementation of the memory buffer has a significant impact of the overall performance of LSM-based storage engines. 
+In fact, even with the same implementation of the buffer, the performance of a storage engine can very by up to several orders of magnitude if there is a shift in the input workload. 
+% These systems are optimized to deliver high write throughput and low 
+% latency during write operations. Data is initially ingested through an in-memory write buffer within the LSM-tree, known as 
+% the Memtable. This buffer, designed for write optimization, temporarily holds the latest database writes and is 
+% periodically flushed to disk as a sorted string file once it reaches a certain size. 
 
-In this paper, we focus on analyzing the memory usage of different write buffer implementations and comparing their 
-performance. Additionally, we offer guidance on selecting the most suitable write buffer implementation based on specific 
-workloads and available resources.
+In this paper, we benchmark the performance of LSM-based storage engines with different memory buffer implementations and under different workload characteristics. 
+We experiment with four buffer implementations, namely, (i) \textit{skip list}, (ii) \textit{vector}, (iii) \textit{hash skip list}, and (iv) \textit{hash linked list}, and for each implementation, we vary any design choices (such as bucket count in a hash skip-list and prefix length in a hash linked-list). 
+We present a comprehensive performance benchmark for each buffer configurations, and highlight how the relative performance of the different buffer implementations vary with a shift in input workload. 
+Lastly, we present a guideline for selecting the appropriate buffer implementation for a given workload and performance goal.
+
+% each with its unique memory 
+% footprint and performance characteristics. The choice of write buffer implementation can impact the overall performance of 
+% the LSM-tree, especially in memory-constrained environments where the write buffer size is limited.
+
+% In this paper, we focus on analyzing the memory usage of different write buffer implementations and comparing their 
+% performance. Additionally, we offer guidance on selecting the most suitable write buffer implementation based on specific 
+% workloads and available resources.
  
