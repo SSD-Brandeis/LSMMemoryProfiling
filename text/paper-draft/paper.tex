@@ -28,12 +28,16 @@
 \newcommand{\Margincomment}[1]{\marginnote{{[{\sf {\color{blue}\scriptsize #1}}]}}}
 
 
-\definecolor{myGreen}{rgb}{0.31, 0.78, 0.47}
 \definecolor{myRed}{rgb}{0.73, 0.31, 0.28}
 \definecolor{myBlue}{rgb}{0, 0.44, 1}
+\definecolor{myGreen}{rgb}{0.31, 0.78, 0.47}
 \definecolor{myGrey}{rgb}{0.57, 0.64, 0.69}
-\definecolor{warning}{rgb}{1, 0.5, 0}
-\definecolor{myYellow}{rgb}{1, 0.64, 0.8}
+
+
+\newcommand{\red}[1]{\textcolor{myRed}{#1}}
+\newcommand{\blue}[1]{\textcolor{myBlue}{#1}}
+\newcommand{\green}[1]{\textcolor{myGreen}{#1}}
+\newcommand{\grey}[1]{\textcolor{myGrey}{#1}}
 
 \usepackage{array}
 \newcommand{\PreserveBackslash}[1]{\let\temp=\\#1\let\\=\temp}
@@ -48,7 +52,7 @@
 \newcommand\Textcolor[2]{\hspace*{-3mm} \textcolor{#1}{#2} }
 
 \newcommand{\shubham}[1]{\textcolor{myGreen}{#1}}
-\newcommand{\arpita}[1]{\textcolor{myRed}{#1}}
+% \newcommand{\arpita}[1]{\textcolor{myRed}{#1}}
 \newcommand{\subhadeep}[1]{\textcolor{myBlue}{#1}}
 \newcommand{\inprogress}[1]{\textcolor{warning}{\textbf{InProgress: }#1}}
 \newcommand{\note}[1]{\textcolor{myYellow}{\textbf{Note: }#1}}

@@ -1,13 +1,43 @@
-\Paragraph{Log-Structured Merge (LSM) Tree} organizes data across multiple levels, with each level typically consisting 
-of one sorted runs, each run being a collection of sorted string file. These files are immutable and are 
-merged to form new files at the next adjacent level down. This structure follows an out-of-place update strategy, 
-wherein new data is initially written to the top level and subsequently merged into lower levels. The efficiency in 
-writing is primarily due to the process of writing new data to an in-memory buffer which is 
-later flushed to disk as an file. This paper places a significant emphasis on the write buffer, exploring it in detail 
-in the subsequent section.
+\Paragraph{LSM-Based Key-Value Stores} 
+Log-structured merge (LSM) trees are widely used in the storage engines of modern NoSQL key-value stores~\cite{Idreos2020,Luo2020b,ONeil1996}. 
+LSM-tree is a highly ingestion-optimized, out-of-place data structure that stores data on disk as a hierarchical collection of \textit{immutable sorted runs}~\cite{Sarkar2022b,Sarkar2022a}. 
+Immutability in the file structure means updates and deletes in LSM-based storage engines are always realized out of place, by inserting new entries (or meta-entries, in case of deletes) that logically invalidate the older target entries~\cite{Sarkar2020,Sarkar2023a}. 
+By avoiding in-place updates and deletes LSM-engines are able to offer superior ingestion performance. 
+To facilitate fast queries, commercial LSM-engines often employ auxiliary data structures, such as Bloom filters and fence pointers, that reduces the overall number of accesses to slower disks. 
+Due to these advantages, a large number of commercial NoSQL systems, including LevelDB~\cite{GoogleLevelDB} and BigTable~\cite{Chang2006} at Google, RocksDB~\cite{FacebookMyRocks} at Meta, X-Engine~\cite{Huang2019} at Alibaba, WiredTiger~\cite{WiredTiger} at MongoDB, CockroachDB~\cite{CockroachDB2021} at Cockroach Labs, and AsterixDB~\cite{Alsubaiee2014}, Cassandra~\cite{apApacheCassandra}, HBase~\cite{ApacheHBase}, and Accumulo~\cite{ApacheAccumulo} at Apache, have adopted LSM-trees to implement their storage layer.
 
-\Paragraph{Write Buffer} commonly referred to as the Memtable, acts as the primary storage for new writes awaiting 
-persistence. It temporarily stores data in memory until it reaches a predetermined size. The choice of data structure 
+ 
+% These files are immutable and are 
+% merged to form new files at the next adjacent level down. This structure follows an out-of-place update strategy, 
+% wherein new data is initially written to the top level and subsequently merged into lower levels. 
+
+% The efficiency in 
+% writing is primarily due to the process of writing new data to an in-memory buffer which is 
+% later flushed to disk as an file. This paper places a significant emphasis on the write buffer, exploring it in detail 
+% in the subsequent section.
+
+
+\begin{figure}
+    \centering
+    \includegraphics[scale=0.5]{Figures/motivation.png}
+    \vspace*{-3mm}
+    \caption{Illustrate the trade-off between memory usage and time complexity for different write buffer implementations. 
+    (a) shows the read, write and range query latencies (b) shows the latency with change in \textit{prefix 
+    length} and \textit{buffer count.}}
+    \label{fig:motivation1}
+    % \vspace*{-5mm}
+\end{figure}
+
+
+\Paragraph{Buffering Inserts} 
+To ensure high throughput for inserts and avoid writing data eagerly to slower secondary storage, LSM-trees first buffers the incoming entries in memory~\cite{Luo2019c,Sarkar2022a}. 
+The memory buffer (also often referred to as the \textit{memtable}) acts as the primary storage component of the LSM-tree~\cite{ONeil1996}. 
+The buffer has a predetermined capacity and may be implemented as any data structure~\cite{Facebook2021}. 
+Once the buffer is full, the entries are sorted based on the key and are written to the first level of the hierarchical collection of immutable sorted runs on disk. 
+We refer to this process of persisting the contents of the buffer to the disk as \textit{flush}~\cite{Sarkar2021c}. 
+
+
+\red{The choice of data structure 
 for the write buffer allows for a trade-off between memory usage and the time complexity of read and write operations. For instance, 
 a vector-based write buffer offers a time complexity of $O(1)$ for write operations, as it writes at the end of a contiguous array of memory, while a skip list-based write buffer 
 presents a time complexity of $O(\log n)$ due to its inherent nature of sortedness. This comparison highlights that although vector-based write buffers offer better 
@@ -17,15 +47,8 @@ hand, skip list-based write buffer needs extra memory to store pointers for each
 indirection which results in higher memory usage. Consequently, this increased memory footprint limits the number of 
 elements a write buffer can hold, leading to a more number of files to be flushed as Sorted String Table. This trade-off 
 between memory usage and time complexity is a critical factor in the performance of the LSM-tree which we tried to 
-explore in this paper.
+explore in this paper.}
 
-\begin{figure}
-    \includegraphics[scale=0.5]{Figures/motivation.png}
-    \caption{Illustrate the trade-off between memory usage and time complexity for different write buffer implementations. 
-    (a) shows the read, write and range query latencies (b) shows the latency with change in \textit{prefix 
-    length} and \textit{buffer count.}}
-    \label{fig:motivation1}
-\end{figure}
 
 % \begin{figure}
 %     \includegraphics[scale=0.40]{Figures/motivation1-color.png}
