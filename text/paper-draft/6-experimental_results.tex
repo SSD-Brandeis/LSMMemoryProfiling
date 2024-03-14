@@ -15,7 +15,7 @@ range queries (large selectivity).
 \end{figure}
 
 \begin{figure*}
-    \includegraphics[scale=0.44]{Figures/point-queries.png}
+    \includegraphics[scale=0.4]{Figures/point-queries.eps}
     \caption{Comparison of point queries performance for different write buffer implementations. The \textit{vector}
         implementation exhibits the poorest performance w.r.t the ingestion, while the \textit{Hash
             Skip List} (for \textit{X} 6 and \textit{H} 100K) demonstrates better performance for point queries. The choice
@@ -110,17 +110,21 @@ queries are performed by first sorting the write buffer and then performing a
 binary search for \textit{vector}. Notably, the graph's spikes can be
 attributed to the overhead incurred by sorting the \textit{vector} write buffer
 prior to performing a binary search for the point queries. The sort function of
-the standard library of C++ uses different sorting algorithms to optimize
-performance. Figure~\ref{fig:point-queries} (b) and (c) demonstrate that the
-\textit{hash skip list} (for \textit{X} 6 and \textit{H} 100K) exhibits the
-best performance for point queries, while the \textit{hash link list} performs
-better than the \textit{vector} and the \textit{skip list}.
-Figure~\ref{fig:point-queries} (d), (e) and (f) illustrate that the bad choice
-of prefix length and the number of buckets can lead to suboptimal performance
-for point queries while using \textit{hash table} based write buffer.
+the standard library of C++ uses an introspective sorting by doing a selection
+of algorithms dynamically to optimize performance. It begins with quicksort,
+switches to heapsort when the recursion depth exceeds a level based on the
+number of elements begin sorted and it switches to insertion sort when the
+number of elements is below some threshold. Figure~\ref{fig:point-queries} (b)
+and (c) demonstrate that the \textit{hash skip list} (for \textit{X} 6 and
+\textit{H} 100K) exhibits the best performance for point queries, while the
+\textit{hash link list} performs better than the \textit{vector} and the
+\textit{skip list}. Figure~\ref{fig:point-queries} (d), (e) and (f) illustrate
+that the bad choice of prefix length and the number of buckets can lead to
+suboptimal performance for point queries while using \textit{hash table} based
+write buffer.
 
 \begin{figure}
-    \includegraphics[scale=0.32]{Figures/range-queries.png}
+    \includegraphics[scale=0.32]{Figures/range-queries.eps}
     \caption{Sorting the write buffer is the main slowdown for the \textit{vector} implementation.
         \textit{skip list} outperforms it for both short and long range queries. The increase in X
         keeping the H same leads to the worst performance for \textit{hash linked list}}
@@ -184,14 +188,11 @@ the same prefix length shows better results.
 % smaller range queries will be faster as for every prefix we will return less
 % keys and we might not need to filter the keys.
 
-\begin{figure*}
-    \includegraphics[scale=0.42]{Figures/insert-queries1.png}
-    \caption{Comparison of write performance across various write buffer implementations reveals that while the default
-        \textit{vector} (a) offers commendable performance, a \textit{vector} (b) with pre-allocated memory surpasses it.
-        Furthermore, both \textit{hash linked list} (c) and \textit{hash skip list} (d), particularly with \textit{X} 6 and
-        \textit{H} 100K, exceed the write performance of the  \textit{skip list}.}
+\begin{figure}
+    \includegraphics[scale=0.47]{Figures/inserts-latency.eps}
+    \caption{The comparison of insert latencies across different write buffer implementations.}
     \label{fig:insert-queries1}
-\end{figure*}
+\end{figure}
 
 \subsection{Writes Performance}
 
@@ -231,12 +232,10 @@ latency profiles over 4K insert queries indicate that the \textit{skip list} is
 \textit{hash linked list}, respectively.
 
 \begin{figure}
-    \includegraphics[scale=0.4]{Figures/flush-compaction.png}
-    \caption{Comparative analysis of memory utilization and I/Os. (a) illustrates the total memory for writes to the disk and
-        reads during the insertion of 1 million records. (b) demonstrates the
-        count of compaction and flush operations with current buffer entries count. The \textit{hash skip list}
-        (\textit{X}=6 and \textit{H}=100K) shows a significant increase in memory usage and I/O due to its requirement of
-        more memory.}
+    \includegraphics[scale=0.4]{Figures/flush-compaction.eps}
+    \caption{The comparison shows (a) the number of bytes read and written for different write buffer implementations, 
+                                  (b) the number of flushes and compactions for different write buffer implementations for 
+                                  insertion of 1.5 million records}
     \label{fig:flush-compaction}
 \end{figure}
 
