@@ -31,11 +31,12 @@ Due to these advantages, a large number of commercial NoSQL systems, including L
 
 
 \Paragraph{Buffering Inserts} 
-To ensure high throughput for inserts and avoid writing data eagerly to slower secondary storage, LSM-trees first buffers the incoming entries in memory~\cite{Luo2019c,Sarkar2022a}. 
+To ensure high throughput for inserts and avoid writing data eagerly to slower secondary storage, LSM-trees buffers the incoming entries first in memory~\cite{Luo2019c,Sarkar2022a}. 
 The memory buffer (also often referred to as the \textit{memtable}) acts as the primary storage component of the LSM-tree~\cite{ONeil1996}. 
 The buffer has a predetermined capacity and may be implemented as any data structure~\cite{Facebook2021}. 
 Once the buffer is full, the entries are sorted based on the key and are written to the first level of the hierarchical collection of immutable sorted runs on disk. 
 We refer to this process of persisting the contents of the buffer to the disk as \textit{flush}~\cite{Sarkar2021c}. 
+In practice, systems have 
 
 \Paragraph{Buffer selection}
 The buffer selection is always overlooked while using LSM-based data stores. The \textit{skip list}~\cite{Pugh1990}, default buffer
