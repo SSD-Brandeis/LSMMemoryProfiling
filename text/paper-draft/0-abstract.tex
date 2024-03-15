@@ -8,7 +8,7 @@ In fact, even with the same implementation of the buffer, the performance of a s
 % periodically flushed to disk as a sorted string file once it reaches a certain size. 
 
 In this paper, we benchmark the performance of LSM-based storage engines with different memory buffer implementations and under different workload characteristics. 
-We experiment with four buffer implementations, namely, (i) \textit{skip list}, (ii) \textit{vector}, (iii) \textit{hash skip list}, and (iv) \textit{hash linked list}, and for each implementation, we vary any design choices (such as bucket count in a hash skip-list and prefix length in a hash linked-list). 
+We experiment with four buffer implementations, namely, (i) \textit{vector}, (ii) \textit{skip-list}, (iii) \textit{hash skip-list}, and (iv) \textit{hash linked-list}, and for each implementation, we vary any design choices (such as bucket count in a hash skip-list and prefix length in a hash linked-list). 
 We present a comprehensive performance benchmark for each buffer configurations, and highlight how the relative performance of the different buffer implementations vary with a shift in input workload. 
 Lastly, we present a guideline for selecting the appropriate buffer implementation for a given workload and performance goal.
 
