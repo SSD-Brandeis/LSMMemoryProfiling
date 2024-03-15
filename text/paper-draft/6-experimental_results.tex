@@ -7,10 +7,10 @@ interleaved range queries (small selectivity), and (c) inserts with interleaved
 range queries (large selectivity).
 
 \begin{figure}
-    \includegraphics[scale=0.48]{Figures/data-size-comparison-per-memtable.png}
-    \caption{The \textit{hash skip list} (for \textit{X} 0 with \textit{H} 1) implementation requires more memory to store the entries, and
-        it only uses 75 percent of the allocated space whereas the \textit{vector} implementation uses 88 percent
-        of the memory allocated. Similar patterns are observed for the different buffer sizes.}
+    \includegraphics[scale=0.38]{Figures/buffer-size.eps}
+    \caption{The comparison shows the avgerage capacity of buffers for different implementations over the insertion 
+    of 1.5 million records. It represents the change in memory footprint with the change in prefix length \textit{X}
+    and the number of buckets \textit{H}.}
     \label{fig:memory_footprint}
 \end{figure}
 
