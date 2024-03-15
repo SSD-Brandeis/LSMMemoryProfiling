@@ -5,7 +5,7 @@ grouped together and flushed to disk in a single operation. On the other hand, I
 providing a fast lookup for the most recent writes, since the lookup path in LSM-tree is first to the write buffer and then 
 to the disk. There are several existing write buffer implementations with their own trade-offs in terms of performance,
 memory consumption, and write amplification. Let's discuss a few existing write buffer implementations and later we will
-discuss the performance metrics and how they impact the overall performance of the LSM-tree. Table~\ref{table:terms} gives a list of 
+see the performance metrics and how they impact the overall performance of the LSM-tree. Table~\ref{table:terms} gives a list of 
 terms we use throughout this paper.
 
 \subsection{Write Buffer Implementations}
@@ -66,8 +66,8 @@ queries and scans, as these operations necessitate sequential traversal of the \
 \textit{vector} is relatively minimal, requiring only additional space for resizing along with a modest amount of metadata. Due 
 to its lower memory demands, a \textit{vector} can potentially store more data, leading to fewer disk flushes. Nonetheless, 
 \textit{vectors} are not well-suited for handling point queries due to the linear search requirement. It can also
-slow down the write operations when the size of the \textit{vector} grows and it needs to be resized for large
-buffer size (M). This problem can be mitigated by using a \textit{vector} of fixed size close to the write buffer.
+slow down the write operations when the size of the \textit{vector} grows and it needs to be resized, for large
+buffer sizes (M). This problem can be mitigated by using a \textit{vector} of fixed size close to the write buffer.
 
 \Paragraph{Hash Skip List} The \textit{hash skip list} combines a hash table with \textit{skip lists} within each bucket. Keys are 
 partitioned by prefix for bucket allocation, facilitating targeted insertions and lookups through a combination of 
