@@ -60,7 +60,7 @@ We highlight two general scenarios where the choice of the buffer data structure
 In Figure~\ref{fig:motivation1}, we show that the ingestion throughput of an LSM-buffer, implemented as a (static) vector drop by $X\%$ if the input workload shifts from insert-only to having only $0.1\%$ point queries (and $99.9\%$ inserts). 
 (B) For the same data structure, \textit{different implementations and tunings} also has a significant impact on performance. 
 For example, as shown in Figure~\ref{fig:motivation1}, the tail latency of a dynamically allocated vector can be up to \red{two orders of magnitude} higher than that of a pre-allocated vector. 
-Similarly, the point number of hash-buckets in a hash linked-list or a hash skip-list may affect the ingestion throughput significantly. 
+Similarly, the number of hash-buckets in a hash linked-list or a hash skip-list may affect the ingestion throughput significantly. 
 \red{Add one more sentence.}
 
 \begin{center}

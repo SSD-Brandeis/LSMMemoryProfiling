@@ -1,28 +1,43 @@
-A write buffer serves as a staging area for write operations prior to their being flushed to 
-disk. Its primary function is to enhance write performance by batching the most recent writes in memory. This approach 
-eliminates the need for immediate disk input/output (I/O) operations for each write request. Instead, the writes are
-grouped together and flushed to disk in a single operation. On the other hand, It also enhance read performance by 
-providing a fast lookup for the most recent writes, since the lookup path in LSM-tree is first to the write buffer and then 
-to the disk. There are several existing write buffer implementations with their own trade-offs in terms of performance,
-memory consumption, and write amplification. Let's discuss a few existing write buffer implementations and later we will
-see the performance metrics and how they impact the overall performance of the LSM-tree. Table~\ref{table:terms} gives a list of 
-terms we use throughout this paper.
+In this section, we discuss the construction of the LSM-buffer benchmark, the design of the experimental framework, and our evaluation methodology. 
 
-\subsection{Write Buffer Implementations}
 
-\Paragraph{Skip List} 
-The default write buffer implementation in many systems like RocksDB~\cite{Facebook2021} and LevelDB is the \textit{skip list}. 
-This structure is built with multiple layers of linked lists, each layer containing progressively fewer elements to 
-ease navigation. The lowest layer encompasses all elements in sorted order, akin to a standard linked list, while the 
-upper layers introduce shortcuts that expedite element access. This probabilistic arrangement guarantees logarithmic 
-$O(\log n)$ search, insertion, and deletion times by enabling quick traversal across its layers—not through binary 
-search, but via a strategic, level-by-level method. Consequently, \textit{skip lists} are exceptionally suited for achieving 
-balanced read and write operations, as well as efficiently supporting fully ordered database scans.
 
-However, the layered structure and the necessity to maintain pointers for each element increase the memory requirements 
-of \textit{skip list}. Typically, a four-layered \textit{skip list}, with each upper layer containing approximately one-fourth of the 
-elements in the layer immediately below it, is utilized. This configuration demands roughly 1.33 times more memory than 
-the actual data stored.
+\subsection{Buffer Implementation}
+The buffer in LSM-trees serve as a staging area for writes (inserts, updates, and deletes) before they are flushed to disk. 
+Batching inserts in the main memory allows for amortizing the cost of writes, every flush writes approximately $P\cdot B$ entries to the disk, where $P$ is the size of the memory buffer in disk pages and $B$ is the average number of key-value pairs in every page. 
+\red{Table~\ref{table:terms} gives a list of terms we use throughout this paper.}
+Retaining the ingested entries in the buffer also allows future point queries on the recently ingested entries to be returned directly from the buffer, without any disk access. 
+This can significantly improve the throughput for point queries on ``hot'' data. 
+Below, we discuss the design and configuration of the four memory buffer implementations we use for the benchmark.
+
+\Paragraph{Vector} 
+We experiment with two \textit{vector} implementations of the memory buffer. 
+The first is a \textit{dynamic vector} that is implemented as an automatically re-sizing array. 
+A \textit{dynamic vector} ensures that the data in the buffer is stored in contiguous memory locations. 
+Inserts to such a \textit{vector} is appended to the array if there is available space. 
+Otherwise, the array size is doubled through re-sizing before appending the new entry. 
+While appending inserts allows for a high throughput for writes, the cost of point queries can become prohibitively high as they may need to scan the entire buffer. 
+Production systems, using a \textit{dynamic vector} implementation for the buffer, thus, sort the buffer every time there is a point query in the workload. 
+The optimistic outlook here is that for future point queries that precede an insert, the target entry can be found using binary search. 
+A dynamically allocated \textit{vector} suffers from high latency spikes that may be triggered by (i) re-sizing of the buffer or (ii) sorting the buffer contents while enabling a point query. 
+The second implementation of a \textit{fixed-sized vector} requires allocating the designated memory space upfront, but is better suitable for latency-sensitive applications as it offers predictable performance with no latency spikes. 
+Both \textit{vector} implementations has little memory overhead as they need to maintain minimal metadata. 
+
+% However, its dependence on linear search $O(n)$ for indexing renders it less effective for point 
+% queries and scans, as these operations necessitate sequential traversal of the \textit{vector}. The memory overhead for a 
+% \textit{vector} is relatively minimal, requiring only additional space for resizing along with a modest amount of metadata. Due 
+% to its lower memory demands, a \textit{vector} can potentially store more data, leading to fewer disk flushes. Nonetheless, 
+% \textit{vectors} are not well-suited for handling point queries due to the linear search requirement. It can also
+% slow down the write operations when the size of the \textit{vector} grows and it needs to be resized, for large
+% buffer sizes (M). This problem can be mitigated by using a \textit{vector} of fixed size close to the write buffer.
+
+\Paragraph{Skip-List} 
+The default buffer implementation in many systems, such as RocksDB~\cite{Facebook2021} and LevelDB~\cite{GoogleLevelDB}, is \textit{skip-list}. 
+A \textit{skip-list} is implemented as a hierarchical structure of linked-lists, where intermediate levels act as an index for the last level which stores the data in sorted order. 
+\textit{Skip-lists} offer logarithmic $O(\log n)$ complexity for inserts, updates, deletes, as well as point queries. 
+% Consequently, \textit{skip-lists} are exceptionally suited for achieving balanced read and write operations, as well as efficiently supporting fully ordered database scans.
+However, the hierarchical structure of \textit{skip-lists} requires maintaining additional key-pointer pairs for indexing purposes, and this adds to the metadata overhead of the data structure. 
+For example, a \textit{skip-list} with four levels, requires a memory of roughly $1.33\times$ of the data size. 
 
 \begin{table}
     \begin{tabular}{|c|l|c|}
@@ -59,44 +74,34 @@ the actual data stored.
     \label{table:terms}
 \end{table}
 
-\Paragraph{Vector} A \textit{vector} functions as a dynamic, automatically resizing array, providing contiguous storage for 
-efficient iteration. Insertions are optimally performed at the \textit{vector}'s end, making it particularly advantageous for 
-write-intensive tasks. However, its dependence on linear search $O(n)$ for indexing renders it less effective for point 
-queries and scans, as these operations necessitate sequential traversal of the \textit{vector}. The memory overhead for a 
-\textit{vector} is relatively minimal, requiring only additional space for resizing along with a modest amount of metadata. Due 
-to its lower memory demands, a \textit{vector} can potentially store more data, leading to fewer disk flushes. Nonetheless, 
-\textit{vectors} are not well-suited for handling point queries due to the linear search requirement. It can also
-slow down the write operations when the size of the \textit{vector} grows and it needs to be resized, for large
-buffer sizes (M). This problem can be mitigated by using a \textit{vector} of fixed size close to the write buffer.
 
-\Paragraph{Hash Skip List} The \textit{hash skip list} combines a hash table with \textit{skip lists} within each bucket. Keys are 
-partitioned by prefix for bucket allocation, facilitating targeted insertions and lookups through a combination of 
-hashing and binary search. This structure excels in handling point reads and write operations, including small range 
-queries within specific key prefixes particularly for uniformly distributed data. Nonetheless, executing range scans 
-across multiple prefixes is resource-intensive, as it necessitates copying and sorting, thereby impacting time and memory efficiency.
+\Paragraph{Hash Skip-List} 
+A memory buffer implemented as a \textit{hash skip-list} combines a hash table with \textit{skip-lists} within each bucket. 
+The keys to be inserted are partitioned on their prefix (of a predetermined length) for bucket allocation, facilitating targeted insertions and pint queries through a combination of 
+hashing and binary search. 
+This structure offers superior performance for ingestion, point queries, as well as, range 
+queries with very small selectivity, as the operations are typically limited to only a specific hash-bucket. 
+Range queries with large selectivity, however, may span across multiple hash-buckets and, therefore, are may have a significantly higher latency.  
+The design of the \textit{hash skip-list} involves configuring the number of buckets (\textit{H}) and specifying a prefix extractor, typically the first $l$ characters of the key. 
+The role of the prefix extractor is to isolate the prefix from the key and hash it to the appropriate bucket. 
+Each bucket, in turn, is a \textit{skip-list} that contains the key-value pairs. 
+The entire key (including the prefix) is stored in the \textit{skip-list} as we need to facilitate range queries. 
+% If a bucket is unused, it points to \texttt{nullptr}; otherwise, it points to the corresponding \textit{skip-list}. 
+The point queries are realized by simply hashing the prefix to locate the target bucket and then by searching through \textit{skip-list}. 
+The memory overhead of the \textit{hash skip-list} includes the additional space needed to maintain the hash table and the pointers to each \textit{skip-list}. 
+Due to additional memory overhead, for the same memory budget, a \textit{hash skip-list} can buffer fewer key-value pairs compared to \textit{skip-list} and \textit{vector} before it is saturated. 
+% This leads to which leads to more number of files to be flushed as file. 
+% This limitation is addressed by the \textit{hash linked-list} which we will discuss in the next. The \textit{hash skip-list} is particularly well-suited for workloads
+% involving a high volume of small range queries within specific key prefixes.
 
-The design of the \textit{hash skip list} involves configuring the number of buckets (\textit{H}) and specifying a 
-prefix extractor, typically the first $l$ characters of the key. The role of the prefix extractor is to isolate the 
-prefix from the key and hash it to identify the appropriate bucket. Each bucket, in turn, is a \textit{skip list} that 
-contains the key-value pairs. During the storage process, the entire key, including its prefix, is retained to 
-facilitate more precise range queries. If a bucket is unused, it points to \texttt{nullptr}; otherwise, it points to 
-the corresponding \textit{skip list}. The point queries are executed by simply hashing the prefix to lookup $O(1)$ the 
-appropriate bucket and then searching $O(\log n)$ the \textit{skip list} for the target key. The memory overhead of the 
-\textit{hash skip list} is higher than that of a traditional \textit{skip list} due to the extra space needed 
-for the hash table and the pointers to each \textit{skip list}. This additional memory requirement is also the reason
-for storing fewer entries in the \textit{hash skip list} compared to the \textit{skip list} and \textit{vector} which
-leads to more number of files to be flushed as file. This limitation is addressed by the \textit{hash linked list} which
-we will discuss in the next. The \textit{hash skip list} is particularly well-suited for workloads
-involving a high volume of small range queries within specific key prefixes.
-
-\Paragraph{Hash Linked List} Similar to the \textit{hash skip list}, the \textit{hash linked list} incorporates a hash table framework; 
-however, it differs by linking each bucket to a single sorted linked list. This arrangement is particularly tailored for
-efficiently handling range queries for specific key prefixes. It also offers the same write efficiency as the \textit{hash skip list}
-with less memory overhead. For point queries, the \textit{hash linked list} relies on linear search within each linked list,
-which may also reduce its efficiency compared to \textit{hash skip list}. The \textit{hash linked list} presents a lower memory 
-overhead compared to the \textit{hash skip list}, primarily because it eschews the layered structure inherent to 
-\textit{skip lists}. Consequently, this streamlined setup makes it an excellent choice for scenarios characterized by 
-frequent small range queries within specific key prefixes, especially when each prefix is associated with a limited dataset.
+\Paragraph{Hash Linked-List} 
+Similarly to the \textit{hash skip-list}, the \textit{hash linked-list} also uses a hash table framework; however, within each hash-bucket the entries are stored as a sorted singly \textit{linked-list}. 
+This design is particularly tailored for efficiently handling range queries on specific key prefixes. 
+It also offers the similar ingestion performance as the \textit{hash skip-list} with less memory overhead. 
+For point queries, the \textit{hash linked-list} relies on linear search within each \textit{linked-list}, which may also reduce its efficiency compared to \textit{hash skip-list}. 
+The \textit{hash linked-list} has a lower memory overhead compared to the \textit{hash skip-list}, primarily because it eschews the layered structure inherent to 
+\textit{skip-lists}. 
+% Consequently, this streamlined setup makes it an excellent choice for scenarios characterized by frequent small range queries within specific key prefixes, especially when each prefix is associated with a limited dataset.
 
 % \subsection{Proposed Write Buffer} \lipsum[1]
 
@@ -104,20 +109,22 @@ frequent small range queries within specific key prefixes, especially when each 
 
 % \Paragraph{Tree} \lipsum[1]
 
-\section{Performance and Evaluation}
-The choice of write buffer implementation influences LSM-tree performance. We will evaluate each implementation based on 
-the below parameters. Note that the in-place updates occur only when the size of the key-value pair matches that of a 
+\subsection{Evaluation Metric}
+The choice of write buffer and its implementation have critical implications on the performance of LSM-engines. 
+We will evaluate each implementation based on 
+the below parameters. 
+Note that the in-place updates occur only when the size of the key-value pair matches that of a 
 previous insert.
 \begin{itemize}[leftmargin=*,labelindent=0mm, itemsep=0.2\baselineskip]
-    \item \textbf{Memory footprint} \-- This assesses the additional memory required by each write buffer implementation to 
+    \item \textbf{Memory footprint}: This assesses the additional memory required by each write buffer implementation to 
     store $N$ entries, including both the metadata and the actual data (i.e.\ key-value pairs) within the write buffer.
-    \item \textbf{Reads latency} \-- This focuses exclusively on the read operations performed within the write buffer to analyze 
+    \item \textbf{Reads latency}: This focuses exclusively on the read operations performed within the write buffer to analyze 
     the performance of both point queries and range queries. The aim is to gauge the read efficiency of write buffer more accurately.
-    \item \textbf{Writes latency} \-- Analogous to read efficiency, this evaluates the performance of write operations within 
+    \item \textbf{Writes latency}: Analogous to read efficiency, this evaluates the performance of write operations within 
     the write buffer, highlighting how effectively and swiftly data is written.
-    \item \textbf{Flush count} \-- The high frequencies of flushing, particularly of smaller files, can augment write 
+    \item \textbf{Flush count}: The high frequencies of flushing, particularly of smaller files, can augment write 
     amplification, thereby necessitating repetitive read-write cycles for identical datasets.
-    \item \textbf{Compactions count} \-- The frequency of compactions is directly correlated with increase in write 
+    \item \textbf{Compaction count}: The frequency of compactions is directly correlated with increase in write 
     amplification and read amplification, making it essential for understanding the overall performance of the LSM-tree.
 \end{itemize}
 The goal is to provide a detailed analysis of how various write buffer designs can affect overall database system 

@@ -69,7 +69,7 @@ footprint, reflecting its larger memory requirement. The \textit{skip list} and
 \textit{hash linked list} have memory footprints that lie between the
 \textit{vector} and the \textit{hash skip list}.
 
-\subsection{Reads Performance}
+\subsection{Read Performance}
 
 \Paragraph{Point Queries} The performance of point queries is a critical factor in the selection of a write buffer
 implementation. In the case of a \textit{vector}, point queries exhibit an $O(n)$ complexity, as the write buffer must be
@@ -245,11 +245,11 @@ latency profiles over 4K insert queries indicate that the \textit{skip list} is
     \label{fig:flush-compaction}
 \end{figure}
 
-\subsection{Flushes \& Compactions}
+\subsection{Flush \& Compaction}
 The rate of flushes in LSM can also bump the overall write amplification and
 impact the performance of the system. For every flush operation, the write
-buffer is written to the disk as a new file. Everytime the write buffer is
-flused to the disk, the system has two choices: $\left. 1\right)$ create a new
+buffer is written to the disk as a new file. Every time the write buffer is
+flushed to the disk, the system has two choices: $\left. 1\right)$ create a new
 file and write to the level-0, or $\left. 2\right)$ merge the buffer with the
 existing files on the level-0 and then write the merged file back to the
 level-0. The first choice might lead to the large number of smaller files to
@@ -258,7 +258,7 @@ manage. The second choice will increase the write amplification as the system
 has to read the existing files, merge them with the buffer and then write the
 merged file back to the level.
 
-The memetable like \textit{hash skip list} and \textit{hash linked list} with
+The memory buffer like \textit{hash skip list} and \textit{hash linked list} with
 large number of buckets can be full very quickly because of the hash table and
 pointers overhead. This leads to the frequent flushes which will either
 increase the number of files in level-0 or the write amplification of the
