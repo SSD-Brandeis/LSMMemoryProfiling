@@ -7,20 +7,24 @@ interleaved range queries (small selectivity), and (c) inserts with interleaved
 range queries (large selectivity).
 
 \begin{figure}
-    \includegraphics[scale=0.38]{Figures/buffer-size.eps}
-    \vspace*{-2mm}
-    \caption{The comparison shows the variation in the effective capacity for different buffer implementations when inserting 
-    1.5M entries as we change  prefix length (\textit{X}) and the number of buckets (\textit{H}).}
-    \label{fig:memory_footprint}
+    \centering
+    \includegraphics[scale=0.5]{Figures/motivation1.eps}
+    \includegraphics[scale=0.4]{Figures/motivation2.eps}
+    \vspace*{-3mm}
+    \caption{The different workload characteristic can have very different performance for different write buffer implementations.\ 
+    (a) The vector is not good for point and range queries but it is best for only inserts workload.
+    (b) The performance of the hash-based memory buffer is tunable based on the prefix length and the number of buckets.}
+    % \vspace*{-2mm}
+    \label{fig:motivation1}
+    % \vspace*{-5mm}
 \end{figure}
 
 \begin{figure*}
-    \includegraphics[scale=0.4]{Figures/point-queries.eps}
+    \includegraphics[scale=0.37]{Figures/point-queries.eps}
     \vspace*{-2mm}
     \caption{A \textit{vector}
         implementation exhibits the poorest performance with respect to the ingestion, while the \textit{hash
-            skip-list} (for \textit{X}=6 and \textit{H}=100K) demonstrates better performance for point queries. The choice
-        of prefix length and the number of buckets  leads to suboptimal performance.
+            skip-list} (for \textit{X}=6 and \textit{H}=100K) demonstrates better performance for point queries.
     }
     \label{fig:point-queries}
 \end{figure*}
@@ -36,18 +40,6 @@ Unless otherwise mentioned, the size of a key-value pair is $64$B and the size o
 Size of the memory buffer is $16$MB. 
 The LSM-tree has a size ratio of $4$, i.e., each level on disk is $4\times$ larger than the previous level.
 
-\begin{figure}
-    \centering
-    \includegraphics[scale=0.5]{Figures/motivation1.eps}
-    \includegraphics[scale=0.4]{Figures/motivation2.eps}
-    \vspace*{-3mm}
-    \caption{Illustrate the trade-off between memory usage and time complexity for different write buffer implementations. 
-    (a) shows the read, write and range query latencies (b) shows the latency with change in \textit{prefix 
-    length} and \textit{buffer count.}}
-    \label{fig:motivation1}
-    % \vspace*{-5mm}
-\end{figure}
-
 
 \subsection{Memory Footprint}
 The memory requirements of various write buffer structures vary when tasked
@@ -60,19 +52,17 @@ to reveal the trade-offs between the memory footprint and the storage capacity
 (number of entries) of each write buffer implementation, providing insights
 into their efficiency and appropriateness for different scenarios.
 
-We conducted the experiment by inserting 1M entries into each write
+We conducted the experiment by inserting 1.5M entries into each write
 buffer implementation and measured the memory footprint. The bucket count
 (\textit{H}) and the prefix length (\textit{X}) for the \textit{hash skip-list}
-and \textit{hash linked-list} were set to 1 and 0, respectively.
+and \textit{hash linked-list} varied from 10 to 1000 and 2 to 10, respectively.
 Figure~\ref{fig:memory_footprint} demonstrates that the \textit{vector}
-exhibits the lowest memory footprint due to its contiguous storage and absence
-of pointers, whereas the \textit{hash skip-list} displays the highest memory
+exhibits the lowest memory footprint due to its contiguous storage and absence of pointers (hence used more space to store the data), whereas the \textit{hash skip-list} displays the highest memory
 footprint, reflecting its larger memory requirement. The \textit{skip-list} and
-\textit{hash linked-list} have memory footprints that lie between the
-\textit{vector} and the \textit{hash skip-list}.
+\textit{hash linked-list} have initial memory footprints close to \textit{skip-list} for small prefix and bucket counts but it increases with the increase in the prefix length (Figure~\ref{fig:memory_footprint} (a)) and the number of buckets (Figure~\ref{fig:memory_footprint} (b)).
 
 \begin{figure*}
-    \includegraphics[scale=0.80]{Figures/range-queries.eps}
+    \includegraphics[scale=0.5]{Figures/range-queries.eps}
     \caption{The sorting of write buffer is the main slowdown for the \textit{vector} implementation. The \textit{skip-list} outperforms it for both short and long range queries. The \textit{hash skip-list} and \textit{hash linked-list} also shows better performance than \textit{vector}.}
     \label{fig:range-queries1}
 \end{figure*}
@@ -82,7 +72,7 @@ footprint, reflecting its larger memory requirement. The \textit{skip-list} and
 \Paragraph{Point Queries} 
 An operation that retrieves a single key from the write buffer (or data store) is referred as a point query.
 The performance of point queries plays a crucial role in the selection of a write buffer implementation.
-In the case of a \textit{vector}, point queries exhibit an $O(n)$ complexity, as the buffer must be scanned linearly to locate the required key.
+In the case of a \textit{vector}, point queries exhibit an $O(n)$ (where $n$ is the number of entries in the buffer) complexity, as the buffer must be scanned linearly to locate the required key.
 An alternative approach is to sort the write buffer and perform a binary search, which reduces the search time to $O(\log n)$ but adds an overhead of $O(n \log n)$ for sorting.
 In contrast, \textit{skip-list} implementations offer improved read performance, with point queries achieving $O(\log n)$ complexity. 
 The \textit{hash skip-list} and \textit{hash skip-list}, in particular, can deliver the best performance for point queries if the prefix length and the number of buckets are optimally tuned. 
@@ -112,11 +102,11 @@ It begins with quicksort, switches to heapsort when the recursion depth exceeds 
 Figure~\ref{fig:point-queries} (b) and (c) demonstrate that the \textit{hash skip-list} (for \textit{X} 6 and \textit{H} 100K) exhibits the best performance for point queries, while the \textit{hash linked-list} performs better than the \textit{vector} and the \textit{skip-list}. 
 Figure~\ref{fig:point-queries} (d), (e) and (f) illustrate that the bad choice of prefix length and the number of buckets can lead to suboptimal performance for point queries while using \textit{hash table}-based write buffer.
 
-\begin{figure*}
-    \includegraphics[scale=0.80]{Figures/range-queries.eps}
-    \caption{The sorting of write buffer is the main slowdown for the \textit{vector} implementation. The \textit{skip-list} outperforms it for both short and long range queries. The \textit{hash skip-list} and \textit{hash linked-list} also shows better performance than \textit{vector}.}
-    \label{fig:range-queries1}
-\end{figure*}
+% \begin{figure*}
+%     \includegraphics[scale=0.80]{Figures/range-queries.eps}
+%     \caption{The sorting of write buffer is the main slowdown for the \textit{vector} implementation. The \textit{skip-list} outperforms it for both short and long range queries. The \textit{hash skip-list} and \textit{hash linked-list} also shows better performance than \textit{vector}.}
+%     \label{fig:range-queries1}
+% \end{figure*}
 
 
 \Paragraph{Range Queries} 
@@ -156,7 +146,7 @@ number of keys.
 We ran our experiments with different selectivity where the start and end keys
 are not similar and recorded the time taken to execute each range query.
 Figure~\ref{fig:range-queries1} shows the comparison of range queries
-performance for different write buffer implementations. The \textit{vector}
+performance for different write buffer implementations for selectivity $0.0001, 0.02, 0.4, 0.8$ in Figure~\ref{fig:range-queries1} (a), (b), (c), (d), respectively. The \textit{vector}
 implementation shows the poorest performance for both short and long range
 queries. The increase in the prefix length with the same number of buckets for
 small range queries leads to the worst performance for \textit{hash skip-list}
@@ -173,48 +163,36 @@ the same prefix length shows better results.
 % smaller range queries will be faster as for every prefix we will return less
 % keys and we might not need to filter the keys.
 
-\begin{figure}
-    \centering
-    \includegraphics[scale=0.5]{Figures/motivation1.eps}
-    \includegraphics[scale=0.4]{Figures/motivation2.eps}
-    \vspace*{-3mm}
-    \caption{Illustrate the trade-off between memory usage and time complexity for different write buffer implementations. 
-    (a) shows the read, write and range query latencies (b) shows the latency with change in \textit{prefix 
-    length} and \textit{buffer count.}}
-    \label{fig:motivation1}
-    % \vspace*{-5mm}
-\end{figure}
-
-\begin{figure*}
-    \centering
-    \includegraphics[scale=0.65]{Figures/range-queries.eps}
-    \vspace*{-4mm}
-    \caption{The sorting of write buffer is the main slowdown for the \textit{vector} implementation. The \textit{skip-list} outperforms it for both short and long range queries. The \textit{hash skip-list} and \textit{hash linked-list} also shows better performance than \textit{vector}.}
-    \label{fig:range-queries1}
-\end{figure*}
-\begin{figure}
-    \includegraphics[scale=0.47]{Figures/inserts-latency.eps}
-    \vspace*{-2mm}
-    \caption{The comparison of insert latencies across different write buffer implementations.}
-    \label{fig:insert-queries1}
-\end{figure}
+% \begin{figure*}
+%     \centering
+%     \includegraphics[scale=0.65]{Figures/range-queries.eps}
+%     \vspace*{-4mm}
+%     \caption{The sorting of write buffer is the main slowdown for the \textit{vector} implementation. The \textit{skip-list} outperforms it for both short and long range queries. The \textit{hash skip-list} and \textit{hash linked-list} also shows better performance than \textit{vector}.}
+%     \label{fig:range-queries1}
+% \end{figure*}
+% \begin{figure}
+%     \includegraphics[scale=0.47]{Figures/inserts-latency.eps}
+%     \vspace*{-2mm}
+%     \caption{The comparison of insert latencies across different write buffer implementations.}
+%     \label{fig:insert-queries1}
+% \end{figure}
 
 \subsection{Write Performance}
 
 To measure the write performance of the write buffer implementations, we
 conducted an experiment in which we inserted 140K entries, each 64 bytes in
 size, and recorded the time taken to execute each insert query.
-Figure~\ref{fig:insert-queries1} illustrates the comparison of write
+Figure~\ref{fig:motivation} (b) illustrates the comparison of write
 performance across different write buffer implementations.
 
-The ingestion process for a \textit{vector} write buffer is analogous to
+\Paragraph{Ingestion Experiments} The ingestion process for a \textit{vector} write buffer is analogous to
 appending bytes to an array. A typical vector implementation dynamically
 allocates memory, doubling the allocation when the existing space is exhausted.
 This can leads to performance degradation due to the repetitive memory copying
 required during reallocation. The pre-allocation of memory serves as a remedy
-to this inefficiency. As depicted in Figure~\ref{fig:insert-queries1} (a), the
+to this inefficiency. As depicted in Figure~\ref{fig:motivation} (b), the
 dynamic memory allocation in a \textit{vector} leads to latency spikes during
-ingestion. In contrast, Figure~\ref{fig:insert-queries1} (b) shows the enhanced
+ingestion. In contrast, Figure~\ref{fig:motivation} shows the enhanced
 performance for a pre-allocated \textit{vector}, where the memory of $N \times
     (E+10) \approx $ 11 MB was pre-allocated to write buffer. The inherent sorting
 nature of \textit{skip-list} also slow down write operations as it requires
@@ -229,42 +207,32 @@ the correct hash bucket. This is followed by $O(\log \frac{P \times B}{H})$ for
 searching a key within the \textit{hash skip-list}, and on average $O(\frac{P
         \times B}{H})$ in the \textit{hash linked-list}. The improved performance
 (assuming uniform data distribution) can be achieved with a careful choice of
-prefix length (\textit{X}) and bucket count (\textit{H}). The results of our
-experiments, as plotted in Figure~\ref{fig:insert-queries1} (c) and (d),
-demonstrate the superior performance of these hash-based structures. The
-latency profiles over 4K insert queries indicate that the \textit{skip-list} is
-5 times and 738 times slower than the \textit{hash skip-list} and the
+\textit{X} and \textit{H}. The results of our
+experiments, as plotted in Figure~\ref{fig:motivation} does not shows the insert latency. 
+However, the latency for inserting 140K records indicate that the \textit{skip-list} is
+5 times and 7 times slower than the \textit{hash skip-list} and the
 \textit{hash linked-list}, respectively.
 
 \begin{figure}
     \includegraphics[scale=0.4]{Figures/flush-compaction.eps}
     \vspace*{-2mm}
-    \caption{\red{(a) The number of bytes read and written for different write buffer implementations, (b) the number of flushes and compactions for different write buffer implementations for insertion of 1.5M records.}}
+    \caption{(a) The write and read amplification is very hight when using \textit{hash skip-list} memory buffer, whereas the \textit{vector} buffer has the least write and read amplification. (b) The total number of compactions and flushes is higher for \textit{hash skip-list} memory buffer.}
+    \vspace*{-2mm}
     \label{fig:flush-compaction}
 \end{figure}
 
 \subsection{Flush \& Compaction}
-The rate of flushes in LSM can also bump the overall write amplification and
-impact the performance of the system. For every flush operation, the write
-buffer is written to the disk as a new file. Every time the write buffer is
-flushed to the disk, the system has two choices: $\left. 1\right)$ create a new
-file and write to the the first level on disk, i.e., to Level 0, or $\left. 2\right)$ merge the buffer with the
-existing files on the Level 0 and then write the merged file back to the
-Level 0. The first choice might lead to the large number of smaller files to
-Level 0, which will increase the number of files handle that a system has to
-manage. The second choice will increase the write amplification as the system
-has to read the existing files, merge them with the buffer and then write the
-merged file back to the level.
+\Paragraph{Compactions \& Flushes Impact} The rate of flushes in LSM-tree can increase the read and write amplifications, which can impact the overall performance of the system. 
+For every flush operation, the write buffer is written to the disk as a new file. 
+The system have two choices: either $\left. 1\right)$ to create a new file and write to the the first level on disk, i.e., to Level 0, or $\left. 2\right)$ read the existing (overlapping) files from the Level 0 and then write the merged file back to the Level 0.
+The first choice may lead to the more number of smaller files at Level 0, which will increase the number of file handles that needs to be managed by the system.
+The second choice will increase the read and write amplifications as the system needs to read the existing files, merge them with the buffer and then write the merged file(s) back to the level.
 
-The memory buffer like \textit{hash skip-list} and \textit{hash linked-list} with large number of buckets can be full very quickly because of the hash table and pointers overhead. 
-This leads to the frequent flushes which will either
-increase the number of files in Level 0 or the write amplification of the
-system. To measure the number of flushes and compactions, we ran our
-experiments with unique 1M inserts and recorded the number of flushes,
-compactions and total number of bytes read and written to the disk.
-Figure~\ref{fig:flush-compaction} shows the comparison of flushes and
-compactions for different write buffer implementations. The \textit{hash skip-list} due to its large memory requirement shows a significant increase in
-memory usage and I/O. \red{The \textit{vector} implementation shows the least}
+The memory buffer like \textit{hash skip-list} and \textit{hash linked-list} with large number of buckets can get full very quickly because of the hash table and pointers overhead. 
+This leads to the frequent flushes which will end up in one of the above discussed scenarios. 
+To measure the number of flushes and compactions, we run our experiments with unique 1M inserts and recorded the number of flushes, compactions and total number of bytes read and written to the disk.
+Figure~\ref{fig:flush-compaction} shows the comparison of flushes and compactions for different write buffer implementations. The \textit{hash skip-list} due to its large memory requirement shows almost $0.5\times$ more 
+flushes and $0.7\times$ more writes. The \textit{vector} implementation shows the least number of flushes and compactions among all the write buffer implementations.
 
 % \begin{figure}[h]
 %   \centering

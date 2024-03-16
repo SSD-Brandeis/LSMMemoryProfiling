@@ -109,6 +109,15 @@ The \textit{hash linked-list} has a lower memory overhead compared to the \texti
 
 % \Paragraph{Tree} \lipsum[1]
 
+
+\begin{figure}
+    \includegraphics[scale=0.37]{Figures/buffer-size.eps}
+    \vspace*{-2mm}
+    \caption{The increase in (a) prefix length or (b) bucket count can reduce the number of entries a hash-based memory buffer can store, due to the overhead of pointers.}
+    % \vspace*{-4mm}
+    \label{fig:memory_footprint}
+\end{figure}
+
 \subsection{Evaluation Metric}
 The choice of write buffer and its implementation have critical implications on the performance of LSM-engines. 
 We will evaluate each implementation based on 
@@ -127,5 +136,11 @@ previous insert.
     \item \textbf{Compaction count}: The frequency of compactions is directly correlated with increase in write 
     amplification and read amplification, making it essential for understanding the overall performance of the LSM-tree.
 \end{itemize}
-The goal is to provide a detailed analysis of how various write buffer designs affect the overall performance of an LSM-engine in terms of memory usage, read and write latency. 
-Based on this, we highlight the benefits and limitations of the different buffer implementations.
+The different workload characteristics may have different resource requirements in terms of memory, CPU, and I/O. 
+The write buffer type also contribute to the performance of the system.
+Figure~\ref{fig:motivation1} (a) describes, how \textit{vector} can work best for the inserts-only workload but can become the worst for the point and range queries. Similarly the \textit{hash skip-list} and the \textit{hash linked-list} can handle the inserts and point queries better than the \textit{vector} and the \textit{skip-list} but the performance must be tuned properly based on the prefix length and the number of buckets. 
+The change in prfix length or bucket count convert the \textit{hash-based} memory buffer into worst and the best, Figure~\ref{fig:motivation1} (b) represents the \textit{hash skip-list} performance
+for different prefix length and number of buckets. 
+The goal is to provide a detailed analysis of how various write buffer designs can affect overall database system 
+efficiency, focusing more on memory usage, reads and write latency. By examining these key performance metrics, we 
+intend to highlight the strengths and limitations of each write buffer implementation in the context of LSM-trees.
