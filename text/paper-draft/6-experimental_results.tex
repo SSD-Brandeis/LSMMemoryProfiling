@@ -113,19 +113,19 @@ It begins with quicksort, switches to heapsort when the recursion depth exceeds 
 Figure~\ref{fig:point-queries} (b) and (c) demonstrate that the \textit{hash skip-list} (for \textit{X} 6 and \textit{H} 100K) exhibits the best performance for point queries, while the \textit{hash linked-list} performs better than the \textit{vector} and the \textit{skip-list}. 
 Figure~\ref{fig:point-queries} (d), (e) and (f) illustrate that the bad choice of prefix length and the number of buckets can lead to suboptimal performance for point queries while using \textit{hash table}-based write buffer.
 
-\begin{figure}
-    \includegraphics[scale=0.32]{Figures/range-queries.eps}
+\begin{figure*}
+    \includegraphics[scale=0.64]{Figures/range-queries.eps}
     \caption{Sorting the write buffer is the main slowdown for the \textit{vector} implementation.
         \textit{skip-list} outperforms it for both short and long range queries. The increase in X
         keeping the H same leads to the worst performance for \textit{hash linked-list}}
     \label{fig:range-queries1}
-\end{figure}
+\end{figure*}
 
 \Paragraph{Range Queries} 
 This operation is used to scan a range of keys from the write buffer, which starts from the lower bound and return all keys till the upper bound.
 Irrespective of their selectivity span, range queries exhibit distinct performance traits compared to point queries.
 During a range query, the write buffer is tasked with locating all keys within the query bounds and returning them in an ordered sequence. 
-The \textit{vector}, due to its lack of inherent order, is less efficient in handling range queries, as it necessitates a linear search to locate the keys within the range, alternatively it can also sort the keys and perform binary serach for lower bound, and then run sequential scan. 
+The \textit{vector}, due to its lack of inherent order, is less efficient in handling range queries, as it necessitates a linear search to locate the keys within the range, alternatively it can also sort the keys and perform binary search for lower bound, and then run sequential scan. 
 In contrast, the \textit{skip-list} offers improved handling of both short and long range queries. 
 % It operates by initially identifying the key that is greater than or equal to the lower bound of the range, then traverses the list in sequence until it reaches the upper bound or encounters a greater key.
 
