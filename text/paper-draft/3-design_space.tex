@@ -1,10 +1,10 @@
 Here are the descriptions of all buffer implementations.
 
 \begin{enumerate}
-    \item \textbf{SkipList:} The default datastructure implementation of a 
-    write buffer is a skiplist.  A skiplist consists of layers of linked 
+    \item \textbf{Skip-List:} The default datastructure implementation of a 
+    write buffer is a skip-list.  A skip-list consists of layers of linked 
     lists, with each layer containing fewer elements (nodes) than the one below it. 
-    The last layer contains all the elements in a sorted order like a regular linked list.
+    The last layer contains all the elements in a sorted order like a regular linkedlist.
     The upper layers contain pointers that can be used to skip elements to reach target elements faster. 
     This probabilistic datastructure allows an $O(logn)$ search, insertion and deletion time.   
     

@@ -16,7 +16,9 @@ Due to these advantages, a large number of commercial NoSQL systems, including L
 % later flushed to disk as an file. This paper places a significant emphasis on the write buffer, exploring it in detail 
 % in the subsequent section.
 
+
 \begin{figure}[t]
+    \vspace*{2mm}
     \centering
     \begin{subfigure}{0.49\columnwidth}
         \centering
@@ -29,7 +31,8 @@ Due to these advantages, a large number of commercial NoSQL systems, including L
         \includegraphics[width=1\textwidth]{Figures/motivation-b.eps}
         % \caption{}
     \end{subfigure}
-    \caption{The comparison between different write buffers operational and ingestion latencies with changing workload.}
+    \vspace*{-2mm}
+    \caption{\red{The comparison between different write buffers operational and ingestion latencies with changing workload.}}
     \label{fig:motivation}
 \end{figure}
 
@@ -52,9 +55,9 @@ Each data structure brings a different tradeoff between performance and memory f
 We point out that despite being a disk-based data structure, \textbf{the choice of data structure has huge implications on the overall performance} of an LSM-engine. 
 We highlight two general scenarios where the choice of the buffer data structure and its implementation has critical performance implications. 
 (A) For the same buffer data structure, the performance numbers may vary significantly with the \textit{slightest shift in the workload characteristics}. 
-In Figure~\ref{fig:motivation}(A), we show that the ingestion throughput of an LSM-buffer, implemented as a (static) vector drop by $X\%$ if the input workload shifts from insert-only to having only $0.1\%$ point queries (and $99.9\%$ inserts). 
+In Figure~\ref{fig:motivation}(a), we show that the average operational latency for an LSM-engine with a (static) vector buffer-implementation increases by $36\times$ if the input workload shifts from insert-only to having only $0.1\%$ point queries. 
 (B) For the same data structure, \textit{different implementations and tunings} also has a significant impact on performance. 
-For example, as shown in Figure~\ref{fig:motivation}(B), the tail latency of a dynamically allocated vector can be almost two orders of magnitude higher than that of a pre-allocated vector. 
+For example, as shown in Figure~\ref{fig:motivation}(b), the tail latency of a dynamically allocated vector can be almost more than one order of magnitude higher than that of a pre-allocated vector. 
 Similarly, the point number of hash-buckets in a hash linked-list or a hash skip-list may affect the ingestion throughput significantly. 
 % \red{Add one more sentence.}
 
@@ -112,7 +115,7 @@ Similarly, the point number of hash-buckets in a hash linked-list or a hash skip
 % performance, underscoring the need for a deeper investigation into write buffer configurations and their efficiency under 
 % different workloads. Figure~\ref{fig:motivation1} shows the read and write latency for different write buffers.
 % The \textit{vector} write buffer has the lowest write latency, but the highest read latency. The \textit{hash skip list} and 
-% \textit{hash linked list} are the combination of \textit{hash table} with \textit{skip list} and \textit{link list}, respectively.
+% \textit{hash linked list} are the combination of \textit{hash table} with \textit{skip list} and \textit{linked list}, respectively.
 % These write buffers shows a better point read and write latency compared to \textit{skip list} write buffer.
 
 \Paragraph{Benchmarking LSM-Buffers} 
@@ -131,7 +134,8 @@ The contributions of our work is as follows.
     \item \textbf{Workload-Aware Performance Modeling}: We develop a benchmark for the buffer implementation in LSM-engines for a diverse set of key-value workloads, showcasing the impact of buffer implementation and workload on performance.  
     % This model facilitates a comparative analysis of the performance of various write buffer types under differing workload conditions.
     \item \textbf{The Memory vs. Performance Tradeoff}: In addition to the raw performance numbers on throughput for inserts and queries, and operational latency, we measure the memory footprint of every buffer implementation and discuss how different implementations navigate the memory vs. performance tradeoff. 
-    \item \textbf{Answer \textit{What-If} Questions}: Finally, we consolidate the key takeaways from the experiments in form of a handbook that, given a workload and target performance, would allow us to avoid the objectively worst design choices to implement the memory buffer and answer complex \textit{what-if} questions, such as: 
+
+    \item \textbf{Answer \textit{What-If} Questions}: We consolidate the key takeaways from the experiments in form of a handbook that, given a workload and target performance, would allow us to avoid the objectively worst design choices to implement the memory buffer and answer complex \textit{what-if} questions, such as: 
     \begin{enumerate}[label=(\alph*),leftmargin=*,labelindent=0mm, itemsep=0.2\baselineskip]
         \item What is the appropriate buffer design for an ingestion-heavy workload?
         \item How to avoid write stalls when processing a workload with interleaved in point queries and inserts?
