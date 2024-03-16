@@ -36,6 +36,18 @@ Unless otherwise mentioned, the size of a key-value pair is $64$B and the size o
 Size of the memory buffer is $16$MB. 
 The LSM-tree has a size ratio of $4$, i.e., each level on disk is $4\times$ larger than the previous level.
 
+\begin{figure}
+    \centering
+    \includegraphics[scale=0.5]{Figures/motivation1.eps}
+    \includegraphics[scale=0.4]{Figures/motivation2.eps}
+    \vspace*{-3mm}
+    \caption{Illustrate the trade-off between memory usage and time complexity for different write buffer implementations. 
+    (a) shows the read, write and range query latencies (b) shows the latency with change in \textit{prefix 
+    length} and \textit{buffer count.}}
+    \label{fig:motivation1}
+    % \vspace*{-5mm}
+\end{figure}
+
 
 \subsection{Memory Footprint}
 The memory requirements of various write buffer structures vary when tasked
@@ -58,6 +70,12 @@ of pointers, whereas the \textit{hash skip-list} displays the highest memory
 footprint, reflecting its larger memory requirement. The \textit{skip-list} and
 \textit{hash linked-list} have memory footprints that lie between the
 \textit{vector} and the \textit{hash skip-list}.
+
+\begin{figure*}
+    \includegraphics[scale=0.80]{Figures/range-queries.eps}
+    \caption{The sorting of write buffer is the main slowdown for the \textit{vector} implementation. The \textit{skip-list} outperforms it for both short and long range queries. The \textit{hash skip-list} and \textit{hash linked-list} also shows better performance than \textit{vector}.}
+    \label{fig:range-queries1}
+\end{figure*}
 
 \subsection{Read Performance}
 
@@ -94,12 +112,11 @@ It begins with quicksort, switches to heapsort when the recursion depth exceeds 
 Figure~\ref{fig:point-queries} (b) and (c) demonstrate that the \textit{hash skip-list} (for \textit{X} 6 and \textit{H} 100K) exhibits the best performance for point queries, while the \textit{hash linked-list} performs better than the \textit{vector} and the \textit{skip-list}. 
 Figure~\ref{fig:point-queries} (d), (e) and (f) illustrate that the bad choice of prefix length and the number of buckets can lead to suboptimal performance for point queries while using \textit{hash table}-based write buffer.
 
-\begin{figure}
-    \includegraphics[scale=0.3]{Figures/throughput.eps}
-    \vspace*{-2mm}
-    \caption{The comparison for the throughput performance of different write buffer implementations.}
-    \label{fig:point-queries}
-\end{figure}
+\begin{figure*}
+    \includegraphics[scale=0.80]{Figures/range-queries.eps}
+    \caption{The sorting of write buffer is the main slowdown for the \textit{vector} implementation. The \textit{skip-list} outperforms it for both short and long range queries. The \textit{hash skip-list} and \textit{hash linked-list} also shows better performance than \textit{vector}.}
+    \label{fig:range-queries1}
+\end{figure*}
 
 
 \Paragraph{Range Queries} 
