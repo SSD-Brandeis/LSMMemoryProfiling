@@ -62,7 +62,7 @@ to reveal the trade-offs between the memory footprint and the storage capacity
 (number of entries) of each write buffer implementation, providing insights
 into their efficiency and appropriateness for different scenarios.
 
-We conducted the experiment by inserting 1 million entries into each write
+We conducted the experiment by inserting 1M entries into each write
 buffer implementation and measured the memory footprint. The bucket count
 (\textit{H}) and the prefix length (\textit{X}) for the \textit{hash skip-list}
 and \textit{hash linked-list} were set to 1 and 0, respectively.
@@ -87,7 +87,7 @@ It is noteworthy that the performance varies based on configuration, and it fall
 The prefix length (\textit{X}) and the number of buckets (\textit{H}) can fairly influence the performance of the \textit{hash skip-list} and the \textit{hash linked-list}. 
 There are two extreme cases: $\left. 1\right)$ setting the prefix length too small, for example, to 0, results in all keys being stored in a single bucket, $\left. 2\right)$ increasing the prefix length to the maximum length of the keys while maintaining only one bucket leads to the same bottleneck. 
 Ideally, the number of buckets should approximate $256^{\textit{X}}$ (assuming the character based prefix) to optimize performance. 
-This strategy, however, poses a challenge as it necessitates a substantial increase in the number of buckets—approximately 65K for a \textit{X} of 2 and about 16M for a \textit{X} of 3—thereby significantly raising the memory overhead due to the need for the pointer that needs to be maintained for each bucket, unless it is empty.
+This strategy, however, poses a challenge as it necessitates a substantial increase in the number of buckets — approximately 65K for a \textit{X} of 2 and about 16M for a \textit{X} of 3 — thereby significantly raising the memory overhead due to the need for the pointer that needs to be maintained for each bucket, unless it is empty.
 For point queries, achieving an $O(1)$ complexity is possible when the \textit{X} is adjusted to the maximum key length, coupled with $256^{\textit{X}}$ buckets, provided that sufficient memory is available. 
 Moreover, the efficiency of point queries is further optimized when the distribution of keys across buckets is uniform.
 Thus, the \textit{hash skip-list} can attain optimal performance for point queries through careful adjustment of the prefix length and the number of buckets. 
@@ -98,7 +98,7 @@ Despite this, point queries can still maintain commendable performance provided 
 \Paragraph{Point Queries Experiments} 
 To assess the performance of point queries on write buffers, we conducted our experiments in which we inserted 140K entries, each 64 bytes in size, with random interleaved 200 point queries and recorded the time taken to execute each query. 
 Figure~\ref{fig:point-queries} (a) illustrates that the \textit{vector} implementation exhibits the poorest performance, which aligns with expectations due to its linear search complexity. 
-In Rocksdb, the point queries are performed by first sorting the write buffer and then performing a binary search for \textit{vector}. 
+In RocksDB, the point queries are performed by first sorting the write buffer and then performing a binary search for \textit{vector}. 
 Notably, the graph's spikes can be attributed to the overhead incurred by sorting of \textit{vector} buffer prior to performing a binary search for the point queries. 
 The sort function of the standard library of C++ uses an introspective sorting by doing a selection of algorithms dynamically to optimize performance. 
 It begins with quicksort, switches to heapsort when the recursion depth exceeds a level based on the number of elements begin sorted and it switches to insertion sort when the number of elements is below some threshold. 
@@ -132,7 +132,7 @@ sample space will be $256^3$) and the number of buckets are less (lets say
 this case, the \textit{hash skip-list} and the \textit{hash linked-list} will
 perform a copy and sort operations to find all the keys within the range. It
 has to iterate over all the buckets and perform seek operation to locate the
-keys. In Rocksdb, it creates a new skiplist based view for all the keys within
+keys. In RocksDB, it creates a new skip-list based view for all the keys within
 the qualifying buckets and then return the keys that are within the range by
 filtering the keys. The performance depends on the number of buckets that
 qualify the range and then the number of keys it needs to seek over to filter
@@ -212,7 +212,7 @@ latency profiles over 4K insert queries indicate that the \textit{skip-list} is
     \includegraphics[scale=0.4]{Figures/flush-compaction.eps}
     \caption{The comparison shows (a) the number of bytes read and written for different write buffer implementations, 
                                   (b) the number of flushes and compactions for different write buffer implementations for 
-                                  insertion of 1.5 million records}
+                                  insertion of 1.5M records}
     \label{fig:flush-compaction}
 \end{figure}
 
@@ -234,7 +234,7 @@ large number of buckets can be full very quickly because of the hash table and
 pointers overhead. This leads to the frequent flushes which will either
 increase the number of files in level-0 or the write amplification of the
 system. To measure the number of flushes and compactions, we ran our
-experiements with unique 1 million inserts and recorded the number of flushes,
+experiments with unique 1M inserts and recorded the number of flushes,
 compactions and total number of bytes read and written to the disk.
 Figure~\ref{fig:flush-compaction} shows the comparison of flushes and
 compactions for different write buffer implementations. The \textit{hash skip
