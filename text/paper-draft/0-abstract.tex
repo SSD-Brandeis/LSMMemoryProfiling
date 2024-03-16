@@ -1,7 +1,7 @@
 The log-structured merge (LSM) tree is an ingestion-optimized data structure that is widely used in modern NoSQL key-value stores. 
 To support high throughput for writes, LSM-trees maintain an in-memory buffer that absorbs the incoming entries before writing them to slower secondary storage. 
 We point out that the choice of the data structure and implementation of the memory buffer has a significant impact on the overall performance of LSM-based storage engines. 
-In fact, even with the same implementation of the buffer, the performance of a storage engine can very by up to several orders of magnitude if there is a shift in the input workload. 
+In fact, even with the same implementation of the buffer, the performance of a storage engine can vary by up to several orders of magnitude if there is a shift in the input workload. 
 % These systems are optimized to deliver high write throughput and low 
 % latency during write operations. Data is initially ingested through an in-memory write buffer within the LSM-tree, known as 
 % the Memtable. This buffer, designed for write optimization, temporarily holds the latest database writes and is 
@@ -9,7 +9,7 @@ In fact, even with the same implementation of the buffer, the performance of a s
 
 In this paper, we benchmark the performance of LSM-based storage engines with different memory buffer implementations and under different workload characteristics. 
 We experiment with four buffer implementations, namely, (i) \textit{vector}, (ii) \textit{skip-list}, (iii) \textit{hash skip-list}, and (iv) \textit{hash linked-list}, and for each implementation, we vary any design choices (such as bucket count in a hash skip-list and prefix length in a hash linked-list). 
-We present a comprehensive performance benchmark for each buffer configurations, and highlight how the relative performance of the different buffer implementations vary with a shift in input workload. 
+We present a comprehensive performance benchmark for each buffer configuration, and highlight how the relative performance of the different buffer implementations varies with a shift in input workload. 
 Lastly, we present a guideline for selecting the appropriate buffer implementation for a given workload and performance goal.
 
 % each with its unique memory 

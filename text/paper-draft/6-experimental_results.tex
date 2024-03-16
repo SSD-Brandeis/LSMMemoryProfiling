@@ -8,9 +8,8 @@ range queries (large selectivity).
 
 \begin{figure}
     \includegraphics[scale=0.38]{Figures/buffer-size.eps}
-    \caption{The comparison shows the avgerage capacity of buffers for different implementations over the insertion 
-    of 1.5 million records. The change in memory footprint with the change in prefix length \textit{X}
-    and the number of buckets \textit{H}.}
+    \caption{The comparison shows the variation in the effective capacity for different buffer implementations when inserting 
+    1.5M entries as we change  prefix length (\textit{X}) and the number of buckets (\textit{H}.)}
     \label{fig:memory_footprint}
 \end{figure}
 
