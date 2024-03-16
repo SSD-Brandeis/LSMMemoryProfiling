@@ -1,0 +1,8 @@
+LSM-based storage engines performs well for write intensive workloads. 
+The performance and configuration of write buffers are always treated as a default setting in most of the storages.
+The insights of workload and a better configuration of write buffer can improve the performance at the next level.
+In this paper, we have benchmarked the performance of LSM-based storage engines with different memory buffer implementations and under different workload characteristics.
+We experiment with four buffer implementations, namely, (i) \textit{vector}, (ii) \textit{skip-list}, (iii) \textit{hash skip-list}, and (iv) \textit{hash linked-list}, and for each implementation, we vary any design choices (such as bucket count and prefix length in a hash linked-list or hash skip-list).
+We also explored the tunning knobs for the \textit{vector} that can save the write-stalls for resizing the buffer to accumulate the incoming writes.
+The right configuration for the write buffer can improve the overall performance of the LSM-based storage engines. 
+We plan to come up with more variant of the write buffer implementations and their performance benchmarking in the future.
