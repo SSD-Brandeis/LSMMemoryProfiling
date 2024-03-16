@@ -1,4 +1,8 @@
-\documentclass[sigconf]{acmart}
+\documentclass[sigconf,review]{acmart}
+% \settopmatter{authorsperrow=4}
+\settopmatter{printacmref=false}
+
+
 
 \usepackage{booktabs} % For formal tables
 \usepackage[ruled,vlined]{algorithm2e}
@@ -13,15 +17,12 @@
 %\usepackage{geometry}
 \usepackage{marginnote}
 \usepackage{color}
-
-% \usepackage{pslatex}
+\usepackage{cprotect}
 \usepackage{multirow} 
 
 \usepackage{enumitem}
 \usepackage{bm}
 \usepackage{balance}
-
-\usepackage{lipsum}
 
 \newcommand{\newtext}[1]{{\color{blue} #1}}
 \newcommand{\margincomment}[1]{\marginnote{{[{\sf {\color{red}\scriptsize #1}}]}}}
@@ -39,6 +40,8 @@
 \newcommand{\green}[1]{\textcolor{myGreen}{#1}}
 \newcommand{\grey}[1]{\textcolor{myGrey}{#1}}
 
+\usepackage[raggedrightboxes]{ragged2e}
+
 \usepackage{array}
 \newcommand{\PreserveBackslash}[1]{\let\temp=\\#1\let\\=\temp}
 \newcolumntype{C}[1]{>{\PreserveBackslash\centering}p{#1}}
@@ -52,27 +55,10 @@
 \newcommand\Textcolor[2]{\hspace*{-3mm} \textcolor{#1}{#2} }
 
 \newcommand{\shubham}[1]{\textcolor{myGreen}{#1}}
-% \newcommand{\arpita}[1]{\textcolor{myRed}{#1}}
+\newcommand{\manos}[1]{\textcolor{myRed}{#1}}
 \newcommand{\subhadeep}[1]{\textcolor{myBlue}{#1}}
-\newcommand{\inprogress}[1]{\textcolor{warning}{\textbf{InProgress: }#1}}
-\newcommand{\note}[1]{\textcolor{myGreen}{\textbf{Note: }#1}}
 
-
-% \AtBeginDocument{%
-%   \providecommand\BibTeX{{%
-%     Bib\TeX}}}
-
-% \setcopyright{acmcopyright}
-% \copyrightyear{2018}
-% \acmYear{2018}
-% \acmDOI{XXXXXXX.XXXXXXX}
-
-% \acmConference[Conference acronym 'XX]{Make sure to enter the correct
-%   conference title from your rights confirmation emai}{June 03--05,
-%   2018}{Woodstock, NY}
-  
-% \acmPrice{15.00}
-% \acmISBN{978-1-4503-XXXX-X/18/06}
+\newcommand{\bench}[0]{\texttt{KVBench}}
 
 
 \begin{document}

@@ -31,21 +31,14 @@ range queries (large selectivity).
 \end{figure}
 
 \subsection{Experimental Setup}
-To conduct these experiments, we used a Chameleon machine equipped with a
-configuration of 187 GiB of RAM and 48 cores. We used the
-RocksDB~\cite{Facebook2021} storage engine to evaluate the performance of the
-write buffer implementations. The RocksDB was configured to use only one thread
-for compactions and one thread for flushes to ensure that the performance is
-not affected by the compaction and flush threads. We also disabled the
-write-ahead log (WAL) to ensure that the performance is not affected by the
-WAL. Below are the parameters that we use across all the experiments:
-\begin{itemize}[leftmargin=*,labelindent=0mm, itemsep=0.2\baselineskip]
-    \item \textit{E} (entry size) = 64 bytes
-    \item \textit{B} (number of entries that fit into a page) = 64
-    \item \textit{P} (size of buffer in pages) = 4096
-    \item \textit{T} (size ratio between adjacent levels) = 4
-    \item \textit{M} (main memory allocated to write buffer) = 16 MB
-\end{itemize}
+To conduct these experiments, we use a virtual machine equipped with a
+configuration of 187GB of RAM and 48 cores. 
+We use the RocksDB~\cite{Facebook2021} storage engine to evaluate the performance of the write buffer implementations. 
+RocksDB is configured to use only one thread for compactions and one thread for flushes to ensure that the performance is not affected by the compaction and flush threads. 
+We also disable the write-ahead log (WAL) to ensure that the performance is not affected by the WAL. 
+Unless otherwise mentioned, the size of a key-value pair is $64$B and the size of each disk page is $4$KB. 
+Size of the memory buffer is $16$MB. 
+The LSM-tree has a size ratio of $4$, i.e., each level on disk is $4\times$ larger than the previous level.
 
 \begin{figure}
     \centering
