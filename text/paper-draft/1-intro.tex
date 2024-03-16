@@ -16,27 +16,22 @@ Due to these advantages, a large number of commercial NoSQL systems, including L
 % later flushed to disk as an file. This paper places a significant emphasis on the write buffer, exploring it in detail 
 % in the subsequent section.
 
-\begin{figure}
+\begin{figure}[t]
     \centering
-    \includegraphics[scale=0.35]{Figures/motivation-a.eps}
-    \includegraphics[scale=0.35]{Figures/motivation-b.eps}
-    \caption{The comparison between different write buffers operation latency for a small shift in the workload.}
+    \begin{subfigure}{0.49\columnwidth}
+        \centering
+        \includegraphics[width=1\textwidth]{Figures/motivation-a.eps}
+        % \caption{}
+    \end{subfigure}%
+    \hfill
+    \begin{subfigure}{0.49\columnwidth}
+        \centering
+        \includegraphics[width=1\textwidth]{Figures/motivation-b.eps}
+        % \caption{}
+    \end{subfigure}
+    \caption{The comparison between different write buffers operational and ingestion latencies with changing workload.}
     \label{fig:motivation1}
-    % \vspace*{-5mm}
 \end{figure}
-
-\begin{figure}
-    \centering
-    \includegraphics[scale=0.5]{Figures/motivation1.eps}
-    \includegraphics[scale=0.4]{Figures/motivation2.eps}
-    \vspace*{-3mm}
-    \caption{Illustrate the trade-off between memory usage and time complexity for different write buffer implementations. 
-    (a) shows the read, write and range query latencies (b) shows the latency with change in \textit{prefix 
-    length} and \textit{buffer count.}}
-    \label{fig:motivation1}
-    % \vspace*{-5mm}
-\end{figure}
-
 
 \Paragraph{LSM-Buffer and its Implementation} 
 To ensure high throughput for inserts and to avoid writing data eagerly to slower secondary storage, LSM-trees buffer the incoming entries first in memory~\cite{Luo2019c,Sarkar2022a}. 
@@ -60,7 +55,7 @@ We highlight two general scenarios where the choice of the buffer data structure
 In Figure~\ref{fig:motivation1}, we show that the ingestion throughput of an LSM-buffer, implemented as a (static) vector drop by $X\%$ if the input workload shifts from insert-only to having only $0.1\%$ point queries (and $99.9\%$ inserts). 
 (B) For the same data structure, \textit{different implementations and tunings} also has a significant impact on performance. 
 For example, as shown in Figure~\ref{fig:motivation1}, the tail latency of a dynamically allocated vector can be up to \red{two orders of magnitude} higher than that of a pre-allocated vector. 
-Similarly, the number of hash-buckets in a hash linked-list or a hash skip-list may affect the ingestion throughput significantly. 
+Similarly, the point number of hash-buckets in a hash linked-list or a hash skip-list may affect the ingestion throughput significantly. 
 \red{Add one more sentence.}
 
 \begin{center}
