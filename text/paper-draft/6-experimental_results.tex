@@ -107,10 +107,8 @@ Figure~\ref{fig:point-queries} (b) and (c) demonstrate that the \textit{hash ski
 Figure~\ref{fig:point-queries} (d), (e) and (f) illustrate that the bad choice of prefix length and the number of buckets can lead to suboptimal performance for point queries while using \textit{hash table}-based write buffer.
 
 \begin{figure*}
-    \includegraphics[scale=0.64]{Figures/range-queries.eps}
-    \caption{Sorting the write buffer is the main slowdown for the \textit{vector} implementation.
-        \textit{skip-list} outperforms it for both short and long range queries. The increase in X
-        keeping the H same leads to the worst performance for \textit{hash linked-list}}
+    \includegraphics[scale=0.80]{Figures/range-queries.eps}
+    \caption{The sorting of write buffer is the main slowdown for the \textit{vector} implementation. The \textit{skip-list} outperforms it for both short and long range queries. The \textit{hash skip-list} and \textit{hash linked-list} also shows better performance than \textit{vector}.}
     \label{fig:range-queries1}
 \end{figure*}
 
