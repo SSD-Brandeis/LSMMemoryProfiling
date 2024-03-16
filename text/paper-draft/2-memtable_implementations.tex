@@ -5,7 +5,7 @@ In this section, we discuss the construction of the LSM-buffer benchmark, the de
 \subsection{Buffer Implementation}
 The buffer in LSM-trees serve as a staging area for writes (inserts, updates, and deletes) before they are flushed to disk. 
 Batching inserts in the main memory allows for amortizing the cost of writes, every flush writes approximately $P\cdot B$ entries to the disk, where $P$ is the size of the memory buffer in disk pages and $B$ is the average number of key-value pairs in every page. 
-\red{Table~\ref{table:terms} gives a list of terms we use throughout this paper.}
+% \red{Table~\ref{table:terms} gives a list of terms we use throughout this paper.}
 Retaining the ingested entries in the buffer also allows future point queries on the recently ingested entries to be returned directly from the buffer, without any disk access. 
 This can significantly improve the throughput for point queries on ``hot'' data. 
 Below, we discuss the design and configuration of the four memory buffer implementations we use for the benchmark.
@@ -39,40 +39,40 @@ A \textit{skip-list} is implemented as a hierarchical structure of linked-lists,
 However, the hierarchical structure of \textit{skip-lists} requires maintaining additional key-pointer pairs for indexing purposes, and this adds to the metadata overhead of the data structure. 
 For example, a \textit{skip-list} with four levels, requires a memory of roughly $1.33\times$ of the data size. 
 
-\begin{table}
-    \begin{tabular}{|c|l|c|}
-        \hline
-        \textbf{Term} & \textbf{Description} & \textbf{Unit} \\
-        \hline
-        \textit{E} & entry size & Bytes \\
-        \hline
-        \textit{N} & total number of entries & entries \\
-        \hline
-        \textit{L} & number of levels & levels \\
-        \hline
-        \textit{B} & number of entries that fit into a page & entries \\
-        \hline
-        \textit{P} & size of buffer in pages & pages \\
-        \hline
-        \textit{T} & size ratio between adjacent levels &  \\
-        \hline
-        \textit{M} & main memory allocated to write buffer & Bytes \\
-        \hline 
-        \textit{Q} & number of point queries & queries \\
-        \hline
-        \textit{S} & number of range queries & queries \\
-        \hline
-        \textit{Y} & selectivity of range queries w.r.t N & percent \\ 
-        \hline
-        \textit{X} & prefix length & chars \\
-        \hline
-        \textit{H} & number of buckets in hash table & buckets \\
-        \hline
-    \end{tabular}
-    \vspace{0.5em}
-    \caption{Table of terms used throughout the paper.}
-    \label{table:terms}
-\end{table}
+% \begin{table}
+%     \begin{tabular}{|c|l|c|}
+%         \hline
+%         \textbf{Term} & \textbf{Description} & \textbf{Unit} \\
+%         \hline
+%         \textit{E} & entry size & Bytes \\
+%         \hline
+%         \textit{N} & total number of entries & entries \\
+%         \hline
+%         \textit{L} & number of levels & levels \\
+%         \hline
+%         \textit{B} & number of entries that fit into a page & entries \\
+%         \hline
+%         \textit{P} & size of buffer in pages & pages \\
+%         \hline
+%         \textit{T} & size ratio between adjacent levels &  \\
+%         \hline
+%         \textit{M} & main memory allocated to write buffer & Bytes \\
+%         \hline 
+%         \textit{Q} & number of point queries & queries \\
+%         \hline
+%         \textit{S} & number of range queries & queries \\
+%         \hline
+%         \textit{Y} & selectivity of range queries w.r.t N & percent \\ 
+%         \hline
+%         \textit{X} & prefix length & chars \\
+%         \hline
+%         \textit{H} & number of buckets in hash table & buckets \\
+%         \hline
+%     \end{tabular}
+%     \vspace{0.5em}
+%     \caption{Table of terms used throughout the paper.}
+%     \label{table:terms}
+% \end{table}
 
 
 \Paragraph{Hash Skip-List} 

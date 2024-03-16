@@ -30,7 +30,7 @@ Due to these advantages, a large number of commercial NoSQL systems, including L
         % \caption{}
     \end{subfigure}
     \caption{The comparison between different write buffers operational and ingestion latencies with changing workload.}
-    \label{fig:motivation1}
+    \label{fig:motivation}
 \end{figure}
 
 \Paragraph{LSM-Buffer and its Implementation} 
@@ -42,7 +42,7 @@ We refer to this process of persisting the contents of the buffer to disk as \te
 Buffering the inserts in memory allows LSM-engines to amortize the number of disk I/Os performed while inserting data which, by design, makes them optimized for ingestion~\cite{Sarkar2021c}. 
 % \Paragraph{Buffer Implementation and its Performance Implications}
 In practice, systems use different data structures with widely varying implementations to design the memory buffer in LSM-based storage engines. 
-\red{Vector, skip-list, linked-list, and hybrid data structures, such as hash skip-list and hash linked-list, are some of the commonly used data structures in commercial LSM-based storage engines~\cite{Dong2021a,Facebook2021}.} 
+Vector, skip-list, linked-list, and hybrid data structures, such as hash skip-list and hash linked-list, are some of the commonly used data structures in commercial LSM-based storage engines~\cite{Dong2021a,Facebook2021}.
 Each data structure brings a different tradeoff between performance and memory footprint~\cite{Athanassoulis2016}. 
 % Some systems, like Apache Cassandra, use workload-specific implementations 
 
@@ -52,11 +52,11 @@ Each data structure brings a different tradeoff between performance and memory f
 We point out that despite being a disk-based data structure, \textbf{the choice of data structure has huge implications on the overall performance} of an LSM-engine. 
 We highlight two general scenarios where the choice of the buffer data structure and its implementation has critical performance implications. 
 (A) For the same buffer data structure, the performance numbers may vary significantly with the \textit{slightest shift in the workload characteristics}. 
-In Figure~\ref{fig:motivation1}, we show that the ingestion throughput of an LSM-buffer, implemented as a (static) vector drop by $X\%$ if the input workload shifts from insert-only to having only $0.1\%$ point queries (and $99.9\%$ inserts). 
+In Figure~\ref{fig:motivation}(A), we show that the ingestion throughput of an LSM-buffer, implemented as a (static) vector drop by $X\%$ if the input workload shifts from insert-only to having only $0.1\%$ point queries (and $99.9\%$ inserts). 
 (B) For the same data structure, \textit{different implementations and tunings} also has a significant impact on performance. 
-For example, as shown in Figure~\ref{fig:motivation1}, the tail latency of a dynamically allocated vector can be up to \red{two orders of magnitude} higher than that of a pre-allocated vector. 
+For example, as shown in Figure~\ref{fig:motivation}(B), the tail latency of a dynamically allocated vector can be almost two orders of magnitude higher than that of a pre-allocated vector. 
 Similarly, the point number of hash-buckets in a hash linked-list or a hash skip-list may affect the ingestion throughput significantly. 
-\red{Add one more sentence.}
+% \red{Add one more sentence.}
 
 \begin{center}
 \textit{The choice and implementation of the memory buffer in state-of-the-art LSM-engines is agnostic of workload and performance goal which leads to sub-optimal performance overall.}
