@@ -1,0 +1,11 @@
+# TXT files
+**.txt
+
+# Log files
+**.log
+
+# db_working_home
+**/db_working_home/**
+
+# working_version
+working_version
