@@ -5,7 +5,7 @@
 
 namespace Default {
 
-const unsigned int ENTRY_SIZE = 64;
+const unsigned int ENTRY_SIZE = 16;
 const unsigned int ENTRIES_PER_PAGE = 2048;
 const unsigned int BUFFER_SIZE_IN_PAGES = 128;
 
@@ -157,7 +157,7 @@ class DBEnv {
    * 4 for hash linked list
    * 5 for unsorted_vector
    */
-  uint16_t memtable_factory = 1;  // [m]
+  uint16_t memtable_factory = 2;  // [m]
 
   // if true, RocksDB will pick target size of each level dynamically
   bool level_compaction_dynamic_level_bytes = false;

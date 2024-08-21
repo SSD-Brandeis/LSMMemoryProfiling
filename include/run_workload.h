@@ -44,6 +44,15 @@ struct CompactionEvent {
 // std::vector<FlushEvent> flush_events_;
 // std::vector<CompactionEvent> compaction_events_;
 
+using hrc = std::chrono::high_resolution_clock;
+using ns = std::chrono::nanoseconds;
+using std::chrono::duration_cast;
+
+#define LOG(msg) \
+std::cout << __FILE__ << "(" << __LINE__ << "): " << msg << std::endl
+
+
+
 /*
  * The compactions can run in background even after the workload is completely
  * executed so, we have to wait for them to complete. Compaction Listener gets
@@ -177,6 +186,32 @@ void runWorkload(DBEnv* env) {
 
   int current_level = fade_stats->levels_in_tree;
 
+
+
+  const auto TIMES = 500;
+  for (int t = 0; t < 500; ++t) {
+    if (t % 100 == 0) LOG("===" << t << "===");
+    long total_time = 0;
+    for (size_t j = 0; j < TIMES; ++j) {
+      size_t i = TIMES - j;
+      std::string key = "k" + std::to_string(i) + std::string(5, '0');
+      std::string val = std::to_string(i) + std::string(5, '0') + std::string(10, 'v');
+      auto start = hrc::now();
+      db->Put(w_options, key.substr(0, 5), val.substr(0, 11));
+      auto duration = duration_cast<ns>(hrc::now() - start);
+      total_time += duration.count();
+      // workload_stats.add(DBOperation::Insert);
+    }
+    LOG("Time: " << total_time / 1000000);
+    // std::string val;
+    // for (size_t i = 0; i < TIMES / 10; ++i) {
+    //     std::string key = "k" + std::to_string(i) + std::string(5, '0');
+    //     db->Get(r_options, key.substr(0, 5), &val);
+    //     workload_stats.add(DBOperation::PointQuery);
+    // }
+  }
+
+  return;
   // opening workload file for the first time
   ifstream workload_file;
   workload_file.open("workload.txt");
