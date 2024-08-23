@@ -30,6 +30,7 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/lib/KV-WorkloadGenerator/include
 
 add_subdirectory(lib/rocksdb)
 add_subdirectory(lib/KV-WorkloadGenerator)
+add_subdirectory(lib/trie)
 
 set(SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/db_env.cc 
