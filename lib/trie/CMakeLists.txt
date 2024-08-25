@@ -7,7 +7,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O0")
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../rocksdb/include)
 
 set(SOURCES
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/trie.cc
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/trie.cc
 )
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/bin)

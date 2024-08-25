@@ -1,0 +1,26 @@
+syntax = "proto2";
+
+message Operations {
+  repeated Operation operations = 1;
+}
+
+message Operation {
+  oneof op_type {
+    PutOp put = 1;
+    GetOp get = 2;
+    DeleteOp delete = 3;
+  }
+}
+
+message PutOp {
+  required string key = 1;
+  required string val = 2;
+}
+
+message GetOp {
+  required string key = 1;
+}
+
+message DeleteOp {
+  required string key = 1;
+}

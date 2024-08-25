@@ -73,3 +73,6 @@ logs
 
 # temp_files
 logs.txt
+
+cmake-build-debug/
+cmake-build-release/
