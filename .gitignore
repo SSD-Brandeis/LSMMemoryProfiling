@@ -74,3 +74,11 @@ logs
 
 # temp_files
 logs.txt
+
+db/
+*.svg
+out.folded
+out.perf
+perf.data
+perf.data.old
+workload.txt
