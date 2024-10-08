@@ -123,12 +123,12 @@ class UnsortedVectorRep : public VectorRep {
   ~UnsortedVectorRep() override = default;
 
   class Iterator : public MemTableRep::Iterator {
-    class UnsortedVectorRep* vrep_;
+    // class UnsortedVectorRep* vrep_;
     std::shared_ptr<std::vector<const char*>> bucket_;
     std::vector<const char*>::const_iterator mutable cit_;
     const KeyComparator& compare_;
     std::string tmp_;  // For passing to EncodeKey
-    bool mutable sorted_;
+    // bool mutable sorted_;
 
    public:
     explicit Iterator(class UnsortedVectorRep* vrep,
@@ -396,11 +396,10 @@ UnsortedVectorRep::Iterator::Iterator(
     class UnsortedVectorRep* vrep,
     std::shared_ptr<std::vector<const char*>> bucket,
     const KeyComparator& compare)
-    : vrep_(vrep),
-      bucket_(bucket),
+    : bucket_(bucket),
       cit_(bucket_->end()),
-      compare_(compare),
-      sorted_(false) {}
+      compare_(compare)
+      {}
 
 // Returns the key at the current position.
 // REQUIRES: Valid()

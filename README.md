@@ -10,14 +10,18 @@ The step 1 is to clone this respository in your local machine. You can do this b
 git clone https://github.com/SSD-Brandeis/LSMMemoryProfiling
 ```
 
-We have provided a `setup.sh` script to install all the dependencies required for this project in terms of submodules and building. You might need `g++` compiler, `cmake`, `make`, and `git` to run this script. Other than this you may need to install `libgflags-dev` for RocksDB. You can install this by running the following command:
+You might also need `cmake` and `make`. Other than this you may need to install `libgflags-dev` for RocksDB. You can install this by running the following command:
 ```bash
 sudo apt-get install libgflags-dev
 ```
 
 After installing the dependencies, you can run the following command to install all the submodules and build the project. Make sure you are in the root directory of the project:
 ```bash
-./setup.sh
+git submodule update --init --recursive
+mkdir build
+cd build
+cmake ..
+make -j66  # 66 is the number of cores, change if required
 ```
 
 The above command will do the following:
@@ -25,20 +29,6 @@ The above command will do the following:
 2. Build the RocksDB source code.
 3. Build the `KV-WorkloadGenerator` source code.
 4. Build the `working_version` source code. (This you can find in `./MemoryProfiling/examples/__working_branch` directory)
-
-If you want to build the project manually, you can run the following commands:
-```bash
-git submodule update --init --recursive
-
-cd KV-WorkloadGenerator
-make -j load_gen
-
-cd ../MemoryProfiling
-make -j<threads> static_lib
-
-cd examples/__working_branch
-make -j working_version
-```
 
 ## Running the benchmarks
 

@@ -1,6 +1,6 @@
 [submodule "text/paper-draft"]
 	path = text/paper-draft
-	url = git@github.com:SSD-Brandeis/LSMMemoryProfilingText.git
+	url = https://github.com/SSD-Brandeis/LSMMemoryProfilingText.git
 [submodule "lib/KV-WorkloadGenerator"]
 	path = lib/KV-WorkloadGenerator
 	url = https://github.com/SSD-Brandeis/KV-WorkloadGenerator.git
