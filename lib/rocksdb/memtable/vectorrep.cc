@@ -170,6 +170,7 @@ class UnsortedVectorRep : public VectorRep {
   };
 };
 
+
 void VectorRep::Insert(KeyHandle handle) {
 #ifdef PROFILE
   auto start_time = std::chrono::high_resolution_clock::now();
@@ -498,6 +499,133 @@ void UnsortedVectorRep::Get(const LookupKey& k, void* callback_args,
 #endif  // PROFILE
 }
 
+class AlwaysSortedVectorRep : public VectorRep {
+public:
+  AlwaysSortedVectorRep(const KeyComparator& compare, Allocator* allocator, size_t count) : VectorRep(compare, allocator, count) {
+
+  }
+
+  void Insert(KeyHandle handle) override {
+// #ifdef PROFILE
+//   auto start_time = std::chrono::high_resolution_clock::now();
+// #endif  // PROFILE
+  auto* key = static_cast<char*>(handle);
+  WriteLock l(&rwlock_);
+  assert(!immutable_);
+  auto position = std::lower_bound(bucket_->begin(), bucket_->end(), key);
+  bucket_->insert(position, key);
+// #ifdef PROFILE
+//   auto end_time = std::chrono::high_resolution_clock::now();
+//   std::cout << "InsertTime: "
+//             << std::chrono::duration_cast<std::chrono::nanoseconds>(end_time -
+//                                                                     start_time)
+//                    .count()
+//             << std::endl
+//             << std::flush;
+// #endif  // PROFILE
+  };
+
+  void Get(const LookupKey &k, void *callback_args, bool(*callback_func)(void *arg, const char *entry)) override {
+// #ifdef PROFILE
+//   auto start_time = std::chrono::high_resolution_clock::now();
+// #endif  // PROFILE
+  rwlock_.ReadLock();
+  AlwaysSortedVectorRep* vector_rep = this;
+  // std::shared_ptr<Bucket> bucket;
+  // if (immutable_) {
+  //   if (!sorted_) {
+  //     std::sort(bucket_->begin(), bucket_->end(),
+  //               stl_wrappers::Compare(compare_));
+  //   }
+  //   vector_rep = this;
+  // } else {
+  //   vector_rep = nullptr;
+  //   bucket.reset(new Bucket(*bucket_));
+  // }
+
+  AlwaysSortedVectorRep::Iterator iter(vector_rep,  bucket_,
+                                   compare_);
+  rwlock_.ReadUnlock();
+
+  for (iter.Seek(k.user_key(), k.memtable_key().data());
+       iter.Valid() && callback_func(callback_args, iter.key()); iter.Next()) {
+  }
+// #ifdef PROFILE
+//   auto end_time = std::chrono::high_resolution_clock::now();
+//   std::cout << "PointQueryTime: "
+//             << std::chrono::duration_cast<std::chrono::nanoseconds>(end_time -
+//                                                                     start_time)
+//                    .count()
+//             << std::endl
+//             << std::flush;
+// #endif  // PROFILE
+  }
+
+  class Iterator : public MemTableRep::Iterator {
+    class AlwaysSortedVectorRep* vrep_;
+    std::shared_ptr<std::vector<const char*>> bucket_;
+    std::vector<const char*>::const_iterator mutable cit_;
+    const KeyComparator& compare_;
+    std::string tmp_;  // For passing to EncodeKey
+
+    public:
+    Iterator(
+      class AlwaysSortedVectorRep* vrep,
+      std::shared_ptr<std::vector<const char*>> bucket,
+      const KeyComparator& compare)
+      : vrep_(vrep),
+        bucket_(bucket),
+        cit_(bucket_->end()),
+        compare_(compare) {}
+
+    bool Valid() const override {
+      return cit_ != bucket_->end();
+    }
+    const char* key() const override {return *cit_;}
+    void Next() override {
+      if (cit_ == bucket_->end()) {
+        return;
+      }
+      ++cit_;
+    }
+
+    void Prev() override {
+      if (cit_ == bucket_->begin()) {
+        cit_ = bucket_->end();
+      } else {
+        --cit_;
+      }
+    }
+
+    void Seek(const Slice& user_key, const char* memtable_key) override {
+      const char* encoded_key =
+          (memtable_key != nullptr) ? memtable_key : EncodeKey(&tmp_, user_key);
+      cit_ = std::equal_range(bucket_->begin(), bucket_->end(), encoded_key,
+                              [this](const char* a, const char* b) {
+                                return compare_(a, b) < 0;
+                              })
+                 .first;
+    }
+
+    void SeekForPrev(const Slice &internal_key, const char *memtable_key) override {
+      assert(false);
+    }
+
+    void SeekToFirst() override {
+      cit_ = bucket_->begin();
+    }
+
+    void SeekToLast() override {
+      cit_ = bucket_->end();
+      if (bucket_->size() != 0) {
+        --cit_;
+      }
+    }
+  };
+
+  ~AlwaysSortedVectorRep() override = default;
+};
+
 }  // namespace
 
 static std::unordered_map<std::string, OptionTypeInfo> vector_rep_table_info = {
@@ -513,6 +641,13 @@ static std::unordered_map<std::string, OptionTypeInfo>
           OptionTypeFlags::kNone}},
 };
 
+static std::unordered_map<std::string, OptionTypeInfo>
+    always_sorted_vector_rep_table_info = {
+        {"count",
+         {0, OptionType::kSizeT, OptionVerificationType::kNormal,
+          OptionTypeFlags::kNone}},
+};
+
 VectorRepFactory::VectorRepFactory(size_t count) : count_(count) {
   RegisterOptions("VectorRepFactoryOptions", &count_, &vector_rep_table_info);
 }
@@ -523,6 +658,12 @@ UnsortedVectorRepFactory::UnsortedVectorRepFactory(size_t count)
                   &unsorted_vector_rep_table_info);
 }
 
+AlwaysSortedVectorRepFactory::AlwaysSortedVectorRepFactory(size_t count)
+    : count_(count) {
+  RegisterOptions("AlwaysSortedVectorRepFactory", &count_,
+                  &always_sorted_vector_rep_table_info);
+}
+
 MemTableRep* VectorRepFactory::CreateMemTableRep(
     const MemTableRep::KeyComparator& compare, Allocator* allocator,
     const SliceTransform*, Logger* /*logger*/) {
@@ -530,6 +671,12 @@ MemTableRep* VectorRepFactory::CreateMemTableRep(
 }
 
 MemTableRep* UnsortedVectorRepFactory::CreateMemTableRep(
+    const MemTableRep::KeyComparator& compare, Allocator* allocator,
+    const SliceTransform*, Logger* /* logger */) {
+  return new UnsortedVectorRep(compare, allocator, count_);
+}
+
+MemTableRep* AlwaysSortedVectorRepFactory::CreateMemTableRep(
     const MemTableRep::KeyComparator& compare, Allocator* allocator,
     const SliceTransform*, Logger* /* logger */) {
   return new UnsortedVectorRep(compare, allocator, count_);

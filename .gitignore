@@ -73,3 +73,14 @@ logs
 
 # temp_files
 logs.txt
+
+cmake-build-debug/
+
+# perf 
+db/
+flamegraph.svg
+out.folded
+out.perf
+perf.data
+perf.data.old
+workload.txt

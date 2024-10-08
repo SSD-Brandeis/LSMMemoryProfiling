@@ -119,6 +119,10 @@ void configOptions(DBEnv *env, Options *options,
       options->memtable_factory.reset(new UnsortedVectorRepFactory(
           env->vector_preallocation_size_in_bytes));
       break;
+    case 6:
+      options->memtable_factory.reset(new AlwaysSortedVectorRepFactory(
+        env->vector_preallocation_size_in_bytes));
+      break;
     default:
       std::cerr << "Error[" << __FILE__ << " : " << __LINE__
                 << "]: Invalid memtable factory!" << std::endl;

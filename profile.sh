@@ -8,7 +8,7 @@ if [ ! -d ~/.local/bin/FlameGraph ]; then
 fi
 
 rm -f ./out.perf ./out.folded ./flamegraph.svg
-perf record -F 999 -a -g  ./bin/working_version -I 3050 -E 4096 -m 2 > workload_sorted.log
+perf record -F 999 -a -g  ./bin/working_version -I 3050 -E 4096 -m 6 > workload_sorted.log
 perf script > out.perf
 ~/.local/bin/FlameGraph/stackcollapse-perf.pl out.perf > out.folded
 ~/.local/bin/FlameGraph/flamegraph.pl out.folded > flamegraph.svg
