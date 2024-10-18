@@ -561,7 +561,6 @@ public:
   }
 
   class Iterator : public MemTableRep::Iterator {
-    class AlwaysSortedVectorRep* vrep_;
     std::shared_ptr<std::vector<const char*>> bucket_;
     std::vector<const char*>::const_iterator mutable cit_;
     const KeyComparator& compare_;
@@ -572,8 +571,7 @@ public:
       class AlwaysSortedVectorRep* vrep,
       std::shared_ptr<std::vector<const char*>> bucket,
       const KeyComparator& compare)
-      : vrep_(vrep),
-        bucket_(bucket),
+      : bucket_(bucket),
         cit_(bucket_->end()),
         compare_(compare) {}
 
