@@ -414,6 +414,34 @@ public:
 
 };
 
+// This creates MemTableReps that are backed by an std::vector. On iteration,
+// the vector is *not* sorted, as opposed to `VectorRep`. This is useful for
+// workloads where iteration doesn't happen.
+//
+// Parameters:
+//   count: Passed to the constructor of the underlying std::vector of each
+//     UnsortedVectorRep. On initialization, the underlying array will be
+//     at least count bytes reserved for usage.
+class AlwaysSortedVectorRepFactory : public MemTableRepFactory {
+  size_t count_;
+
+public:
+  explicit AlwaysSortedVectorRepFactory(size_t count = 0);
+
+  // Methods for Configurable/Customizable class overrides
+  static const char* kClassName() { return "AlwaysSortedVectorRepFactory"; }
+  static const char* kNickName() { return "always_sorted_vector"; }
+  const char* Name() const override { return kClassName(); }
+  const char* NickName() const override { return kNickName(); }
+
+  // Methods for MemTableRepFactory class overrides
+  using MemTableRepFactory::CreateMemTableRep;
+  MemTableRep* CreateMemTableRep(const MemTableRep::KeyComparator&, Allocator*,
+                                 const SliceTransform*,
+                                 Logger* logger) override;
+
+};
+
 
 // This class contains a fixed array of buckets, each
 // pointing to a skiplist (null if the bucket is empty).

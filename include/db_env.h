@@ -156,6 +156,7 @@ class DBEnv {
    * 3 for hash skip list
    * 4 for hash linked list
    * 5 for unsorted_vector
+   * 6 for always sorted vector
    */
   uint16_t memtable_factory = 1;  // [m]
 
