@@ -1,6 +1,0 @@
-[submodule "RocksDB-SSD"]
-	path = RocksDB-SSD
-	url = https://github.com/SSD-Brandeis/RocksDB-SSD
-[submodule "KV-WorkloadGenerator"]
-	path = KV-WorkloadGenerator
-	url = https://github.com/SSD-Brandeis/KV-WorkloadGenerator
