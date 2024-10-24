@@ -66,7 +66,4 @@ Below are the supported options for running experiments with the RocksDB wrapper
     --bb                               Block cache size in MB [default: 8 MB]
     --stat                             Enable RocksDB's internal Perf and IOstat monitoring [default: 0]
 ```
-git submodule update --init --recursive
-```
 
-This will clone and initialize the required submodules (RocksDB-SSD and KV-WorkloadGenerator) for the wrapper to work properly.
