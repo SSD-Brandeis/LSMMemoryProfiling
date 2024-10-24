@@ -13,13 +13,15 @@
 #include <ctime>
 #include <iostream>
 
-// #define __USE_GETTIMEOFDAY
+
+
+//#define __USE_GETTIMEOFDAY
 #ifdef __USE_GETTIMEOFDAY
-// #warning "Using gettimeofay()"
+//#warning "Using gettimeofay()"
 #include <sys/time.h>
 typedef struct timeval my_clock;
 #else
-// #warning "Using clock_gettime()"
+//#warning "Using clock_gettime()"
 typedef struct timespec my_clock;
 #endif
 
@@ -29,5 +31,6 @@ int my_clock_get_time(my_clock *clk);
 long getclock_diff_us(my_clock clk1, my_clock clk2);
 long getclock_diff_ns(my_clock clk1, my_clock clk2);
 double getclock_diff_s(my_clock clk1, my_clock clk2);
+
 
 #endif /* AUX_TIME_H_ */

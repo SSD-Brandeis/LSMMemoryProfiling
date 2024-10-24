@@ -1,0 +1,8 @@
+[submodule "lib/rocksdb"]
+	path = lib/rocksdb
+	url = https://github.com/SSD-Brandeis/RocksDB-SSD
+	branch = main
+[submodule "lib/KV-WorkloadGenerator"]
+	path = lib/KV-WorkloadGenerator
+	url = https://github.com/SSD-Brandeis/KV-WorkloadGenerator
+	branch = main
