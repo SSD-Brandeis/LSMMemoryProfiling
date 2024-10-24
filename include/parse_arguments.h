@@ -67,48 +67,6 @@ int parse_arguments(int argc, char *argv[], DBEnv *env) {
       group1, "enable_perf_iostat",
       "Enable RocksDB's internal Perf and IOstat [def: 0]", {"stat"});
 
-  // Range Query Driven Compaction Options
-  args::ValueFlag<long> num_inserts_cmd(
-      group1, "inserts",
-      "The number of unique inserts to issue in the experiment [def: 1]",
-      {'I', "inserts"});
-  args::ValueFlag<long> num_updates_cmd(
-      group1, "updates",
-      "The number of unique updates to issue in the experiment [def: 0]",
-      {'U', "updates"});
-  args::ValueFlag<long> num_range_queries_cmd(
-      group1, "range_queries",
-      "The number of unique range queries to issue in the experiment [def: 0]",
-      {'S', "range_queries"});
-
-  args::ValueFlag<int> enable_range_query_compaction_cmd(
-      group1, "enable_range_query_compaction",
-      "Enable range query comapaction [def: 0]",
-      {"rq", "range_query_compaction"});
-
-  args::ValueFlag<int> level_renaming_enabled_cmd(
-      group1, "enable_level_renaming",
-      "Enable level renaming when to add new level", {"re", "renaming_level"});
-
-  args::ValueFlag<float> upper_threshold_cmd(
-      group1, "higher_bound",
-      "Higher threshold between adjancent levels to perform compaction [def: "
-      "inf]",
-      {"ub", "upper_threshold"});
-  args::ValueFlag<float> lower_threshold_cmd(
-      group1, "lower_bound",
-      "Lower threshold between adjacent levels to perform compaction [def: 0]",
-      {"lb", "lower_threshold"});
-  args::ValueFlag<float> range_query_selectivity_cmd(
-      group1, "Y", "Range query selectivity [def: 0]",
-      {'Y', "range_query_selectivity"});
-
-  // Fluid LSM parameters
-  args::ValueFlag<float> smaller_lvl_runs_count_cmd(
-      group1, "K", "Number of run in smaller levels", {'K', "k"});
-  args::ValueFlag<float> larger_lvl_runs_count_cmd(
-      group1, "Z", "Number of run in larger levels", {'Z', "z"});
-
   try {
     parser.ParseCLI(argc, argv);
   } catch (args::Help &) {
