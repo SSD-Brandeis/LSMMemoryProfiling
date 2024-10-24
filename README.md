@@ -66,22 +66,6 @@ Below are the supported options for running experiments with the RocksDB wrapper
     --bb                               Block cache size in MB [default: 8 MB]
     --stat                             Enable RocksDB's internal Perf and IOstat monitoring [default: 0]
 ```
-
-### Example Command:
-
-To run an experiment with a specific SST file size, you can use the following command:
-
-```bash
-./bin/working_version --file_size 512
-```
-
-This command runs the experiment and sets each SST file size to 512 KB.
-
-## Submodule Initialization
-
-If you clone the repository without initializing submodules, run the following command:
-
-```bash
 git submodule update --init --recursive
 ```
 
