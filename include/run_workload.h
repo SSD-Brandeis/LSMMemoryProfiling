@@ -103,6 +103,8 @@ int runWorkload(DBEnv* env) {
     rocksdb::get_perf_context()->ClearPerLevelPerfContext();
     rocksdb::get_perf_context()->EnablePerLevelPerfContext();
     rocksdb::get_iostats_context()->Reset();
+    Options options;
+    options.statistics = rocksdb::CreateDBStatistics();
   }
 
   workload_file.open("workload.txt");
@@ -192,9 +194,8 @@ int runWorkload(DBEnv* env) {
       << rocksdb::get_perf_context()->ToString() << std::endl;
     std::cout << "RocksDB IO Stats Context: " << std::endl
       << rocksdb::get_iostats_context()->ToString() << std::endl;
-    std::string tr_mem;
-    db->GetProperty("rocksdb.estimate-table-readers-mem", &tr_mem);
-    std::cout << "RocksDB Estimated Table Readers Memory: " << tr_mem << std::endl;
+    std::cout << "Rocksdb Stats: " << std::endl
+      << options.statistics->ToString() << std::endl;
   }
 
   return 1;
