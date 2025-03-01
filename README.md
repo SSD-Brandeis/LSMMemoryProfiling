@@ -10,27 +10,54 @@ Before using this module, ensure you have installed the following dependencies:
 - CMake
 - A C++ compiler (e.g., GCC, Clang)
 
-## Cloning the Repository and Submodules
+## Forking the Repository and Adding Submodules
 
-To clone the repository along with its submodules in one step, use the following command:
+This repository no longer includes the submodules (RocksDB-SSD and KV-WorkloadGenerator) by default. Instead, we expect you to fork the repository and add the submodules manually. This allows you to modify the wrapper and submodule code as needed for your specific project.
+
+### Steps to Get Started
+
+1. **Fork the Repository:**  
+   Go to the GitHub page for [RocksDB-Wrapper](https://github.com/SSD-Brandeis/RocksDB-Wrapper) and click the **Fork** button in the top-right corner. This creates your own copy of the repository under your account.
+
+2. **Clone Your Fork Locally**  
+
+3. **Add the Submodules:**  
+   Since the submodules are not part of the initial clone, add them manually using the following commands (replace `<branch>` with the branch you wish to track if needed):
+
+   - **Add RocksDB-SSD Submodule:**
+     ```bash
+     git submodule add -b <branch> https://github.com/SSD-Brandeis/RocksDB-SSD.git lib/rocksdb
+     ```
+
+   - **Add KV-WorkloadGenerator Submodule:**
+     ```bash
+     git submodule add -b <branch> https://github.com/SSD-Brandeis/KV-WorkloadGenerator.git lib/KV-WorkloadGenerator
+     ```
+
+4. **Initialize and Update Submodules:**  
+   Once you've added the submodules, run:
+   ```bash
+   git submodule update --init --recursive
+   ```
+   This command ensures that all submodules are properly initialized and checked out to the specified branch.
+
+## Build the Project
+
+Before running any experiments or setup instructions, you must build the project. You can configure and build using CMake. For example:
 
 ```bash
-git clone --recurse-submodules https://github.com/SSD-Brandeis/RocksDB-Wrapper
+mkdir build && cd build
+cmake ..
+cmake --build . --parallel <number-of-cores>
 ```
 
-This command will clone the repository and automatically initialize and update the submodules, which include RocksDB-SSD and KV-WorkloadGenerator. If you've already cloned the repository without initializing the submodules, you can run:
-
-```bash
-git submodule update --init --recursive
-```
-
-This will initialize and update the submodules in your existing clone.
+Replace `<number-of-cores>` with the number of parallel jobs you wish to run (e.g., `8` or `14`).
 
 ## Setup Instructions
 
 ### 1. **Generate Workload**
 
-The first step is to generate a workload using the `load_gen` tool from the `KV-WorkloadGenerator` submodule. You will find an executable named `load_gen` inside the `bin` folder. This tool generates a `workload.txt` file, which will be used in experiments.
+After building the project, the first step is to generate a workload using the `load_gen` tool from the `KV-WorkloadGenerator` submodule. You will find an executable named `load_gen` inside the `bin` folder. This tool generates a `workload.txt` file, which will be used in experiments.
 
 For detailed instructions on how to use the `load_gen` tool, refer to the [KV-WorkloadGenerator repository](https://github.com/SSD-Brandeis/KV-WorkloadGenerator).
 
@@ -38,7 +65,7 @@ For detailed instructions on how to use the `load_gen` tool, refer to the [KV-Wo
 
 Once you have the `workload.txt` file in the project root directory, you're ready to run experiments. Use the `./bin/working_version <ARGS>` executable with the desired options.
 
-### Example Command:
+#### Example Command:
 
 ```bash
 ./bin/working_version --file_size 512
@@ -65,5 +92,5 @@ Below are the supported options for running experiments with the RocksDB wrapper
     -b, --bits_per_key                 The number of bits per key assigned to Bloom filter [default: 10]
     --bb                               Block cache size in MB [default: 8 MB]
     --stat                             Enable RocksDB's internal Perf and IOstat monitoring [default: 0]
+    --progress                         Shows progress bar [def: 0]
 ```
-

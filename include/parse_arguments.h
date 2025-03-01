@@ -3,7 +3,7 @@
 #include "args.hxx"
 #include "db_env.h"
 
-int parse_arguments(int argc, char *argv[], DBEnv *env) {
+int parse_arguments(int argc, char *argv[], std::unique_ptr<DBEnv> &env) {
   args::ArgumentParser parser("RocksDB_parser.", "");
   args::Group group1(parser, "This group is all exclusive:",
                      args::Group::Validators::DontCare);
@@ -42,9 +42,6 @@ int parse_arguments(int argc, char *argv[], DBEnv *env) {
       group1, "file_size",
       "The number of unique inserts to issue in the experiment [def: 256 KB]",
       {'F', "file_size"});
-  args::ValueFlag<int> verbosity_cmd(
-      group1, "verbosity", "The verbosity level of execution [0,1,2; def: 0]",
-      {'V', "verbosity"});
   args::ValueFlag<int> compaction_pri_cmd(
       group1, "compaction_pri",
       "[Compaction priority: 1 for kMinOverlappingRatio, 2 for "
@@ -66,6 +63,8 @@ int parse_arguments(int argc, char *argv[], DBEnv *env) {
   args::ValueFlag<int> enable_perf_iostat_cmd(
       group1, "enable_perf_iostat",
       "Enable RocksDB's internal Perf and IOstat [def: 0]", {"stat"});
+  args::ValueFlag<int> show_progress_cmd(
+      group1, "show_progress_bar", "Shows progress bar [def: 0]", {"progress"});
 
   try {
     parser.ParseCLI(argc, argv);
@@ -112,5 +111,7 @@ int parse_arguments(int argc, char *argv[], DBEnv *env) {
       block_cache_cmd ? args::get(block_cache_cmd) : env->block_cache;
   env->SetPerfIOStat(enable_perf_iostat_cmd ? args::get(enable_perf_iostat_cmd)
                                             : env->IsPerfIOStatEnabled());
+  env->SetShowProgress(show_progress_cmd ? args::get(show_progress_cmd)
+                                         : env->IsShowProgressEnabled());
   return 0;
 }
