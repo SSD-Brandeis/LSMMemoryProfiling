@@ -288,7 +288,7 @@ public:
    * 6 for kLZ4HCCompression
    * 7 for kXpressCompression
    * 8 for kZSTD
-   * 9 for kZSTDNotFinalCompression
+   * 9 for kZSTDNotFinalCompression March 01, 2025 [deprecated]
    * 10 for kDisableCompressionOption
    */
   uint16_t compression = 1;

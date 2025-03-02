@@ -230,9 +230,9 @@ void configOptions(std::unique_ptr<DBEnv> &env, Options *options,
   case 8:
     options->compression = CompressionType::kZSTD;
     break;
-  case 9:
-    options->compression = CompressionType::kZSTDNotFinalCompression;
-    break;
+  // case 9: March 01, 2025 [deprecated]
+  //   options->compression = CompressionType::kZSTDNotFinalCompression;
+  //   break;
   case 10:
     options->compression = CompressionType::kDisableCompressionOption;
     break;
