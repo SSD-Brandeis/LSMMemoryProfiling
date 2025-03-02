@@ -10,7 +10,6 @@
 #include "utils.h"
 
 std::string buffer_file = "workload.log";
-std::string rqstats_file = "range_queries.csv";
 
 int runWorkload(std::unique_ptr<DBEnv> &env) {
   DB *db;
@@ -19,7 +18,6 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
   ReadOptions read_options;
   BlockBasedTableOptions table_options;
   FlushOptions flush_options;
-  bool db_snapshot_exist = false;
 
   configOptions(env, &options, &table_options, &write_options, &read_options,
                 &flush_options);
