@@ -22,8 +22,11 @@ const int LEVEL0_FILE_NUM_COMPACTION_TRIGGER = 1;
 // kMaxMultiTrivialMove, default is 4 for RocksDB
 const size_t MAX_MULTI_TRIVIAL_MOVE = 4;
 
-const int MAX_OPEN_FILES = 1000;
-const int MAX_FILE_OPENING_THREADS = 1000;
+const int MAX_OPEN_FILES = 50;
+const int MAX_FILE_OPENING_THREADS = 80;
+
+// const long VECTOR_PREALLOCATION_SIZE_IN_BYTES = 16777216;  // [16MB]
+const long VECTOR_PREALLOCATION_SIZE_IN_BYTES = ENTRY_SIZE * ENTRIES_PER_PAGE * BUFFER_SIZE_IN_PAGES;
 
 } // namespace Default
 
