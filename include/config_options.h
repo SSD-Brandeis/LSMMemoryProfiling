@@ -4,7 +4,7 @@
 #include <rocksdb/perf_context.h>
 #include <rocksdb/statistics.h>
 #include <rocksdb/table.h>
-
+#include <rocksdb/slice_transform.h>
 #include <iostream>
 
 #include "db_env.h"
@@ -74,13 +74,32 @@ void configOptions(std::unique_ptr<DBEnv> &env, Options *options,
     options->memtable_factory.reset(new SkipListFactory);
     break;
   case 2:
-    options->memtable_factory.reset(new VectorRepFactory);
+    options->memtable_factory.reset(
+        new VectorRepFactory(env->vector_preallocation_size_in_bytes));
     break;
   case 3:
-    options->memtable_factory.reset(NewHashSkipListRepFactory());
+    options->memtable_factory.reset(
+        NewHashSkipListRepFactory(env->bucket_count, env->skiplist_height,
+                                  env->skiplist_branching_factor));
+    options->prefix_extractor.reset(
+        NewFixedPrefixTransform(env->prefix_length));
     break;
   case 4:
-    options->memtable_factory.reset(NewHashLinkListRepFactory());
+    options->memtable_factory.reset(NewHashLinkListRepFactory(
+        env->bucket_count, env->linklist_huge_page_tlb_size,
+        env->linklist_bucket_entries_logging_threshold,
+        env->linklist_if_log_bucket_dist_when_flash,
+        env->linklist_threshold_use_skiplist));
+    options->prefix_extractor.reset(
+        NewFixedPrefixTransform(env->prefix_length));
+    break;
+  case 5:
+    options->memtable_factory.reset(new UnsortedVectorRepFactory(
+        env->vector_preallocation_size_in_bytes));
+    break;
+  case 6:
+    options->memtable_factory.reset(new AlwaysSortedVectorRepFactory(
+      env->vector_preallocation_size_in_bytes));
     break;
   default:
     std::cerr << "Error[" << __FILE__ << " : " << __LINE__
