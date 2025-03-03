@@ -398,6 +398,33 @@ public:
   // is performed by someone else (foreground call or background thread).
   bool allow_write_stall = true;
 #pragma endregion
+
+#pragma region[LSMMemoryBuffer]
+  size_t num_inserts = 0;
+  size_t num_updates = 0;
+  size_t num_range_queries = 0;
+
+  // only used for hash based buffers
+  // if prefix_length is zero, the
+  // implementation fallback to skiplist
+  uint32_t prefix_length = 0;
+  size_t bucket_count = 50000;
+
+  // refer memtable.h (NewHashSkipListRepFactory)
+  // Below option are picked from function default arguments
+  int32_t skiplist_height = 4;
+  int32_t skiplist_branching_factor = 4;
+
+  // refer memtable.h (NewHashLinkListRepFactory)
+  // Below option are picked from function default arguments
+  size_t linklist_huge_page_tlb_size = 0;
+  int linklist_bucket_entries_logging_threshold = 4096;
+  bool linklist_if_log_bucket_dist_when_flash = true;
+  uint32_t linklist_threshold_use_skiplist = 256;
+
+  // refer memtable.h (VectorRepFactory)
+  size_t vector_preallocation_size_in_bytes = Default::VECTOR_PREALLOCATION_SIZE_IN_BYTES;
+#pragma endregion  // LSMMemoryBuffer
 };
 
 #endif // DB_ENV_H_

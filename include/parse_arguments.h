@@ -66,6 +66,48 @@ int parse_arguments(int argc, char *argv[], std::unique_ptr<DBEnv> &env) {
   args::ValueFlag<int> show_progress_cmd(
       group1, "show_progress_bar", "Shows progress bar [def: 0]", {"progress"});
 
+  // LSMMemoryProfiling
+  args::ValueFlag<long> num_inserts_cmd(
+      group1, "inserts",
+      "The number of unique inserts to issue in the experiment [def: 1]",
+      {'I', "inserts"});
+  args::ValueFlag<long> num_updates_cmd(
+      group1, "updates",
+      "The number of unique updates to issue in the experiment [def: 0]",
+      {'U', "updates"});
+  args::ValueFlag<long> num_range_queries_cmd(
+      group1, "range_queries",
+      "The number of unique range queries to issue in the experiment [def: 0]",
+      {'S', "range_queries"});
+  args::ValueFlag<float> range_query_selectivity_cmd(
+      group1, "Y", "Range query selectivity [def: 0]",
+      {'Y', "range_query_selectivity"});
+
+  args::ValueFlag<int> memtable_factory_cmd(
+      group1, "memtable_factory",
+      "[Memtable Factory: 1 for Skiplist, 2 for Vector, 3 for Hash Skiplist, 4 "
+      "for Hash Linkedlist; 5 for Unsorted Vector def: 1]",
+      {'m', "memtable_factory"});
+  args::ValueFlag<int> prefix_length_cmd(
+      group1, "prefix_length",
+      "[Prefix Length: Number of bytes of the key forming the prefix; def: 0]",
+      {'X', "prefix_length"});
+  args::ValueFlag<long> bucket_count_cmd(
+      group1, "bucket_count",
+      "[Bucket Count: Number of buckets for the hash table in HashSkipList & "
+      "HashLinkList Memtables; def: 50000]",
+      {'H', "bucket_count"});
+  args::ValueFlag<long> threshold_use_skiplist_cmd(
+      group1, "threshold_use_skiplist",
+      "[Threshold Use SkipList: Threshold based on which the conversion will "
+      "happen from HashLinkList to HashSkipList; def: 256]",
+      {"threshold_use_skiplist", "threshold_use_skiplist"});
+  args::ValueFlag<long> vector_pre_allocation_size_cmd(
+      group1, "preallocation_vector_size",
+      "[Preallocation Vector Size: Size to preallocation to vector memtable; "
+      "def: 0]",
+      {'A', "preallocation_size"});
+
   try {
     parser.ParseCLI(argc, argv);
   } catch (args::Help &) {
@@ -113,5 +155,28 @@ int parse_arguments(int argc, char *argv[], std::unique_ptr<DBEnv> &env) {
                                             : env->IsPerfIOStatEnabled());
   env->SetShowProgress(show_progress_cmd ? args::get(show_progress_cmd)
                                          : env->IsShowProgressEnabled());
+
+  // Range Query Driven Compaction Options
+  env->num_inserts =
+      num_inserts_cmd ? args::get(num_inserts_cmd) : env->num_inserts;
+  env->num_updates =
+      num_updates_cmd ? args::get(num_updates_cmd) : env->num_updates;
+  env->num_range_queries = num_range_queries_cmd
+                               ? args::get(num_range_queries_cmd)
+                               : env->num_range_queries;
+
+  env->memtable_factory = memtable_factory_cmd ? args::get(memtable_factory_cmd)
+                                               : env->memtable_factory;
+  env->prefix_length =
+      prefix_length_cmd ? args::get(prefix_length_cmd) : env->prefix_length;
+  env->bucket_count =
+      bucket_count_cmd ? args::get(bucket_count_cmd) : env->bucket_count;
+  env->linklist_threshold_use_skiplist =
+      threshold_use_skiplist_cmd ? args::get(threshold_use_skiplist_cmd)
+                                 : env->linklist_threshold_use_skiplist;
+  env->vector_preallocation_size_in_bytes =
+      vector_pre_allocation_size_cmd ? args::get(vector_pre_allocation_size_cmd)
+                                     : env->vector_preallocation_size_in_bytes;
+
   return 0;
 }
