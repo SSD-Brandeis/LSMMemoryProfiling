@@ -9,19 +9,19 @@ UPDATES=10
 RANGE_QUERIES=10
 SELECTIVITY=0.1
 
-#prefix length, bucket size (pass in as a parameter) 
-#dynamic/static vector  (static preallocate buffer size) 
 LAMBDA=0.125
-SIZE_RATIO=6   
+SIZE_RATIO=6
 SHOW_PROGRESS=1
 SANITY_CHECK=0
 
-# buffersize 2MB, 4MB, 8MB
-# PAGES_PER_FILE_LIST=(512 1024 2048)
-# buffersize 0.25MB, 0.5MB, 1MB
-# PAGES_PER_FILE_LIST=(128 256 512 )
-# PAGES_PER_FILE_LIST=(2 4 8 )
-PAGES_PER_FILE_LIST=(16 )
+# hash hybrid parameters
+BUCKET_COUNT=10000
+PREFIX_LENGTH=8
+#in byte
+VECTOR_PREALLOCATION_SIZE=1048576
+LINKLIST_THRESHOLD_USE_SKIPLIST=4
+#64kb minimum buffer size, if file size is 4kb, then minimum 16 pages required to get minimum buffer size
+PAGES_PER_FILE_LIST=(32)
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 LOAD_GEN_PATH="${PROJECT_DIR}/bin/load_gen"
 WORKING_VERSION_PATH="${PROJECT_DIR}/bin/working_version"
@@ -30,10 +30,9 @@ log_info() {
   echo "[INFO] $*"
 }
 log_error() {
-  echo "[ERROR] $*" 
+  echo "[ERROR] $*"
 }
-# for update config.h, once accept the parameter, it should be accepted by the working_version
-# check if rocksdb actually 
+
 declare -A BUFFER_IMPLEMENTATIONS=(
   [1]="skiplist"
   [2]="vector"
@@ -73,59 +72,80 @@ echo "  INSERTS=${INSERTS}, UPDATES=${UPDATES}, RANGE_QUERIES=${RANGE_QUERIES}, 
 echo "  LAMBDA=${LAMBDA}, SIZE_RATIO=${SIZE_RATIO}"
 echo "  SHOW_PROGRESS=${SHOW_PROGRESS}, SANITY_CHECK=${SANITY_CHECK}"
 echo
-echo "Experiment with differen PAGES_PER_FILE in: ${PAGES_PER_FILE_LIST[*]}"
-echo "Buffer size (bytes) = ENTRY_SIZE * ENTRIES_PER_PAGE * PAGES_PER_FILE"
+echo "Experiment with different PAGES_PER_FILE in: ${PAGES_PER_FILE_LIST[*]}"
+echo "Buffer size (bytes) = $((ENTRY_SIZE * ENTRIES_PER_PAGE)) * PAGES_PER_FILE"
 
+# load gen command
 for PAGES_PER_FILE in "${PAGES_PER_FILE_LIST[@]}"; do
   buffer_size_bytes=$((ENTRY_SIZE * ENTRIES_PER_PAGE * PAGES_PER_FILE))
-
   log_info "Generating workload for PAGES_PER_FILE=${PAGES_PER_FILE}"
   echo " => buffer_size_bytes = ${buffer_size_bytes} (E*B*P)"
 
   pushd "${PROJECT_DIR}" >/dev/null || exit
-
-# load_gen para
   if ! "${LOAD_GEN_PATH}" \
        -I "${INSERTS}" \
        -U "${UPDATES}" \
        -S "${RANGE_QUERIES}" \
        -Y "${SELECTIVITY}" \
-       -E "${ENTRY_SIZE}" \
-      #  -L "${LAMBDA}"
+       -E "${ENTRY_SIZE}"
   then
     log_error "Something went wrong generating workload for PAGES_PER_FILE=${PAGES_PER_FILE}"
-    popd >/dev/null || exit
+
     continue
   fi
 
   WORKLOAD_FILE="${PROJECT_DIR}/workload.txt"
   if [ ! -f "${WORKLOAD_FILE}" ]; then
     log_error "workload.txt not found for PAGES_PER_FILE=${PAGES_PER_FILE}"
-    popd >/dev/null || exit
+
     continue
   fi
 
   remove_trailing_newline "${WORKLOAD_FILE}"
-  popd >/dev/null || exit
 
-  # run working_version with -B, -P, -T 
+
+  # workingversion command
   for IMPL_NUM in "${!BUFFER_IMPLEMENTATIONS[@]}"; do
     IMPL_NAME="${BUFFER_IMPLEMENTATIONS[${IMPL_NUM}]}"
     log_info "Running working_version with PAGES_PER_FILE=${PAGES_PER_FILE}, impl=${IMPL_NAME}"
 
     WORKLOAD_RESULT_DIR="${RESULT_DIR}/P_${PAGES_PER_FILE}/${IMPL_NAME}"
     mkdir -p "${WORKLOAD_RESULT_DIR}"
-
     cp "${WORKLOAD_FILE}" "${WORKLOAD_RESULT_DIR}/"
-    pushd "${WORKLOAD_RESULT_DIR}" >/dev/null || exit
 
+    pushd "${WORKLOAD_RESULT_DIR}" >/dev/null || exit
     delete_db_folder "db"
 
     LOG_FILE="stats.log"
-    log_info "Executing working_version..."
+    log_info "Executing working_version for memtable_factory=${IMPL_NUM}..."
+
+    # memtable specific parameters that are valid in working version
+    valid_arg=""
+    case "${IMPL_NUM}" in
+      1) # skiplist is just default setting 
+        ;;
+      2) # vector with preallocation_size
+        valid_arg="--preallocation_size=${VECTOR_PREALLOCATION_SIZE}"
+        ;;
+      3) # hash_skip_list with -H/--bucket_count and -X/--prefix_length
+        valid_arg="--bucket_count=${BUCKET_COUNT} --prefix_length=${PREFIX_LENGTH}"
+        ;;
+      4) # hash_linked_list with -H, -X, plus --threshold_use_skiplist
+        valid_arg="--bucket_count=${BUCKET_COUNT} \
+                --prefix_length=${PREFIX_LENGTH} \
+                --threshold_use_skiplist=${LINKLIST_THRESHOLD_USE_SKIPLIST}"
+        ;;
+      5) # unsorted_vector with --preallocation_size
+        valid_arg="--preallocation_size=${VECTOR_PREALLOCATION_SIZE}"
+        ;;
+      6) # always_sorted_vector with --preallocation_size
+        valid_arg="--preallocation_size=${VECTOR_PREALLOCATION_SIZE}"
+        ;;
+    esac
 
     if ! "${WORKING_VERSION_PATH}" \
           --memtable_factory="${IMPL_NUM}" \
+          ${valid_arg} \
           -I "${INSERTS}" \
           -U "${UPDATES}" \
           -S "${RANGE_QUERIES}" \
@@ -138,16 +158,12 @@ for PAGES_PER_FILE in "${PAGES_PER_FILE_LIST[@]}"; do
           --stat 1 \
           > "${LOG_FILE}"
     then
-      log_error "working_version failed (PAGES_PER_FILE=${PAGES_PER_FILE}, impl=${IMPL_NAME})"
+      log_error "something is wrong with working version (PAGES_PER_FILE=${PAGES_PER_FILE}, impl=${IMPL_NAME})"
     fi
 
-
-
-    # delete_db_folder "db"
-    popd >/dev/null || exit
   done
 
   rm -f "${WORKLOAD_FILE}"
 done
 
-log_info "All workloads completed for PAGES_PER_FILE in ${PAGES_PER_FILE_LIST[*]}!"log_info "All workloads completed for PAGES_PER_FILE in ${PAGES_PER_FILE_LIST[*]}!"
+log_info "All workloads completed! for PAGES_PER_FILE in ${PAGES_PER_FILE_LIST[*]}!"
