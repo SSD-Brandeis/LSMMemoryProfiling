@@ -15,7 +15,7 @@ SHOW_PROGRESS=1
 SANITY_CHECK=0
 
 # hash hybrid parameters
-BUCKET_COUNT=10000
+BUCKET_COUNT=(10000 20000)
 PREFIX_LENGTH=8
 #in byte
 VECTOR_PREALLOCATION_SIZE=1048576
@@ -34,15 +34,16 @@ log_error() {
 }
 
 declare -A BUFFER_IMPLEMENTATIONS=(
-  [1]="skiplist"
-  [2]="vector"
-  [3]="hash_skip_list"
-  [4]="hash_linked_list"
-  [5]="unsorted_vector"
-  [6]="always_sorted_vector"
+  # [1]="skiplist"
+  # [2]="vector"
+  # [3]="hash_skip_list"
+  # [4]="hash_linked_list"
+  # [5]="unsorted_vector"
+  # [6]="always_sorted_vector"
+  [7]="linklist"
 )
-
-RESULT_DIR="${PROJECT_DIR}/.result"
+RESULT_DIR="${PROJECT_DIR}/test_result"
+# RESULT_DIR="${PROJECT_DIR}/.result"
 mkdir -p "${RESULT_DIR}"
 
 delete_db_folder() {
@@ -160,6 +161,9 @@ for PAGES_PER_FILE in "${PAGES_PER_FILE_LIST[@]}"; do
     then
       log_error "something is wrong with working version (PAGES_PER_FILE=${PAGES_PER_FILE}, impl=${IMPL_NAME})"
     fi
+
+    mv db/LOG "."
+    rm -rf db
 
   done
 
