@@ -20,6 +20,7 @@ PREFIX_LENGTH=8
 #in byte
 VECTOR_PREALLOCATION_SIZE=1048576
 LINKLIST_THRESHOLD_USE_SKIPLIST=4
+SKIPLIST_HEIGHT=4
 #64kb minimum buffer size, if file size is 4kb, then minimum 16 pages required to get minimum buffer size
 PAGES_PER_FILE_LIST=(32)
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -35,14 +36,17 @@ log_error() {
 
 declare -A BUFFER_IMPLEMENTATIONS=(
   # [1]="skiplist"
-  # [2]="vector"
+  [2]="vector"
   # [3]="hash_skip_list"
   # [4]="hash_linked_list"
   # [5]="unsorted_vector"
   # [6]="always_sorted_vector"
-  [7]="linklist"
+  # [7]="linklist"
 )
-RESULT_DIR="${PROJECT_DIR}/test_result"
+# TODO: change the result structure such that all experiments
+# are stored in a single folder, add a tag to name 
+# the experiments
+RESULT_DIR="${PROJECT_DIR}/vector_result"
 # RESULT_DIR="${PROJECT_DIR}/.result"
 mkdir -p "${RESULT_DIR}"
 
@@ -117,7 +121,7 @@ for PAGES_PER_FILE in "${PAGES_PER_FILE_LIST[@]}"; do
     pushd "${WORKLOAD_RESULT_DIR}" >/dev/null || exit
     delete_db_folder "db"
 
-    LOG_FILE="stats.log"
+    # LOG_FILE="stats.log"
     log_info "Executing working_version for memtable_factory=${IMPL_NUM}..."
 
     # memtable specific parameters that are valid in working version
@@ -125,21 +129,21 @@ for PAGES_PER_FILE in "${PAGES_PER_FILE_LIST[@]}"; do
     case "${IMPL_NUM}" in
       1) # skiplist is just default setting 
         ;;
-      2) # vector with preallocation_size
+      2) # vector 
         valid_arg="--preallocation_size=${VECTOR_PREALLOCATION_SIZE}"
         ;;
-      3) # hash_skip_list with -H/--bucket_count and -X/--prefix_length
+      3) # hash_skip_list 
         valid_arg="--bucket_count=${BUCKET_COUNT} --prefix_length=${PREFIX_LENGTH}"
         ;;
-      4) # hash_linked_list with -H, -X, plus --threshold_use_skiplist
+      4) # hash_linked_list
         valid_arg="--bucket_count=${BUCKET_COUNT} \
                 --prefix_length=${PREFIX_LENGTH} \
                 --threshold_use_skiplist=${LINKLIST_THRESHOLD_USE_SKIPLIST}"
         ;;
-      5) # unsorted_vector with --preallocation_size
+      5) # unsorted_vector 
         valid_arg="--preallocation_size=${VECTOR_PREALLOCATION_SIZE}"
         ;;
-      6) # always_sorted_vector with --preallocation_size
+      6) # always_sorted_vector 
         valid_arg="--preallocation_size=${VECTOR_PREALLOCATION_SIZE}"
         ;;
     esac
@@ -157,7 +161,7 @@ for PAGES_PER_FILE in "${PAGES_PER_FILE_LIST[@]}"; do
           -T "${SIZE_RATIO}" \
           --progress "${SHOW_PROGRESS}" \
           --stat 1 \
-          > "${LOG_FILE}"
+          # > "${LOG_FILE}"
     then
       log_error "something is wrong with working version (PAGES_PER_FILE=${PAGES_PER_FILE}, impl=${IMPL_NAME})"
     fi

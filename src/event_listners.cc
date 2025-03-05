@@ -24,3 +24,9 @@ void WaitForCompactions(DB *db) {
     cv.wait_for(lock, std::chrono::milliseconds(10));
   }
 }
+
+void FlushListner::OnFlushCompleted(DB* db, const FlushJobInfo& fji) {
+  (*buffer_) << "buffer is full, flush finished info: " << fji.table_properties.num_entries;
+  (*buffer_) << "[Flush Stats] raw_key_size: " << fji.table_properties.raw_key_size
+            << ", raw_value_size: " << fji.table_properties.raw_value_size << std::endl;
+}

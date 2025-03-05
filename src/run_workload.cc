@@ -10,6 +10,7 @@
 #include "utils.h"
 
 std::string buffer_file = "workload.log";
+std::string stats_file = "stats.log";
 
 int runWorkload(std::unique_ptr<DBEnv> &env) {
   DB *db;
@@ -22,12 +23,17 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
   configOptions(env, &options, &table_options, &write_options, &read_options,
                 &flush_options);
 
+  std::shared_ptr<Buffer> buffer = std::make_unique<Buffer>(buffer_file);
+  std::unique_ptr<Buffer> stats = std::make_unique<Buffer>(stats_file);
+
   // Add custom listners
   std::shared_ptr<CompactionsListner> compaction_listener =
       std::make_shared<CompactionsListner>();
   options.listeners.emplace_back(compaction_listener);
 
-  std::unique_ptr<Buffer> buffer = std::make_unique<Buffer>(buffer_file);
+  std::shared_ptr<FlushListner> flush_listener =
+      std::make_shared<FlushListner>(buffer);
+  options.listeners.emplace_back(flush_listener);
 
   if (env->IsDestroyDatabaseEnabled()) {
     DestroyDB(env->kDBPath, options);
@@ -102,9 +108,9 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
       s = db->Put(write_options, key, value);
 #ifdef TIMER
       auto stop = std::chrono::high_resolution_clock::now();
-      inserts_exec_time +=
-          std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start)
-              .count();
+      auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+      (*stats) << "InsertTime: " << duration.count() << std::endl;
+      inserts_exec_time += duration.count();
 #endif // TIMER
       break;
     }
@@ -119,9 +125,9 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
       s = db->Put(write_options, key, value);
 #ifdef TIMER
       auto stop = std::chrono::high_resolution_clock::now();
-      updates_exec_time +=
-          std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start)
-              .count();
+      auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+      (*stats) << "UpdateTime: " << duration.count() << std::endl;
+      updates_exec_time += duration.count();
 #endif // TIMER
       break;
     }
@@ -136,9 +142,9 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
       s = db->Delete(write_options, key);
 #ifdef TIMER
       auto stop = std::chrono::high_resolution_clock::now();
-      pdelete_exec_time +=
-          std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start)
-              .count();
+      auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+      (*stats) << "DeleteTime: " << duration.count() << std::endl;
+      pdelete_exec_time += duration.count();
 #endif // TIMER
       break;
     }
@@ -153,9 +159,9 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
       s = db->Get(read_options, key, &value);
 #ifdef TIMER
       auto stop = std::chrono::high_resolution_clock::now();
-      pq_exec_time +=
-          std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start)
-              .count();
+      auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+      (*stats) << "GetTime: " << duration.count() << std::endl;
+      pq_exec_time += duration.count();
 #endif // TIMER
       break;
     }
@@ -183,8 +189,8 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
       }
 #ifdef TIMER
       auto stop = std::chrono::high_resolution_clock::now();
-      auto duration =
-          std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+      auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+      (*stats) << "ScanTime: " << duration.count() << std::endl;
       rq_exec_time += duration.count();
 #endif // TIMER
       break;
@@ -238,6 +244,7 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
 
   // flush final stats and delete ptr
   buffer->flush();
+  stats->flush();
   long long total_seconds = total_exec_time / 1e9;
   std::cout << "Experiment completed in " << total_seconds / 3600 << "h "
             << (total_seconds % 3600) / 60 << "m " << total_seconds % 60 << "s "

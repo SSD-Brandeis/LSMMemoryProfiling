@@ -1,0 +1,43 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "WorkingVersion",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/bin/working_version",
+      "args": [
+        "-I", "100000",
+        "-U", "10",
+        "-S", "10",
+        "-Y", "0.1",
+        "-E", "128",
+        "-P", "32",
+        "-B", "32",
+        "-T", "2",
+        "--progress", "1",
+
+
+      ],
+      "stopAtEntry": false,
+      "cwd": "${workspaceFolder}",
+      "environment": [],
+      "externalConsole": false,
+      "MIMode": "gdb",
+      "miDebuggerPath": "/usr/bin/gdb",
+      "setupCommands": [
+        {
+          "description": "Enable pretty-printing for gdb",
+          "text": "-enable-pretty-printing",
+          "ignoreFailures": true
+        },
+        {
+          "description": "Set scheduler-locking mode",
+          "text": "set scheduler-locking on",
+          "ignoreFailures": true
+        }
+      ],
+      "outputCapture": "std"
+    }
+  ]
+}

@@ -1,9 +1,11 @@
 #ifndef EVENT_LISTNER_H_
 #define EVENT_LISTNER_H_
 
+#include <condition_variable>
+
 #include <rocksdb/db.h>
 
-#include <condition_variable>
+#include "buffer.h"
 
 using namespace rocksdb;
 
@@ -44,6 +46,17 @@ public:
     }
     cv.notify_one();
   }
+};
+
+class FlushListner : public EventListener {
+public:
+  explicit FlushListner(std::shared_ptr<Buffer> &buffer) {
+    buffer_ = buffer;
+  }
+  void OnFlushCompleted(DB* db, const FlushJobInfo& fji) override;
+
+private:
+  std::shared_ptr<Buffer> buffer_;
 };
 
 #endif // EVENT_LISTNER_H_

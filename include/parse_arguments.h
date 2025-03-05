@@ -156,7 +156,7 @@ int parse_arguments(int argc, char *argv[], std::unique_ptr<DBEnv> &env) {
   env->SetShowProgress(show_progress_cmd ? args::get(show_progress_cmd)
                                          : env->IsShowProgressEnabled());
 
-  // Range Query Driven Compaction Options
+  // LSM options
   env->num_inserts =
       num_inserts_cmd ? args::get(num_inserts_cmd) : env->num_inserts;
   env->num_updates =

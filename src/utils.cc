@@ -13,12 +13,12 @@
 using namespace rocksdb;
 
 template <typename T>
-void PrintColumn(T value, int width, std::unique_ptr<Buffer> &buffer) {
+void PrintColumn(T value, int width, std::shared_ptr<Buffer> &buffer) {
   (*buffer) << std::setfill(' ') << std::setw(width) << value;
 }
 
 void PrintExperimentalSetup(std::unique_ptr<DBEnv> &env,
-                            std::unique_ptr<Buffer> &buffer) {
+                            std::shared_ptr<Buffer> &buffer) {
   constexpr int colWidth = 10;
   constexpr int smallColWidth = 4;
 
@@ -50,7 +50,7 @@ void PrintExperimentalSetup(std::unique_ptr<DBEnv> &env,
 }
 
 void PrintRocksDBPerfStats(std::unique_ptr<DBEnv> &env,
-                           std::unique_ptr<Buffer> &buffer, Options options) {
+                           std::shared_ptr<Buffer> &buffer, Options options) {
   if (env->IsPerfIOStatEnabled()) {
     rocksdb::SetPerfLevel(rocksdb::PerfLevel::kDisable);
 
@@ -96,7 +96,7 @@ void UpdateProgressBar(std::unique_ptr<DBEnv> &env, size_t current,
 }
 
 #ifdef PROFILE
-void LogTreeState(rocksdb::DB *db, std::unique_ptr<Buffer> &buffer) {
+void LogTreeState(rocksdb::DB *db, std::shared_ptr<Buffer> &buffer) {
   // Wait for compactions and get live files
   {
     std::vector<std::string> live_files;
@@ -123,7 +123,7 @@ void LogTreeState(rocksdb::DB *db, std::unique_ptr<Buffer> &buffer) {
 }
 
 void LogRocksDBStatistics(rocksdb::DB *db, const rocksdb::Options &options,
-                          std::unique_ptr<Buffer> &buffer) {
+                          std::shared_ptr<Buffer> &buffer) {
   auto printProperty = [&](const std::string &propertyName) {
     std::string value;
     bool status = db->GetProperty(propertyName, &value);
