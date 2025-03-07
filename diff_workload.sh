@@ -1,25 +1,25 @@
-TAG="Raw_vector_O"
+TAG="Raw_vector_perf"
 
 ENTRY_SIZE=128
 ENTRIES_PER_PAGE=32
 
-INSERTS=1000000
+INSERTS=446395
 UPDATES=0
-RANGE_QUERIES=0
-SELECTIVITY=0
+RANGE_QUERIES=1000
+SELECTIVITY=0.1
 POINT_QUERIES=1000000
 
-LAMBDA=0.5
+LAMBDA=0
 SIZE_RATIO=10
 SHOW_PROGRESS=1
 SANITY_CHECK=0
 
 # hash hybrid parameters
-BUCKET_COUNT=50000
+BUCKET_COUNT=5000
 PREFIX_LENGTH=10
 # in bytes
 # VECTOR_PREALLOCATION_SIZE=1048576
-LINKLIST_THRESHOLD_USE_SKIPLIST=${INSERTS}
+LINKLIST_THRESHOLD_USE_SKIPLIST=4
 
 #64kb minimum buffer size, if file size is 4kb, then minimum 16 pages required to get minimum buffer size
 #64mb 16000 pages of 4 kb page size
@@ -37,20 +37,20 @@ log_error() {
 }
 
 declare -A BUFFER_IMPLEMENTATIONS=(
-  [1]="skiplist"
+  # [1]="skiplist"
   [2]="vector"
-  [3]="hash_skip_list"
-  [4]="hash_linked_list"
-  [5]="unsorted_vector"
-  [6]="always_sorted_vector"
-  [7]="linklist"
+  # [3]="hash_skip_list"
+  # [4]="hash_linked_list"
+  # [5]="unsorted_vector"
+  # [6]="always_sorted_vector"
+  # [7]="linklist"
 )
 
-RESULT_PARENT_DIR="${PROJECT_DIR}/.result"
-# Incorporate TAG and key parameters into experiment directory naming
+RESULT_PARENT_DIR="${PROJECT_DIR}/.result/raw_op"
+
 EXP_DIR="-${TAG}-I${INSERTS}-Q${POINT_QUERIES}-U${UPDATES}-S${RANGE_QUERIES}-Y${SELECTIVITY}-T${SIZE_RATIO}"
 
-mkdir -p "${RESULT_PARENT_DIR}"  # Make sure .result folder exists
+mkdir -p "${RESULT_PARENT_DIR}"  
 
 delete_db_folder() {
   local db_folder="$1"
@@ -109,7 +109,7 @@ for PAGES_PER_FILE in "${PAGES_PER_FILE_LIST[@]}"; do
   fi
 
   remove_trailing_newline "${WORKLOAD_FILE}"
-
+  # reorder workload.txt in the order of I, Q, S. However, it is too slow for million operations
 
   INSERTS_FILE=$(mktemp)  
   POINT_QUERIES_FILE=$(mktemp)  
@@ -183,9 +183,7 @@ for PAGES_PER_FILE in "${PAGES_PER_FILE_LIST[@]}"; do
     rm -rf db
     popd >/dev/null || exit
   done
-
   rm -f "${WORKLOAD_FILE}"
   popd >/dev/null || exit
 done
-
 log_info "All workloads completed! for PAGES_PER_FILE in ${PAGES_PER_FILE_LIST[*]}!"
