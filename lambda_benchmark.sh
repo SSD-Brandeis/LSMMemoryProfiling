@@ -1,9 +1,9 @@
-TAG="notvalid_vector_8kb_page_entry_1024b_buffer_8mb"
+TAG="8kb_page_entry_512b_buffer_8mb"
 
 #8kb page size
-ENTRY_SIZE=1024
-ENTRIES_PER_PAGE=8
-INSERTS=100000
+ENTRY_SIZE=512
+ENTRIES_PER_PAGE=16
+INSERTS=200000
 UPDATES=0
 RANGE_QUERIES=0
 SELECTIVITY=0
@@ -15,7 +15,7 @@ SHOW_PROGRESS=1
 SANITY_CHECK=0
 
 # hash hybrid parameters
-BUCKET_COUNT=1
+BUCKET_COUNT=100
 PREFIX_LENGTH=0
 # in bytes
 # VECTOR_PREALLOCATION_SIZE=67108864
@@ -45,17 +45,15 @@ log_error() {
 
 declare -A BUFFER_IMPLEMENTATIONS=(
   [1]="skiplist"
-  # [2]="vector"
-  # [3]="hash_skip_list"
-  # [4]="hash_linked_list"
+  [2]="vector"
+  [3]="hash_skip_list"
+  [4]="hash_linked_list"
   # [6]="always_sorted_vector"
   # [5]="unsorted_vector"
-  # [7]="linklist"
+  [7]="linklist"
 )
 
-RESULT_PARENT_DIR="${PROJECT_DIR}/.result/overhead_table/rerun_vector_8kb_page_8mb_buffer"
-# Incorporate TAG and key parameters into experiment directory naming
-EXP_DIR="-${TAG}-I${INSERTS}-Q${POINT_QUERIES}-U${UPDATES}-S${RANGE_QUERIES}-Y${SELECTIVITY}-T${SIZE_RATIO}"
+RESULT_PARENT_DIR="${PROJECT_DIR}/.result/new_metadata_overhead/lambda_0.5_bucket_100_8kb_page"
 
 mkdir -p "${RESULT_PARENT_DIR}"  
 
@@ -118,26 +116,13 @@ for PAGES_PER_FILE in "${PAGES_PER_FILE_LIST[@]}"; do
 
   # remove_trailing_newline "${WORKLOAD_FILE}"
 
-
-  # INSERTS_FILE=$(mktemp)  
-  # POINT_QUERIES_FILE=$(mktemp)  
-  # RANGE_QUERIES_FILE=$(mktemp)  
-
-  # grep '^I ' "${WORKLOAD_FILE}" > "${INSERTS_FILE}" 
-  # grep '^Q ' "${WORKLOAD_FILE}" > "${POINT_QUERIES_FILE}"  
-  # grep '^S ' "${WORKLOAD_FILE}" > "${RANGE_QUERIES_FILE}" 
-
-  # cat "${INSERTS_FILE}" "${POINT_QUERIES_FILE}" "${RANGE_QUERIES_FILE}" > "${WORKLOAD_FILE}"  
-
-  # rm -f "${INSERTS_FILE}" "${POINT_QUERIES_FILE}" "${RANGE_QUERIES_FILE}"  
-
-
   # workingversion command
   for IMPL_NUM in "${!BUFFER_IMPLEMENTATIONS[@]}"; do
     IMPL_NAME="${BUFFER_IMPLEMENTATIONS[${IMPL_NUM}]}"
     log_info "Running working_version with PAGES_PER_FILE=${PAGES_PER_FILE}, impl=${IMPL_NAME}"
 
-    WORKLOAD_RESULT_DIR="${RESULT_PARENT_DIR}/${EXP_DIR}/P_${PAGES_PER_FILE}/${IMPL_NAME}"
+    EXP_DIR="${IMPL_NAME}-${TAG}-I${INSERTS}-Q${POINT_QUERIES}-U${UPDATES}-S${RANGE_QUERIES}-Y${SELECTIVITY}-T${SIZE_RATIO}"
+    WORKLOAD_RESULT_DIR="${RESULT_PARENT_DIR}/${EXP_DIR}/P_${PAGES_PER_FILE}"
     mkdir -p "${WORKLOAD_RESULT_DIR}"
 
     cp "${WORKLOAD_FILE}" "${WORKLOAD_RESULT_DIR}/"
@@ -157,9 +142,11 @@ for PAGES_PER_FILE in "${PAGES_PER_FILE_LIST[@]}"; do
         valid_arg="--bucket_count=${BUCKET_COUNT} --prefix_length=${PREFIX_LENGTH}"
         ;;
       4) # hash_linked_list
-        valid_arg="--bucket_count=${BUCKET_COUNT} \
-                --prefix_length=${PREFIX_LENGTH} \
-                --threshold_use_skiplist=${LINKLIST_THRESHOLD_USE_SKIPLIST}"
+        # === CHANGED LINE ===
+        # Previously, valid_arg was defined over multiple lines causing a syntax error.
+        # Now it is on a single line.
+        valid_arg="--bucket_count=${BUCKET_COUNT} --prefix_length=${PREFIX_LENGTH} --threshold_use_skiplist=${LINKLIST_THRESHOLD_USE_SKIPLIST}"
+        # =====================
         ;;
       5) # unsorted_vector
         # valid_arg="--preallocation_size=${VECTOR_PREALLOCATION_SIZE}"
@@ -172,7 +159,6 @@ for PAGES_PER_FILE in "${PAGES_PER_FILE_LIST[@]}"; do
     log_info "Executing working_version for memtable_factory=${IMPL_NUM}..."
     # cmd="${WORKING_VERSION_PATH} --memtable_factory=${IMPL_NUM} ${valid_arg} -I ${INSERTS} -U ${UPDATES} -S ${RANGE_QUERIES} -Y ${SELECTIVITY} -E ${ENTRY_SIZE} -B ${ENTRIES_PER_PAGE} -P ${PAGES_PER_FILE} -T ${SIZE_RATIO} --progress ${SHOW_PROGRESS} --stat 1"
     # echo "$cmd > temp.log"
-
 
     if ! "${WORKING_VERSION_PATH}" \
           --memtable_factory="${IMPL_NUM}" \
