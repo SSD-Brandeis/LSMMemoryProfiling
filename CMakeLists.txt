@@ -3,51 +3,59 @@ project(LSMQueryDrivenCompaction VERSION 1.0)
 
 set(CMAKE_CXX_STANDARD 17)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -DPROFILE")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DPROFILE")
 
-if(NOT DISABLE_JEMALLOC)
-    if(JEMALLOC)
+if (NOT DISABLE_JEMALLOC)
+    if (JEMALLOC)
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DROCKSDB_JEMALLOC -DJEMALLOC_NO_DEMANGLE ${JEMALLOC_INCLUDE}")
         list(APPEND EXEC_LDFLAGS "${JEMALLOC_LIB}" "-lpthread")
-    else()
+    else ()
         list(APPEND EXEC_LDFLAGS "-lpthread")
-    endif()
-else()
+    endif ()
+else ()
     list(APPEND EXEC_LDFLAGS "-lpthread")
-endif()
+endif ()
 
-option(WITH_TESTS "Build with tests" OFF)
-option(WITH_TOOLS "Build with tools" OFF)
-option(WITH_ALL_TESTS "Build with all tests" OFF)
-option(WITH_BENCHMARK_TOOLS "Build with benchmark tools" OFF)
-option(WITH_CORE_TOOLS "Build with core tools" OFF)
-option(WITH_TRACE_TOOLS "Build with trace tools" OFF)
+message(STATUS "${CMAKE_CXX_FLAGS}")
+
+#option(WITH_TESTS "Build with tests" OFF)
+#option(WITH_TOOLS "Build with tools" OFF)
+#option(WITH_ALL_TESTS "Build with all tests" OFF)
+#option(WITH_BENCHMARK_TOOLS "Build with benchmark tools" OFF)
+#option(WITH_CORE_TOOLS "Build with core tools" OFF)
+#option(WITH_TRACE_TOOLS "Build with trace tools" OFF)
 
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/lib/rocksdb/include)
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/lib/KV-WorkloadGenerator/include)
+#include_directories(${CMAKE_CURRENT_SOURCE_DIR}/lib/rocksdb/include)
+#include_directories(${CMAKE_CURRENT_SOURCE_DIR}/lib/KV-WorkloadGenerator/include)
+#include_directories(
+#        #        "${PROJECT_SOURCE_DIR}/lib/rocksdb"
+#        "${PROJECT_SOURCE_DIR}/include"
+#        "${PROJECT_SOURCE_DIR}/lib/KV-WorkloadGenerator/include"
+#)
 
-add_subdirectory(lib/rocksdb)
+add_subdirectory(
+        "${PROJECT_SOURCE_DIR}/lib/rocksdb"
+        "${CMAKE_CURRENT_BINARY_DIR}/rocksdb"
+)
 add_subdirectory(lib/KV-WorkloadGenerator)
 
 set(SOURCES
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/aux_time.cc 
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/buffer.cc
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/db_env.cc
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/event_listners.cc
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/fluid_lsm.cc
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/utils.cc
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/run_workload.cc
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/working_version.cc 
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/aux_time.cc
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/buffer.cc
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/db_env.cc
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/event_listners.cc
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/fluid_lsm.cc
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/utils.cc
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/run_workload.cc
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/working_version.cc
 )
 
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/bin)
+#set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/bin)
 
 add_executable(working_version ${SOURCES})
 
-target_link_libraries(working_version ${CMAKE_BINARY_DIR}/lib/rocksdb/librocksdb.a ${EXEC_LDFLAGS})
+target_link_libraries(working_version PRIVATE rocksdb)
 
-add_dependencies(working_version rocksdb)
-
-target_compile_definitions(working_version PRIVATE -DTIMER -DPROFILE)
+target_compile_definitions(working_version PRIVATE)

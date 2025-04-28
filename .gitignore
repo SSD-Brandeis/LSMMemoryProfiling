@@ -41,3 +41,7 @@ workload.txt
 **/bin**
 **/build/**
 **result**
+
+.idea
+cmake-build-debug/
+cmake-build-release/

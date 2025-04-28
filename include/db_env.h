@@ -91,7 +91,7 @@ public:
 
 #pragma region[DBOptions]
   bool create_if_missing = true;
-  bool clear_system_cache = true;
+  bool clear_system_cache = false;
 
   // number of open files that can be used by the DB
   int max_open_files = Default::MAX_OPEN_FILES;
@@ -165,7 +165,7 @@ public:
    * 3 for hash skip list
    * 4 for hash linked list
    */
-  uint16_t memtable_factory = 1; // [m]
+  uint16_t memtable_factory = 6; // [m]
 
   // if true, RocksDB will pick target size of each level dynamically
   bool level_compaction_dynamic_level_bytes = false;
