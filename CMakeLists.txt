@@ -16,14 +16,12 @@ else ()
     list(APPEND EXEC_LDFLAGS "-lpthread")
 endif ()
 
-message(STATUS "${CMAKE_CXX_FLAGS}")
-
-#option(WITH_TESTS "Build with tests" OFF)
-#option(WITH_TOOLS "Build with tools" OFF)
-#option(WITH_ALL_TESTS "Build with all tests" OFF)
-#option(WITH_BENCHMARK_TOOLS "Build with benchmark tools" OFF)
-#option(WITH_CORE_TOOLS "Build with core tools" OFF)
-#option(WITH_TRACE_TOOLS "Build with trace tools" OFF)
+option(WITH_TESTS "Build with tests" OFF)
+option(WITH_TOOLS "Build with tools" OFF)
+option(WITH_ALL_TESTS "Build with all tests" OFF)
+option(WITH_BENCHMARK_TOOLS "Build with benchmark tools" OFF)
+option(WITH_CORE_TOOLS "Build with core tools" OFF)
+option(WITH_TRACE_TOOLS "Build with trace tools" OFF)
 
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
@@ -52,7 +50,7 @@ set(SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/src/working_version.cc
 )
 
-#set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/bin)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/bin)
 
 add_executable(working_version ${SOURCES})
 
