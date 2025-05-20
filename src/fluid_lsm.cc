@@ -14,10 +14,10 @@ void Run::AddFile(SstFileMetaData file) {
 int LazyLevel::NumLiveRuns() {
   int num_live_runs = 0;
 
-  for (auto& run : runs) {
+  for (auto &run : runs) {
     bool being_compacted = false;
 
-    for (auto& file : run.files_) {
+    for (auto &file : run.files_) {
       being_compacted |= file.being_compacted;
     }
 
@@ -30,8 +30,8 @@ int LazyLevel::NumLiveRuns() {
 long LazyLevel::SizeInBytes() {
   long size_in_bytes = 0;
 
-  for (auto& run : runs) {
-    for (auto& file : run.files_) {
+  for (auto &run : runs) {
+    for (auto &file : run.files_) {
       size_in_bytes += file.size;
     }
   }
@@ -42,20 +42,16 @@ long LazyLevel::SizeInBytes() {
 FluidLSM::FluidLSM(int size_ratio, int smaller_lvl_runs_count /* K */,
                    int larger_lvl_runs_count /* Z */, long file_size,
                    const Options options)
-    : size_ratio_(size_ratio),
-      smaller_lvl_runs_count_(smaller_lvl_runs_count),
-      larger_lvl_runs_count_(larger_lvl_runs_count),
-      file_size_(file_size),
-      options_(options),
-      compact_options_(),
-      parallel_compactions_allowed_(1),
+    : size_ratio_(size_ratio), smaller_lvl_runs_count_(smaller_lvl_runs_count),
+      larger_lvl_runs_count_(larger_lvl_runs_count), file_size_(file_size),
+      options_(options), compact_options_(), parallel_compactions_allowed_(1),
       parallel_compactions_running_(0) {
   compact_options_.compression = options_.compression;
   compact_options_.output_file_size_limit = options_.target_file_size_base;
   lazy_levels_.resize(options_.num_levels);
 }
 
-void FluidLSM::CreateRun(DB* db, std::vector<SstFileMetaData> const& file_names,
+void FluidLSM::CreateRun(DB *db, std::vector<SstFileMetaData> const &file_names,
                          int lvl, int RocksDB_lvl) {
   ColumnFamilyMetaData cf_meta;
   db->GetColumnFamilyMetaData(&cf_meta);
@@ -68,7 +64,7 @@ void FluidLSM::CreateRun(DB* db, std::vector<SstFileMetaData> const& file_names,
   lazy_levels_[lvl].AddRun(run);
 }
 
-void FluidLSM::BuildStructure(DB* db) {
+void FluidLSM::BuildStructure(DB *db) {
   lazy_levels_mutex_.lock();
   ColumnFamilyMetaData cf_meta;
   db->GetColumnFamilyMetaData(&cf_meta);
@@ -114,7 +110,7 @@ void FluidLSM::BuildStructure(DB* db) {
 int FluidLSM::GetLargestOccupiedLevel() const {
   int largest = 0;
   for (int lvl = 0; lvl < lazy_levels_.size(); lvl++) {
-    for (auto& run : lazy_levels_[lvl].runs) {
+    for (auto &run : lazy_levels_[lvl].runs) {
       if (run.files_.size() > 0) {
         largest = lvl;
       }
@@ -123,7 +119,7 @@ int FluidLSM::GetLargestOccupiedLevel() const {
   return largest;
 }
 
-void FluidLSM::PrintFluidLSM(DB* db) {
+void FluidLSM::PrintFluidLSM(DB *db) {
   ColumnFamilyMetaData cf_meta;
   db->GetColumnFamilyMetaData(&cf_meta);
   int num_levels = GetLargestOccupiedLevel();
@@ -151,12 +147,12 @@ void FluidLSM::PrintFluidLSM(DB* db) {
 }
 
 void FluidLSM::AddFilesToCompaction(
-    DB* db, int lvl, std::vector<SstFileMetaData*>& input_file_names) {
+    DB *db, int lvl, std::vector<SstFileMetaData *> &input_file_names) {
   ColumnFamilyMetaData cf_name;
   db->GetColumnFamilyMetaData(&cf_name);
 
-  for (auto& run : lazy_levels_[lvl].runs) {
-    for (auto& file : run.files_) {
+  for (auto &run : lazy_levels_[lvl].runs) {
+    for (auto &file : run.files_) {
       if (file.being_compacted == false) {
         input_file_names.push_back(&file);
       }
@@ -165,7 +161,7 @@ void FluidLSM::AddFilesToCompaction(
 }
 
 long FluidLSM::GetCompactionSize(
-    std::vector<SstFileMetaData*> const& input_file_names) const {
+    std::vector<SstFileMetaData *> const &input_file_names) const {
   long size_in_bytes = 0;
 
   for (auto file : input_file_names) {
@@ -176,7 +172,7 @@ long FluidLSM::GetCompactionSize(
 }
 
 int FluidLSM::GetCompactionTargetLevel(
-    int origin_lvl, std::vector<SstFileMetaData*> const& input_files) const {
+    int origin_lvl, std::vector<SstFileMetaData *> const &input_files) const {
   long projected_output_size = GetCompactionSize(input_files);
   int target_lvl = origin_lvl;
 
@@ -190,10 +186,11 @@ int FluidLSM::GetCompactionTargetLevel(
   return target_lvl;
 }
 
-void FluidLSM::CompactFiles(void* args) {
-  std::unique_ptr<CompactionTask> task(reinterpret_cast<CompactionTask*>(args));
+void FluidLSM::CompactFiles(void *args) {
+  std::unique_ptr<CompactionTask> task(
+      reinterpret_cast<CompactionTask *>(args));
   assert(task && task->db_);
-  std::vector<std::string>* output_file_names = new std::vector<std::string>();
+  std::vector<std::string> *output_file_names = new std::vector<std::string>();
   Status s =
       task->db_->CompactFiles(task->compact_options_, task->input_file_names_,
                               task->output_lvl_, -1, output_file_names);
@@ -209,7 +206,7 @@ void FluidLSM::CompactFiles(void* args) {
     }
     cerr << "   -> level " << task->output_lvl_ << endl;
   }
-  FluidLSM* tree = reinterpret_cast<FluidLSM*>(task->compactor_);
+  FluidLSM *tree = reinterpret_cast<FluidLSM *>(task->compactor_);
 
   if (!s.IsIOError()) {
     tree->PickCompaction(task->db_, task->cf_name_);
@@ -220,9 +217,9 @@ void FluidLSM::CompactFiles(void* args) {
   tree->parallel_compactions_mutex_.unlock();
 }
 
-void FluidLSM::ScheduleCompaction(DB* db, const std::string& cf_name,
+void FluidLSM::ScheduleCompaction(DB *db, const std::string &cf_name,
                                   int origin_lvl, int target_lvl,
-                                  std::vector<SstFileMetaData*> input_files) {
+                                  std::vector<SstFileMetaData *> input_files) {
   if (parallel_compactions_allowed_ > parallel_compactions_running_) {
     int RocksDB_lvl = 1 + target_lvl * (smaller_lvl_runs_count_ + 1);
     int slot = smaller_lvl_runs_count_;
@@ -249,7 +246,7 @@ void FluidLSM::ScheduleCompaction(DB* db, const std::string& cf_name,
     parallel_compactions_running_++;
     parallel_compactions_mutex_.unlock();
 
-    CompactionTask* task =
+    CompactionTask *task =
         new CompactionTask(db, this, cf_name, input_file_names, RocksDB_lvl,
                            compact_options_, false, debug_mode_);
     task->compact_options_.output_file_size_limit = file_size_;
@@ -266,14 +263,14 @@ void FluidLSM::ScheduleCompaction(DB* db, const std::string& cf_name,
   }
 }
 
-void FluidLSM::PickCompaction(DB* db, const std::string& cf_name) {
+void FluidLSM::PickCompaction(DB *db, const std::string &cf_name) {
   BuildStructure(db);
 
   if (debug_mode_) {
     PrintFluidLSM(db);
   }
 
-  std::vector<SstFileMetaData*> input_files;
+  std::vector<SstFileMetaData *> input_files;
   int largest_lvl = GetLargestOccupiedLevel();
   int origin_lvl = 0;
 
@@ -291,8 +288,8 @@ void FluidLSM::PickCompaction(DB* db, const std::string& cf_name) {
   }
 }
 
-void FluidLSM::OnFlushCompleted(DB* db, const FlushJobInfo& info) {
+void FluidLSM::OnFlushCompleted(DB *db, const FlushJobInfo &info) {
   PickCompaction(db, info.cf_name);
 }
 
-}  // namespace ROCKSDB_NAMESPACE
+} // namespace ROCKSDB_NAMESPACE
