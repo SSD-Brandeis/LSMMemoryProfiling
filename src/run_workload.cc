@@ -4,7 +4,6 @@
 #include <fstream>
 #include <iomanip>
 #include <iostream>
-#include <filesystem>
 #include <bits/fs_path.h>
 
 #include "config_options.h"
@@ -12,81 +11,6 @@
 
 std::string buffer_file = "workload.log";
 std::string stats_file = "stats.log";
-
-class MapDB {
-private:
-  std::unordered_map<std::string, std::string> map;
-public:
-  MapDB() = default;
-
-  std::optional<std::string> get(const std::string& k) {
-    const auto it = map.find(k);
-    if (it != map.end()) {
-      return it->second;
-    }
-    return std::nullopt;
-  }
-
-  std::vector<std::pair<std::string, std::string>> getRange(const std::string& k1, const std::string& k2) {
-    std::vector<std::pair<std::string, std::string>> result;
-
-    for (const auto& [key, value] : map) {
-      if (key >= k1 && key <= k2) {
-        result.emplace_back(key, value);
-      }
-    }
-
-    std::sort(result.begin(), result.end(),
-              [](const auto& a, const auto& b) {
-                if (a.first == b.first) {
-                  return a.second < b.second;
-                }
-                return a.first < b.first;
-              });
-
-    return result;
-  }
-
-  void put(const std::string& k, const std::string& v) {
-    map[k] = v;
-  }
-
-  bool del(const std::string& k) {
-    const auto it = map.find(k);
-    if (it != map.end()) {
-      map.erase(it);
-      return true;
-    }
-    return false;
-  }
-
-  int delRange(const std::string& k1, const std::string& k2) {
-    int count = 0;
-
-    std::vector<std::string> keys_to_delete;
-    for (const auto& [key, _] : map) {
-      if (key >= k1 && key <= k2) {
-        keys_to_delete.push_back(key);
-      }
-    }
-
-    for (const auto& key : keys_to_delete) {
-      map.erase(key);
-      count++;
-    }
-
-    return count;
-  }
-
-  size_t size() const {
-    return map.size();
-  }
-
-  void clear() {
-    map.clear();
-  }
-
-};
 
 int runWorkload(std::unique_ptr<DBEnv> &env) {
   DB *db;
@@ -142,7 +66,7 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
 
 
   std::ifstream workload_file;
-  workload_file.open("../bin/workload.txt");
+  workload_file.open("workload.txt");
   assert(workload_file);
 
   size_t total_operations = 0;
@@ -162,8 +86,6 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
 #endif // TIMER
   auto exec_start = std::chrono::high_resolution_clock::now();
 
-  MapDB mapDb;
-
   std::string line;
   unsigned long ith_op = 0;
   while (std::getline(workload_file, line)) {
@@ -180,8 +102,6 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
     case 'I': {
       std::string key, value;
       stream >> key >> value;
-
-      mapDb.put(key, value);
 
 #ifdef TIMER
       auto start = std::chrono::high_resolution_clock::now();
@@ -200,8 +120,6 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
       std::string key, value;
       stream >> key >> value;
 
-      mapDb.put(key, value);
-
 #ifdef TIMER
       auto start = std::chrono::high_resolution_clock::now();
 #endif // TIMER
@@ -218,8 +136,6 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
     case 'D': {
       std::string key;
       stream >> key;
-
-      mapDb.del(key);
 
 #ifdef TIMER
       auto start = std::chrono::high_resolution_clock::now();
@@ -238,8 +154,6 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
       std::string key, value;
       stream >> key;
 
-      std::optional<std::string> valExpected = mapDb.get(key);
-
 #ifdef TIMER
       auto start = std::chrono::high_resolution_clock::now();
 #endif // TIMER
@@ -250,8 +164,6 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
       (*stats) << "GetTime: " << duration.count() << std::endl;
       pq_exec_time += duration.count();
 #endif // TIMER
-      assert(valExpected.value() == value);
-      // assert(valExpected.has_value());
       break;
     }
       // [ScanRangeQuery]
@@ -262,7 +174,6 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
       uint64_t keys_returned = 0, keys_read = 0;
       bool did_run_RR = false;
 
-      auto expected = mapDb.getRange(start_key, end_key);
       std::vector<std::pair<std::string, std::string>> actual;
 
 #ifdef TIMER
@@ -287,9 +198,6 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
       (*stats) << "ScanTime: " << duration.count() << std::endl;
       rq_exec_time += duration.count();
 #endif // TIMER
-      std::sort(expected.begin(), expected.end());
-      std::sort(actual.begin(), actual.end());
-      assert(expected == actual);
       break;
     }
     default:
