@@ -17,7 +17,7 @@ for i in "${!page_sizes[@]}"; do
     
     # Set the top-level result dir 
     PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-    RESULT_PARENT_DIR="${PROJECT_DIR}/.result/in_memory_interleave2/${TOP_LEVEL_DIR_NAME}"
+    RESULT_PARENT_DIR="${PROJECT_DIR}/.result/in_memory_interleave4/${TOP_LEVEL_DIR_NAME}"
     
     if [ -d "${RESULT_PARENT_DIR}" ]; then
         echo "[INFO] Top-level directory ${RESULT_PARENT_DIR} already exists. Using the existing directory."
@@ -53,11 +53,11 @@ for i in "${!page_sizes[@]}"; do
 
 
 
-        INSERTS=300000
+        INSERTS=100000
         UPDATES=0
-        RANGE_QUERIES=1000
+        RANGE_QUERIES=1
         SELECTIVITY=0.1
-        POINT_QUERIES=10000
+        POINT_QUERIES=0
         
         LAMBDA=0.5
         SIZE_RATIO=10
@@ -104,9 +104,10 @@ for i in "${!page_sizes[@]}"; do
         declare -A BUFFER_IMPLEMENTATIONS=(
           [1]="skiplist"
           [2]="vector"
-          [3]="hash_skip_list"
-          [4]="hash_linked_list"
-          [7]="linklist"
+          # [5]="UnsortedVector"
+          # [3]="hash_skip_list"
+          # [4]="hash_linked_list"
+          # [7]="linklist"
         )
 
         echo "current Parameters:"
@@ -190,6 +191,24 @@ for i in "${!page_sizes[@]}"; do
                 ;;
             esac
 
+            # log_info "Executing working_version for memtable_factory=${IMPL_NUM}..."
+            # cmd="${WORKING_VERSION_PATH} \
+            #       --memtable_factory=${IMPL_NUM} \
+            #       ${valid_arg} \
+            #       -I ${INSERTS} \
+            #       -U ${UPDATES} \
+            #       -S ${RANGE_QUERIES} \
+            #       -Y ${SELECTIVITY} \
+            #       -E ${ENTRY_SIZE} \
+            #       -B ${ENTRIES_PER_PAGE} \
+            #       -P ${PAGES_PER_FILE} \
+            #       -T ${SIZE_RATIO} \
+            #       --progress ${SHOW_PROGRESS} \
+            #       --stat 1"
+            # echo "[COMMAND] $cmd"
+            # # if ! eval "$cmd > temp.log"; then
+            # #   log_error "Something is wrong with working_version (PAGES_PER_FILE=${PAGES_PER_FILE}, impl=${IMPL_NAME})"
+            # # fi
             log_info "Executing working_version for memtable_factory=${IMPL_NUM}..."
             if ! "${WORKING_VERSION_PATH}" \
                   --memtable_factory="${IMPL_NUM}" \

@@ -1,4 +1,3 @@
-
 entry_sizes_list=(128)
 
 # For a 2kb page, PAGE_SIZE=2048; for a 4kb page, use 4096; for an 8kb page, use 8192.

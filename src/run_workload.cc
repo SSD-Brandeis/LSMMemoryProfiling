@@ -179,6 +179,7 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
       it->Refresh();
       assert(it->status().ok());
       for (it->Seek(start_key); it->Valid(); it->Next()) {
+        std::cout << "Key: " << it->key().ToString() << std::endl;
         if (it->key().ToString() >= end_key) {
           break;
         }

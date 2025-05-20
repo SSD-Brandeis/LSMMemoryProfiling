@@ -42,5 +42,15 @@ workload.txt
 **/build/**
 **result**
 
+# Logs and text data
+*.log
+*.txt
+workload.txt
+
+# Exclude all SVG files
+*.svg
+*.png
+*.csv
+
 # .vscode
 .vscode/
