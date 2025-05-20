@@ -6,6 +6,7 @@ entry_sizes_list=(128)
 page_sizes=(4096)
 
 # We will sweep over these prefix lengths.
+# prefix_length_list=(1 2 3 4)
 prefix_length_list=(2 4 6 8 10)
 
 # Fixed bucket count for this experiment. Adjust as desired.
@@ -41,7 +42,7 @@ for i in "${!page_sizes[@]}"; do
             exit 1
         fi
 
-        TAG="${PAGE_TAG}_entry_${ENTRY_SIZE}b_buffer_8mb"
+        TAG="${PAGE_TAG}_entry_${ENTRY_SIZE}b_buffer_16mb"
 
         # Set remaining experiment parameters.
         INSERTS=1500000
@@ -59,11 +60,12 @@ for i in "${!page_sizes[@]}"; do
         BUCKET_COUNT=${fixed_bucket_count}
         LINKLIST_THRESHOLD_USE_SKIPLIST=${INSERTS}
 
-        # PAGES_PER_FILE_LIST depends on PAGE_SIZE.
+        # PAGES_PER_FILE_LIST depends on PAGE_SIZE. 16 MB
         if [ "${PAGE_SIZE}" -eq 2048 ]; then
             PAGES_PER_FILE_LIST=(4096)
+        #buffer of 16mb
         elif [ "${PAGE_SIZE}" -eq 4096 ]; then
-            PAGES_PER_FILE_LIST=(3840)
+            PAGES_PER_FILE_LIST=(4096)
         elif [ "${PAGE_SIZE}" -eq 8192 ]; then
             PAGES_PER_FILE_LIST=(1024)
         elif [ "${PAGE_SIZE}" -eq 16384 ]; then

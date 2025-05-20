@@ -8,7 +8,7 @@ entry_sizes_list=(128)
 # page_sizes=(16384 32768 65536)
 page_sizes=(4096)
 # Define corresponding top-level directory names.
-top_level_names=("100k_inserts_PQ10k_prefix_4_bucket_100k")  
+top_level_names=("300000_inserts_10k_PQ_1k_RQ_S_0.1")  
 
 # Loop over each page size
 for i in "${!page_sizes[@]}"; do
@@ -17,7 +17,7 @@ for i in "${!page_sizes[@]}"; do
     
     # Set the top-level result dir 
     PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-    RESULT_PARENT_DIR="${PROJECT_DIR}/.result/interleave_wl/${TOP_LEVEL_DIR_NAME}"
+    RESULT_PARENT_DIR="${PROJECT_DIR}/.result/in_memory_interleave2/${TOP_LEVEL_DIR_NAME}"
     
     if [ -d "${RESULT_PARENT_DIR}" ]; then
         echo "[INFO] Top-level directory ${RESULT_PARENT_DIR} already exists. Using the existing directory."
@@ -53,10 +53,10 @@ for i in "${!page_sizes[@]}"; do
 
 
 
-        INSERTS=100000
+        INSERTS=300000
         UPDATES=0
-        RANGE_QUERIES=0
-        SELECTIVITY=0
+        RANGE_QUERIES=1000
+        SELECTIVITY=0.1
         POINT_QUERIES=10000
         
         LAMBDA=0.5
@@ -66,7 +66,7 @@ for i in "${!page_sizes[@]}"; do
 
         # hash hybrid parameters
         BUCKET_COUNT=100000
-        PREFIX_LENGTH=4
+        PREFIX_LENGTH=6
         LINKLIST_THRESHOLD_USE_SKIPLIST=${INSERTS}
 
         # Choose PAGES_PER_FILE_LIST based on page size.
@@ -106,8 +106,6 @@ for i in "${!page_sizes[@]}"; do
           [2]="vector"
           [3]="hash_skip_list"
           [4]="hash_linked_list"
-          # [5]="unsorted_vector"
-          # [6]="always_sorted_vector"
           [7]="linklist"
         )
 
