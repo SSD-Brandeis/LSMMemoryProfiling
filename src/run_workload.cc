@@ -172,9 +172,6 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
 
                 uint64_t keys_returned = 0, keys_read = 0;
                 bool did_run_RR = false;
-
-                std::vector<std::pair<std::string, std::string> > actual;
-
 #ifdef TIMER
       auto start = std::chrono::high_resolution_clock::now();
 #endif // TIMER
@@ -185,7 +182,6 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
                     if (it->key().ToString() >= end_key) {
                         break;
                     }
-                    actual.emplace_back(it->key().ToString(), it->value().ToString());
                     keys_returned++;
                 }
                 if (!it->status().ok()) {

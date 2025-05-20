@@ -56,4 +56,4 @@ add_executable(working_version ${SOURCES})
 
 target_link_libraries(working_version PRIVATE rocksdb)
 
-target_compile_definitions(working_version PRIVATE)
+target_compile_definitions(working_version PRIVATE  -DTIMER -DPROFILE)
