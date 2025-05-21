@@ -46,7 +46,6 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
   if (!s.ok())
     std::cerr << s.ToString() << std::endl;
   assert(s.ok());
-  Iterator *it = db->NewIterator(read_options);
 
 #ifdef DOSTO
   if (env->debugging) {
@@ -171,13 +170,14 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
       stream >> start_key >> end_key;
 
       uint64_t keys_returned = 0, keys_read = 0;
-      bool did_run_RR = false;
+      Iterator *it = db->NewIterator(read_options);
+      it->Refresh();
+      assert(it->status().ok());
+
 #ifdef TIMER
       auto start = std::chrono::high_resolution_clock::now();
 #endif // TIMER
 
-      it->Refresh();
-      assert(it->status().ok());
       for (it->Seek(start_key); it->Valid(); it->Next()) {
         std::cout << "Key: " << it->key().ToString() << std::endl;
         if (it->key().ToString() >= end_key) {
@@ -194,6 +194,7 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
       (*stats) << "ScanTime: " << duration.count() << std::endl;
       rq_exec_time += duration.count();
 #endif // TIMER
+      delete it;
       break;
     }
     default:
@@ -228,8 +229,7 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
   (*buffer) << "RangeQuery Execution Time: " << rq_exec_time << std::endl;
 #endif // TIMER
 
-  // delete iterator and close db
-  delete it;
+  // close db
   if (!s.ok())
     std::cerr << s.ToString() << std::endl;
   assert(s.ok());
