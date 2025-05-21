@@ -4,6 +4,7 @@
 #include <fstream>
 #include <iomanip>
 #include <iostream>
+#include <tuple>
 
 #include "config_options.h"
 #include "utils.h"
@@ -96,41 +97,41 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
     stream >> operation;
 
     switch (operation) {
-    // [Insert]
+      // [Insert]
     case 'I': {
       std::string key, value;
       stream >> key >> value;
+
 #ifdef TIMER
       auto start = std::chrono::high_resolution_clock::now();
 #endif // TIMER
       s = db->Put(write_options, key, value);
 #ifdef TIMER
       auto stop = std::chrono::high_resolution_clock::now();
-      auto duration =
-          std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+      auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
       (*stats) << "InsertTime: " << duration.count() << std::endl;
       inserts_exec_time += duration.count();
 #endif // TIMER
       break;
     }
-    // [Update]
+      // [Update]
     case 'U': {
       std::string key, value;
       stream >> key >> value;
+
 #ifdef TIMER
       auto start = std::chrono::high_resolution_clock::now();
 #endif // TIMER
       s = db->Put(write_options, key, value);
 #ifdef TIMER
       auto stop = std::chrono::high_resolution_clock::now();
-      auto duration =
-          std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+      auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
       (*stats) << "UpdateTime: " << duration.count() << std::endl;
       updates_exec_time += duration.count();
 #endif // TIMER
       break;
     }
-    // [PointDelete]
+      // [PointDelete]
     case 'D': {
       std::string key;
       stream >> key;
@@ -141,14 +142,13 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
       s = db->Delete(write_options, key);
 #ifdef TIMER
       auto stop = std::chrono::high_resolution_clock::now();
-      auto duration =
-          std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+      auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
       (*stats) << "DeleteTime: " << duration.count() << std::endl;
       pdelete_exec_time += duration.count();
 #endif // TIMER
       break;
     }
-    // [ProbePointQuery]
+      // [ProbePointQuery]
     case 'Q': {
       std::string key, value;
       stream >> key;
@@ -159,14 +159,13 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
       s = db->Get(read_options, key, &value);
 #ifdef TIMER
       auto stop = std::chrono::high_resolution_clock::now();
-      auto duration =
-          std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+      auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
       (*stats) << "GetTime: " << duration.count() << std::endl;
       pq_exec_time += duration.count();
 #endif // TIMER
       break;
     }
-    // [ScanRangeQuery]
+      // [ScanRangeQuery]
     case 'S': {
       std::string start_key, end_key;
       stream >> start_key >> end_key;
@@ -190,8 +189,7 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
       }
 #ifdef TIMER
       auto stop = std::chrono::high_resolution_clock::now();
-      auto duration =
-          std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+      auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
       (*stats) << "ScanTime: " << duration.count() << std::endl;
       rq_exec_time += duration.count();
 #endif // TIMER
