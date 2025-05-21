@@ -193,7 +193,7 @@ int FluidLSM::GetCompactionTargetLevel(
 void FluidLSM::CompactFiles(void* args) {
   std::unique_ptr<CompactionTask> task(reinterpret_cast<CompactionTask*>(args));
   assert(task && task->db_);
-  std::vector<std::string> *output_file_names = new std::vector<std::string>();
+  std::vector<std::string>* output_file_names = new std::vector<std::string>();
   Status s =
       task->db_->CompactFiles(task->compact_options_, task->input_file_names_,
                               task->output_lvl_, -1, output_file_names);

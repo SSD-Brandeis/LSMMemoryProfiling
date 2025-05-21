@@ -40,14 +40,14 @@ add_subdirectory(
 add_subdirectory(lib/KV-WorkloadGenerator)
 
 set(SOURCES
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/aux_time.cc
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/buffer.cc
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/db_env.cc
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/event_listners.cc
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/fluid_lsm.cc
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/utils.cc
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/run_workload.cc
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/working_version.cc
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/aux_time.cc 
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/buffer.cc
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/db_env.cc
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/event_listners.cc
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/fluid_lsm.cc
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/utils.cc
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/run_workload.cc
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/working_version.cc 
 )
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/bin)
