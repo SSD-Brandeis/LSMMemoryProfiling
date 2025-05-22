@@ -3,7 +3,9 @@ project(LSMQueryDrivenCompaction VERSION 1.0)
 
 set(CMAKE_CXX_STANDARD 17)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DPROFILE")
+# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -DPROFILE")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Og -g -DPROFILE")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-omit-frame-pointer")
 
 if(NOT DISABLE_JEMALLOC)
     if(JEMALLOC)
@@ -25,18 +27,10 @@ option(WITH_TRACE_TOOLS "Build with trace tools" OFF)
 
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
-#include_directories(${CMAKE_CURRENT_SOURCE_DIR}/lib/rocksdb/include)
-#include_directories(${CMAKE_CURRENT_SOURCE_DIR}/lib/KV-WorkloadGenerator/include)
-#include_directories(
-#        #        "${PROJECT_SOURCE_DIR}/lib/rocksdb"
-#        "${PROJECT_SOURCE_DIR}/include"
-#        "${PROJECT_SOURCE_DIR}/lib/KV-WorkloadGenerator/include"
-#)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/lib/rocksdb/include)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/lib/KV-WorkloadGenerator/include)
 
-add_subdirectory(
-        "${PROJECT_SOURCE_DIR}/lib/rocksdb"
-        "${CMAKE_CURRENT_BINARY_DIR}/rocksdb"
-)
+add_subdirectory(lib/rocksdb)
 add_subdirectory(lib/KV-WorkloadGenerator)
 
 set(SOURCES
@@ -54,6 +48,8 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/bin)
 
 add_executable(working_version ${SOURCES})
 
-target_link_libraries(working_version PRIVATE rocksdb)
+target_link_libraries(working_version ${CMAKE_BINARY_DIR}/lib/rocksdb/librocksdb.a ${EXEC_LDFLAGS})
+
+add_dependencies(working_version rocksdb)
 
 target_compile_definitions(working_version PRIVATE -DTIMER -DPROFILE)

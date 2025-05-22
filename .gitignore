@@ -47,5 +47,15 @@ cmake-build-debug/
 cmake-build-release/
 
 
+# Logs and text data
+*.log
+*.txt
+workload.txt
+
+# Exclude all SVG files
+*.svg
+*.png
+*.csv
+
 # .vscode
 .vscode/

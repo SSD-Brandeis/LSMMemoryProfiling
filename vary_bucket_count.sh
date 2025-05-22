@@ -7,7 +7,7 @@ entry_sizes_list=(128)
 page_sizes=(4096)
 
 # Base top-level directory name for experiments.
-base_top_level_dir="varying_bucket_fix_prefixlength_4kb_page_15mb_buffer"
+base_top_level_dir="varying_bucket_fix_prefixlength_4kb_page_16mb_buffer"
 
 # List of bucket counts to sweep.
 bucket_count_list=(1 200000 400000 600000 800000 1000000)
@@ -45,7 +45,7 @@ for i in "${!page_sizes[@]}"; do
             exit 1
         fi
         
-        TAG="${PAGE_TAG}_entry_${ENTRY_SIZE}b_buffer_15mb"
+        TAG="${PAGE_TAG}_entry_${ENTRY_SIZE}b_buffer_16mb"
         
         # Set experiment parameters.
         INSERTS=1500000
@@ -63,11 +63,12 @@ for i in "${!page_sizes[@]}"; do
         PREFIX_LENGTH=${fixed_prefix_length}
         LINKLIST_THRESHOLD_USE_SKIPLIST=${INSERTS}
         
+        #16 mb buffer for 4kb using 4096
         # PAGES_PER_FILE_LIST based on PAGE_SIZE (15MB buffer for 4KB page using 3840 pages per file).
         if [ "${PAGE_SIZE}" -eq 2048 ]; then
             PAGES_PER_FILE_LIST=(4096)
         elif [ "${PAGE_SIZE}" -eq 4096 ]; then
-            PAGES_PER_FILE_LIST=(3840)
+            PAGES_PER_FILE_LIST=(4096)
         elif [ "${PAGE_SIZE}" -eq 8192 ]; then
             PAGES_PER_FILE_LIST=(1024)
         elif [ "${PAGE_SIZE}" -eq 16384 ]; then
@@ -111,7 +112,7 @@ for i in "${!page_sizes[@]}"; do
         echo
         echo "Experiment with different PAGES_PER_FILE in: ${PAGES_PER_FILE_LIST[*]}"
         
-        # Outer loop: sweep over bucket counts.
+        # Outer loop: over bucket counts.
         for BUCKET_COUNT in "${bucket_count_list[@]}"; do
             echo "[INFO] Running experiment with BUCKET_COUNT=${BUCKET_COUNT} and PREFIX_LENGTH=${PREFIX_LENGTH}"
             

@@ -1,25 +1,22 @@
-#!/bin/bash
-# Define the list of entry sizes to use.
-entry_sizes_list=(8 16 32 64 128 256 512 1024)
+entry_sizes_list=(128)
 
-# Define the desired page sizes (in bytes) for different experiments.
 # For a 2kb page, PAGE_SIZE=2048; for a 4kb page, use 4096; for an 8kb page, use 8192.
 # page_sizes=(2048 4096 8192)
 # page_sizes=(2048 4096 8192)
 # For a 16kb page, PAGE_SIZE=16384; for a 32kb page, use 32768; for an 64kb page, use 65536.
 # page_sizes=(16384 32768 65536)
-page_sizes=(65536)
+page_sizes=(4096)
 # Define corresponding top-level directory names.
-top_level_names=("lambda_0.5_bucket_100_64kb_page")  
+top_level_names=("100k_inserts_PQ10k_prefix_4_bucket_100k")  
 
-# Loop over each page size configuration.
+# Loop over each page size
 for i in "${!page_sizes[@]}"; do
     PAGE_SIZE=${page_sizes[$i]}
     TOP_LEVEL_DIR_NAME=${top_level_names[$i]}
     
-    # Set the top-level result directory accordingly.
+    # Set the top-level result dir 
     PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-    RESULT_PARENT_DIR="${PROJECT_DIR}/.result/new_metadata_overhead/${TOP_LEVEL_DIR_NAME}"
+    RESULT_PARENT_DIR="${PROJECT_DIR}/.result/interleave_wl/${TOP_LEVEL_DIR_NAME}"
     
     if [ -d "${RESULT_PARENT_DIR}" ]; then
         echo "[INFO] Top-level directory ${RESULT_PARENT_DIR} already exists. Using the existing directory."
@@ -51,16 +48,15 @@ for i in "${!page_sizes[@]}"; do
             exit 1
         fi
 
-        TAG="${PAGE_TAG}_entry_${ENTRY_SIZE}b_buffer_8mb"
+        TAG="${PAGE_TAG}_entry_${ENTRY_SIZE}b_buffer_64mb"
 
 
-        # Set remaining experiment parameters.
-        INSERTS=1000000
+
+        INSERTS=100000
         UPDATES=0
         RANGE_QUERIES=0
         SELECTIVITY=0
-        POINT_QUERIES=0
-
+        POINT_QUERIES=10000
         
         LAMBDA=0.5
         SIZE_RATIO=10
@@ -68,16 +64,17 @@ for i in "${!page_sizes[@]}"; do
         SANITY_CHECK=0
 
         # hash hybrid parameters
-        BUCKET_COUNT=100
-        PREFIX_LENGTH=0
+        BUCKET_COUNT=100000
+        PREFIX_LENGTH=4
         LINKLIST_THRESHOLD_USE_SKIPLIST=${INSERTS}
 
         # Choose PAGES_PER_FILE_LIST based on page size.
         # For 2kb pages, use 4096; for 4kb pages, use 2048; for 8kb pages, use 1024.
         if [ "${PAGE_SIZE}" -eq 2048 ]; then
             PAGES_PER_FILE_LIST=(4096)
+            #64mb buffer, 16384 b
         elif [ "${PAGE_SIZE}" -eq 4096 ]; then
-            PAGES_PER_FILE_LIST=(2048)
+            PAGES_PER_FILE_LIST=(16384)
         elif [ "${PAGE_SIZE}" -eq 8192 ]; then
             PAGES_PER_FILE_LIST=(1024)
         elif [ "${PAGE_SIZE}" -eq 16384 ]; then
@@ -92,11 +89,10 @@ for i in "${!page_sizes[@]}"; do
         fi
 
 
-        # Define paths for load_gen and working_version.
         LOAD_GEN_PATH="${PROJECT_DIR}/bin/load_gen"
         WORKING_VERSION_PATH="${PROJECT_DIR}/bin/working_version"
 
-        # Logging functions.
+
         log_info() {
           echo "[INFO] $*"
         }
@@ -104,12 +100,13 @@ for i in "${!page_sizes[@]}"; do
           echo "[ERROR] $*"
         }
 
-        # Define available buffer implementations.
         declare -A BUFFER_IMPLEMENTATIONS=(
           [1]="skiplist"
           [2]="vector"
           [3]="hash_skip_list"
           [4]="hash_linked_list"
+          # [5]="unsorted_vector"
+          # [6]="always_sorted_vector"
           [7]="linklist"
         )
 
@@ -148,6 +145,19 @@ for i in "${!page_sizes[@]}"; do
             log_error "workload.txt not found for PAGES_PER_FILE=${PAGES_PER_FILE}"
             continue
           fi
+          # Sort workload in the sequence of I, Q, RQ
+          # INSERTS_FILE=$(mktemp)  
+          # POINT_QUERIES_FILE=$(mktemp)  
+          # RANGE_QUERIES_FILE=$(mktemp)  
+
+          # grep '^I ' "${WORKLOAD_FILE}" > "${INSERTS_FILE}" 
+          # grep '^Q ' "${WORKLOAD_FILE}" > "${POINT_QUERIES_FILE}"  
+          # grep '^S ' "${WORKLOAD_FILE}" > "${RANGE_QUERIES_FILE}" 
+
+          # cat "${INSERTS_FILE}" "${POINT_QUERIES_FILE}" "${RANGE_QUERIES_FILE}" > "${WORKLOAD_FILE}"  
+
+          # rm -f "${INSERTS_FILE}" "${POINT_QUERIES_FILE}" "${RANGE_QUERIES_FILE}"  
+
 
           # workingversion command
           for IMPL_NUM in "${!BUFFER_IMPLEMENTATIONS[@]}"; do

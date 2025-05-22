@@ -93,15 +93,15 @@ void configOptions(std::unique_ptr<DBEnv> &env, Options *options,
     options->prefix_extractor.reset(
         NewFixedPrefixTransform(env->prefix_length));
     break;
-  case 5:
-    options->memtable_factory.reset(new UnsortedVectorRepFactory(
-        env->vector_preallocation_size_in_bytes));
-    break;
-  case 6:
-    options->memtable_factory.reset(new AlwaysSortedVectorRepFactory(
-      env->vector_preallocation_size_in_bytes));
-    break;
-          // add linklist buffer
+  // case 5:
+  //   options->memtable_factory.reset(new UnsortedVectorRepFactory(
+  //       env->vector_preallocation_size_in_bytes));
+  //   break;
+  // case 6:
+  //   options->memtable_factory.reset(new AlwaysSortedVectorRepFactory(
+  //     env->vector_preallocation_size_in_bytes));
+  //   break;
+  //         // add linklist buffer
   case 7:
     options->memtable_factory.reset(NewLinkListRepFactory());
     break;
@@ -321,6 +321,7 @@ void configOptions(std::unique_ptr<DBEnv> &env, Options *options,
   options->inplace_update_support = env->inplace_update_support;
   options->inplace_update_num_locks = env->inplace_update_num_locks;
   options->report_bg_io_stats = env->report_bg_io_stats;
+  options->arena_block_size = env->GetBlockSize();
 #pragma endregion // [ColumnFamilyOptions]
 
 #pragma region[FlushOptions]
