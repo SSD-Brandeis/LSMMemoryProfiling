@@ -42,6 +42,11 @@ workload.txt
 **/build/**
 **result**
 
+.idea
+cmake-build-debug/
+cmake-build-release/
+
+
 # Logs and text data
 *.log
 *.txt
