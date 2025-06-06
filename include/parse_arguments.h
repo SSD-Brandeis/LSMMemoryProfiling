@@ -176,7 +176,7 @@ int parse_arguments(int argc, char *argv[], std::unique_ptr<DBEnv> &env) {
                                  : env->linklist_threshold_use_skiplist;
   env->vector_preallocation_size_in_bytes =
       vector_pre_allocation_size_cmd ? args::get(vector_pre_allocation_size_cmd)
-                                     : env->vector_preallocation_size_in_bytes;
+                                     : env->entries_per_page * env->buffer_size_in_pages;
 
   return 0;
 }

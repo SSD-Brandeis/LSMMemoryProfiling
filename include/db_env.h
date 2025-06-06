@@ -26,7 +26,7 @@ const int MAX_OPEN_FILES = 50;
 const int MAX_FILE_OPENING_THREADS = 80;
 
 // const long VECTOR_PREALLOCATION_SIZE_IN_BYTES = 16777216;  // [16MB]
-const long VECTOR_PREALLOCATION_SIZE_IN_BYTES = ENTRY_SIZE * ENTRIES_PER_PAGE * BUFFER_SIZE_IN_PAGES;
+// const long VECTOR_PREALLOCATION_SIZE_IN_BYTES = ENTRY_SIZE * ENTRIES_PER_PAGE * BUFFER_SIZE_IN_PAGES;
 
 } // namespace Default
 
@@ -426,7 +426,7 @@ public:
   uint32_t linklist_threshold_use_skiplist = 256;
 
   // refer memtable.h (VectorRepFactory)
-  size_t vector_preallocation_size_in_bytes = Default::VECTOR_PREALLOCATION_SIZE_IN_BYTES;
+  size_t vector_preallocation_size_in_bytes = 0;
 #pragma endregion  // LSMMemoryBuffer
 };
 

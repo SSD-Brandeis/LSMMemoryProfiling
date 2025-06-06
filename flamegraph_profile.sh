@@ -9,13 +9,13 @@ fi
 rm -f perf.data out.perf out.folded flamegraph.svg
 
 # perf record -F 999 -a -g ./bin/working_version -E 128 -m 1 > workload_sorted.log
-perf record -F 999 -g -- ./bin/working_version -E 128 -m 3 > workload_sorted.log
+perf record -F 999 -g -- ./bin/working_version -E 128 -m 5 > workload_sorted.log
 perf script > out.perf
 
 
 
 ~/.local/bin/FlameGraph/stackcollapse-perf.pl out.perf > out.folded
-~/.local/bin/FlameGraph/flamegraph.pl out.folded > flamegraph_hash_skiplist_s_999.svg
+~/.local/bin/FlameGraph/flamegraph.pl out.folded > flamegraph_unsorted_vec_s_999.svg
 
 
 

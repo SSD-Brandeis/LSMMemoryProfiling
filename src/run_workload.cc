@@ -156,6 +156,7 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
       auto start = std::chrono::high_resolution_clock::now();
 #endif // TIMER
       s = db->Get(read_options, key, &value);
+      std::cout << "Key: " << key << std::endl;
 #ifdef TIMER
       auto stop = std::chrono::high_resolution_clock::now();
       auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
@@ -170,8 +171,10 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
       stream >> start_key >> end_key;
 
       uint64_t keys_returned = 0, keys_read = 0;
-      Iterator *it = db->NewIterator(read_options);
-      it->Refresh();
+      ReadOptions scan_read_options = ReadOptions(read_options);
+      scan_read_options.total_order_seek = true;
+      Iterator *it = db->NewIterator(scan_read_options);
+      // it->Refresh();
       assert(it->status().ok());
 
 #ifdef TIMER
@@ -179,10 +182,10 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
 #endif // TIMER
 
       for (it->Seek(start_key); it->Valid(); it->Next()) {
-        std::cout << "Key: " << it->key().ToString() << std::endl;
         if (it->key().ToString() >= end_key) {
           break;
         }
+        // std::cout << "Key: " << it->key().ToString() << std::endl;
         keys_returned++;
       }
       if (!it->status().ok()) {
