@@ -90,7 +90,7 @@ for i in "${!page_sizes[@]}"; do
 
         declare -A BUFFER_IMPLEMENTATIONS=(
         #   [1]="skiplist"
-          [2]="pre_vector"
+          [2]="preallocated vector"
         #   [3]="hash_skip_list"
         #   [4]="hash_linked_list"
         #   [5]="UnsortedVector"
