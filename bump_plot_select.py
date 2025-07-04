@@ -5,16 +5,15 @@ from pathlib import Path
 from collections import defaultdict
 import matplotlib.pyplot as plt
 
-# ---------- configuration ----------
 
-DEFAULT_ROOT = Path("/home/cc/LSMMemoryProfiling/.result/5_29_memtable_profile")
+
+DEFAULT_ROOT = Path("/home/cc/LSMMemoryProfiling/.result/6_29_rawop_low_pri_true_larger_refill")
 DEFAULT_PLOTS_SUBDIR = "bump plots"
 
-# ⇩⇩  *** CHANGE THIS WHEN YOU WANT A DIFFERENT SIZE ***  ⇩⇩
-# • Use a number only, e.g. "128"  "256"  "512"
-# • Set to None    ->  plot *all* entry sizes
-TARGET_ENTRY_SIZE = "128"        # <- edit here
-# ⇧⇧  ***
+
+
+TARGET_ENTRY_SIZE = None    
+
 
 _PREAMBLE_PREFIXES = (
     "Destroying database",

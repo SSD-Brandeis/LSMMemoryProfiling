@@ -3,9 +3,7 @@ import re
 import pandas as pd
 import matplotlib.pyplot as plt
 
-# -------------------------------------------------------------------------
-# 1) Regex + path configuration
-# -------------------------------------------------------------------------
+
 BASE_DIR = "/home/cc/LSMMemoryProfiling/.result/memory_footprint"
 
 PREFIX_MAIN_DIR = "vary_prefix"

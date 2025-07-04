@@ -5,8 +5,9 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 from collections import defaultdict
 
-DEFAULT_ROOT = Path("/home/cc/LSMMemoryProfiling/.result/6_7_insert_only_rawop_low_pri_true_dynamic_vec_memtable_profile")
-DEFAULT_PLOTS_SUBDIR = "individual point plots"
+DEFAULT_ROOT = Path("/home/cc/LSMMemoryProfiling/.result/6_29_rawop_low_pri_true_default_refill")
+DEFAULT_PLOTS_SUBDIR = "noisy plots"
+
 
 
 TIME_RE = re.compile(r"^(InsertTime|GetTime|ScanTime):\s*(\d+)$")
@@ -58,7 +59,7 @@ def plot_all(data, out_dir: Path, subset: str):
             plt.plot(range(1, len(seg)+1), seg, marker='o', linestyle='-')
             plt.xlabel("Operation #")
             plt.ylabel("Time (ns)")
-            plt.ylim (0, 100000)  # Add some margin to the top
+            plt.ylim (0, 100000) 
             title = f"{buf} — {op} ({subset}{'' if subset=='all' else f' {len(seg)}'})"
             plt.title(title)
             plt.tight_layout()

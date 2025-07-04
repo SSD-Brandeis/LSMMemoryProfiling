@@ -1,23 +1,22 @@
-#!/usr/bin/env python3
 import re
 import argparse
 from pathlib import Path
 import matplotlib.pyplot as plt
 from collections import defaultdict
 
-# ---------- CONFIGURATION ----------
-DEFAULT_ROOT = Path("/home/cc/LSMMemoryProfiling/.result/6_7_insert_only_rawop_low_pri_true_dynamic_vec_memtable_profile")
-DEFAULT_PLOTS_SUBDIR = "individual point plots"
-POINT_COUNT = 1000  # Number of points to plot when slicing
 
-# Regex to pull out all key:value pairs in a line
+DEFAULT_ROOT = Path("/home/cc/LSMMemoryProfiling/.result/6_29_rawop_low_pri_false_larger_refill")
+DEFAULT_PLOTS_SUBDIR = "pure plots"
+POINT_COUNT = 1000  
+
+
 PAIR_RE = re.compile(r"([\w\[\]_/-]+):\s*(\d+)")
 
-# ---------- Buffer‐specific Filtering Rules ----------
+
 def should_plot(buf_name: str, attr: str) -> bool:
     buf = buf_name.lower()
     attr = attr.strip()
-    if buf in ("dynamic vector", "preallocated vector", "unsortedvector"):
+    if buf in ("vector", "preallocated vector", "unsortedvector"):
         return attr == "VectorRep"
     if buf == "alwayssortedvector":
         return attr == "AlwaysSortedVectorRep"
@@ -29,11 +28,10 @@ def should_plot(buf_name: str, attr: str) -> bool:
         return attr.startswith("HashLinkList_Insert")
     return False
 
-# ---------- Data Collection ----------
+
 def collect_by_buffer(root: Path):
     data = defaultdict(lambda: defaultdict(list))
     for temp_log in root.rglob("temp.log"):
-        # buffer category is the grand‐grandparent directory name
         buf = temp_log.parent.parent.parent.name.lower()
         for line in temp_log.read_text().splitlines():
             if not line or line.startswith(("Destroying", "kBlockSize", "Clearing")):
@@ -43,7 +41,7 @@ def collect_by_buffer(root: Path):
                 val = int(val_str)
                 if not should_plot(buf, raw_label):
                     continue
-                # collapse all HashLinkList_Insert_* into a single series
+    
                 if buf == "hash_linked_list":
                     op_key = "HashLinkList_Insert"
                 else:
@@ -51,7 +49,7 @@ def collect_by_buffer(root: Path):
                 data[buf][op_key].append(val)
     return data
 
-# ---------- Slicing Utility ----------
+
 def slice_times(times, subset: str):
     n = len(times)
     if subset == "all" or n <= POINT_COUNT:
@@ -63,7 +61,7 @@ def slice_times(times, subset: str):
     start = max((n // 2) - (POINT_COUNT // 2), 0)
     return times[start : start + POINT_COUNT]
 
-# ---------- Plotting ----------
+
 def plot_all(data, out_dir: Path, subset: str):
     out_dir.mkdir(parents=True, exist_ok=True)
     for buf, ops in data.items():
@@ -92,7 +90,7 @@ def plot_all(data, out_dir: Path, subset: str):
             plt.close()
             print(f"[SAVED] {path}")
 
-# ---------- CLI ----------
+
 def main():
     p = argparse.ArgumentParser(
         description="Plot exactly one insert‐latency series per buffer type from temp.log"

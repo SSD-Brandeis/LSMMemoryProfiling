@@ -3,20 +3,6 @@ import re
 import pandas as pd
 import matplotlib.pyplot as plt
 
-###############################################################################
-# This single script:
-#   1) Recursively crawls the ".result/new_metadata_overhead" folder
-#      and extracts (a) table data & flush info from workload.log
-#      and (b) total_data_size from LOG files.
-#   2) Writes three CSVs (table_data.csv, flush_info.csv, log_data.csv)
-#      into "extracted_data".
-#   3) Reads those CSVs, merges them into a single DataFrame.
-#   4) Parses "top_dir" (the folder after "new_metadata_overhead") and
-#      "experiment_type" (the folder after top_dir) from each path.
-#   5) Plots one figure per top_dir, with lines for each experiment_type.
-###############################################################################
-
-# ------------------- Step 1+2: Crawl new_metadata_overhead and Extract Data -------------------
 
 crawl_dir = os.path.join("..", ".result", "new_metadata_overhead")
 
