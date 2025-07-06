@@ -17,10 +17,10 @@ bucket_subdir_pattern = re.compile(r"varying_bucket_fix_prefixlength_4kb_page_15
 # Data structure names appear at the start of subdir, e.g. "hash_skip_list-4kb_page_entry_128b_..."
 ds_pattern = re.compile(r"(skiplist|vector|linklist|hash_skip_list|hash_linked_list)")
 
-# Regex for total_data_size in LOG
+
 TOTAL_SIZE_REGEX = re.compile(r'"total_data_size"\s*:\s*(\d+)')
 
-# Style definitions for each data structure (hash = special label)
+
 base_style_map = {
     "skiplist": {
         "marker": "o",
@@ -49,9 +49,7 @@ base_style_map = {
     },
 }
 
-# -------------------------------------------------------------------------
-# 2) Crawl directories, parse data
-# -------------------------------------------------------------------------
+
 prefix_data = []
 for root, dirs, files in os.walk(BASE_DIR):
     if "LOG" not in files:
@@ -102,16 +100,11 @@ for (ds, pl), grp in pd.DataFrame(prefix_data).groupby(["data_structure", "prefi
     rows.append({"data_structure": ds, "prefix_length": pl, "mean_mb": mean_bytes / (1024*1024)})
 df = pd.DataFrame(rows)
 
-# -------------------------------------------------------------------------
-# 4) Filter to PL 1–4 and reindex for plotting
-# -------------------------------------------------------------------------
+
 valid_pl = [1, 2, 3, 4]
 df = df[df["prefix_length"].isin(valid_pl)].copy()
 df["x_index"] = df["prefix_length"].apply(lambda p: valid_pl.index(p))
 
-# -------------------------------------------------------------------------
-# 5) Plot (only vary_prefix) with y-ticks [0,5,10,15,16]
-# -------------------------------------------------------------------------
 fig, ax = plt.subplots(figsize=(8, 5))
 
 for ds in df["data_structure"].unique():
@@ -128,7 +121,7 @@ for ds in df["data_structure"].unique():
         label=label
     )
 
-# hard-code buffer-size line at 16 MB
+
 ax.axhline(16, color="brown", linewidth=2, label="buffer size")
 
 ax.set_xticks(range(len(valid_pl)))
@@ -137,7 +130,7 @@ ax.set_xlabel("Prefix Length")
 ax.set_ylabel("Mean Capacity of Buffer (MB)")
 ax.set_title("")
 
-# here we include 16 as the top tick
+
 ax.set_yticks([0, 5, 10, 15, 16])
 ax.set_ylim(bottom=0, top=16)
 

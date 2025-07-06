@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from collections import defaultdict
 
 
-DEFAULT_ROOT = Path("/home/cc/LSMMemoryProfiling/.result/6_29_rawop_low_pri_false_larger_refill")
+DEFAULT_ROOT = Path("/home/cc/LSMMemoryProfiling/.result/7_2_rawop_low_pri_false_default_refill")
 DEFAULT_PLOTS_SUBDIR = "pure plots"
 POINT_COUNT = 1000  
 
@@ -31,7 +31,7 @@ def should_plot(buf_name: str, attr: str) -> bool:
 
 def collect_by_buffer(root: Path):
     data = defaultdict(lambda: defaultdict(list))
-    for temp_log in root.rglob("temp.log"):
+    for temp_log in root.rglob("run1.log"):
         buf = temp_log.parent.parent.parent.name.lower()
         for line in temp_log.read_text().splitlines():
             if not line or line.startswith(("Destroying", "kBlockSize", "Clearing")):

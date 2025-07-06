@@ -321,7 +321,7 @@ public:
 
 #pragma region[WriteOptions]
   // if true, this write request is of lower priority if compaction is behind
-  bool low_pri = true;
+  bool low_pri = false;
 
   // if true, the write will be flushed from the operating system buffer cache
   // before the write is considered complete. If true, write will be slower.
