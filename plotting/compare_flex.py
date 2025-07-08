@@ -175,7 +175,7 @@ def plot(data, exp_labels, out_dir: Path):
 
 def main():
     if not COMPONENTS:
-        raise SystemExit("No components selected – un-comment at least one.")
+        raise SystemExit("No components ")
 
     for p in EXPERIMENT_ROOTS:
         if not p.is_dir():
