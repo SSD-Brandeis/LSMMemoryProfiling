@@ -9,7 +9,7 @@ DEFAULT_ROOT = Path("/home/cc/LSMMemoryProfiling/.result/7_2_rawop_low_pri_false
 DEFAULT_PLOTS_SUBDIR = "pure plots"
 POINT_COUNT = 1000  
 
-
+plt
 PAIR_RE = re.compile(r"([\w\[\]_/-]+):\s*(\d+)")
 
 

@@ -1,222 +1,207 @@
+#!/usr/bin/env python3
+"""
+Parse new-metadata-overhead results, extract CSVs, and plot metadata-overhead
+versus entry-size for each algorithm.
+Directory layout expected (2025-07):
+.result/new_metadata_overhead/<algo>/<P4096_E###_I…>/P_16384/{workload.log,LOG_run1}
+"""
+
 import os
 import re
 import pandas as pd
 import matplotlib.pyplot as plt
 
+# -----------------------------------------------------------------------------#
+# 1.   PATHS & CONSTANTS
+# -----------------------------------------------------------------------------#
 crawl_dir = os.path.join("..", ".result", "new_metadata_overhead")
+os.makedirs("extracted_data", exist_ok=True)
 
-table_entries = []
-flush_entries = []
-log_entries = []
+buffer_size_mb       = 8                       # RocksDB write-buffer size
+valid_entry_sizes    = [8, 16, 32, 64, 128, 256, 512, 1024]
+excluded_experiments = []                      # add names to hide from plots
+debug_filename       = "metadata_overhead_debug.log"
 
-header_pattern = re.compile(
-    r'cmpt_sty\s+cmpt_pri\s+T\s+P\s+B\s+E\s+M\s+file_size\s+L1_size\s+blk_cch\s+BPK'
-)
-data_pattern = re.compile(
-    r'\s*(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)'
-)
-flush_pattern = re.compile(
-    r'buffer is full, flush finished info \[num_entries\]:\s*(\d+).*raw_key_size:\s*(\d+),\s*raw_value_size:\s*(\d+)',
-    re.IGNORECASE
-)
-total_data_size_pattern = re.compile(r'"total_data_size":\s*(\d+)')
+# -----------------------------------------------------------------------------#
+# 2.   REGEX PATTERNS
+# -----------------------------------------------------------------------------#
+header_pattern        = re.compile(r'cmpt_sty\s+cmpt_pri\s+T\s+P\s+B\s+E')
+data_pattern          = re.compile(r'\s*(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+'
+                                   r'(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)')
+flush_pattern         = re.compile(
+    r'buffer is full, flush finished info \[num_entries\]:\s*(\d+).*?'
+    r'raw_key_size:\s*(\d+),\s*raw_value_size:\s*(\d+)', re.IGNORECASE)
+total_data_size_patt  = re.compile(r'"total_data_size":\s*(\d+)')
+entry_size_pattern    = re.compile(r'_E(\d+)_')        #  <<< NEW  (captures E16 → 16)
 
-def normalize_source(source_file):
-    return os.path.normpath(os.path.dirname(source_file))
+# -----------------------------------------------------------------------------#
+# 3.   HELPERS (updated for new layout)
+# -----------------------------------------------------------------------------#
+def normalize_source(source_file: str) -> str:
+    """
+    Return canonical directory one level *above* P_16384, i.e.
+    …/<algo>/<P4096_E###_I…>
+    """
+    return os.path.normpath(os.path.join(os.path.dirname(source_file), "..", ".."))
 
-def get_top_dir(source_file):
-    norm_path = os.path.normpath(source_file)
-    parts = norm_path.split(os.sep)
+def get_top_dir(source_file: str) -> str:
+    """Algorithm folder name right after new_metadata_overhead"""
+    parts = os.path.normpath(source_file).split(os.sep)
     if 'new_metadata_overhead' in parts:
         idx = parts.index('new_metadata_overhead')
         if idx + 1 < len(parts):
-            return parts[idx + 1]
+            return parts[idx + 1]           # e.g., 'skiplist'
     return "unknown_top_dir"
 
-def get_experiment_type(source_file):
-    norm_path = os.path.normpath(source_file)
-    parts = norm_path.split(os.sep)
-    if 'new_metadata_overhead' in parts:
-        idx = parts.index('new_metadata_overhead')
-        if idx + 2 < len(parts):
-            full_type = parts[idx + 2]
-            if '-' in full_type:
-                return full_type.split('-')[0]
-            return full_type
-    return "unknown_experiment"
+def get_experiment_type(source_file: str) -> str:
+    """Same as algorithm folder (may be used for styling)"""
+    return get_top_dir(source_file)
 
-for root, dirs, files in os.walk(crawl_dir):
-    for file in files:
-        filepath = os.path.join(root, file)
-        if file == "workload.log":
-            with open(filepath, 'r') as f:
+# -----------------------------------------------------------------------------#
+# 4.   CRAWL FILE SYSTEM & COLLECT RAW ROWS
+# -----------------------------------------------------------------------------#
+table_entries, flush_entries, log_entries = [], [], []
+
+for root, _, files in os.walk(crawl_dir):
+    for fname in files:
+        fpath = os.path.join(root, fname)
+
+        # ---- workload.log ----------------------------------------------------#
+        if fname == "workload.log":
+            with open(fpath) as f:
                 lines = f.readlines()
             for i, line in enumerate(lines):
                 if header_pattern.search(line):
+                    # next non-blank line holds values
                     j = i + 1
                     while j < len(lines) and not lines[j].strip():
                         j += 1
                     if j < len(lines):
-                        data_line = lines[j].strip()
-                        m_data = data_pattern.match(data_line)
-                        if m_data:
-                            values = list(map(int, m_data.groups()))
-                            keys = ["cmpt_sty", "cmpt_pri", "T", "P", "B", "E", "M",
-                                    "file_size", "L1_size", "blk_cch", "BPK"]
-                            entry = dict(zip(keys, values))
-                            entry["source_file"] = filepath
-                            table_entries.append(entry)
+                        m = data_pattern.match(lines[j].strip())
+                        if m:
+                            keys   = ["cmpt_sty","cmpt_pri","T","P","B","E","M",
+                                      "file_size","L1_size","blk_cch","BPK"]
+                            values = list(map(int, m.groups()))
+                            table_entries.append(dict(zip(keys, values),
+                                                      source_file=fpath))
+                # flush lines
                 m_flush = flush_pattern.search(line)
                 if m_flush:
-                    num_entries, raw_key_size, raw_value_size = map(int, m_flush.groups())
-                    flush_entry = {
-                        "num_entries": num_entries,
-                        "raw_key_size": raw_key_size,
-                        "raw_value_size": raw_value_size,
-                        "source_file": filepath
-                    }
-                    flush_entries.append(flush_entry)
-        elif file == "LOG":
-            with open(filepath, 'r') as f:
+                    n, rk, rv = map(int, m_flush.groups())
+                    flush_entries.append(dict(num_entries=n,
+                                              raw_key_size=rk,
+                                              raw_value_size=rv,
+                                              source_file=fpath))
+
+        # ---- LOG_run1 --------------------------------------------------------#
+        elif fname == "LOG_run1":
+            with open(fpath) as f:
                 content = f.read()
-            m_total = total_data_size_pattern.search(content)
-            if m_total:
-                total_data_size = int(m_total.group(1))
-                log_entry = {
-                    "total_data_size": total_data_size,
-                    "source_file": filepath
-                }
-                log_entries.append(log_entry)
+            m_tot = total_data_size_patt.search(content)
+            if m_tot:
+                log_entries.append(dict(total_data_size=int(m_tot.group(1)),
+                                        source_file=fpath))
 
-df_table = pd.DataFrame(table_entries)
-df_flush = pd.DataFrame(flush_entries)
-df_log = pd.DataFrame(log_entries)
+# -----------------------------------------------------------------------------#
+# 5.   SAVE RAW CSVs (unchanged)
+# -----------------------------------------------------------------------------#
+pd.DataFrame(table_entries).to_csv("extracted_data/table_data.csv", index=False)
+pd.DataFrame(flush_entries).to_csv("extracted_data/flush_info.csv", index=False)
+pd.DataFrame(log_entries)  .to_csv("extracted_data/log_data.csv",  index=False)
 
-os.makedirs("extracted_data", exist_ok=True)
-df_table.to_csv("extracted_data/table_data.csv", index=False)
-df_flush.to_csv("extracted_data/flush_info.csv", index=False)
-df_log.to_csv("extracted_data/log_data.csv", index=False)
+# -----------------------------------------------------------------------------#
+# 6.   MERGE flush_info  ✕  log_data  →  df_combined
+# -----------------------------------------------------------------------------#
+df_flush = pd.read_csv("extracted_data/flush_info.csv", header=None,
+                       names=["num_entries","raw_key_size","raw_value_size","source_file"])
+df_log   = pd.read_csv("extracted_data/log_data.csv")
 
-buffer_size_mb = 8
-debug_filename = "metadata_overhead_debug.log"
-excluded_experiments = []
-valid_entry_sizes = [8, 16, 32, 64, 128, 256, 512, 1024]
+entry_exp_map, seen_dirs = {}, set()
 
-flush_info_file = "extracted_data/flush_info.csv"
-df_flush2 = pd.read_csv(flush_info_file, header=None, names=[
-    "num_entries", "raw_key_size", "raw_value_size", "source_file"
-])
-log_data_file = "extracted_data/log_data.csv"
-df_log2 = pd.read_csv(log_data_file, header=0)
-entry_size_pattern = re.compile(r'entry_(\d+)b')
-seen_source_dirs = set()
-entry_exp_map = {}
-
-with open(debug_filename, "w") as debug_file:
-    debug_file.write("=== Metadata Overhead Debug Log ===\n\n")
-    debug_file.write("Parsing flush_info.csv for entry_size and experiment_type...\n")
-    for idx, row in df_flush2.iterrows():
-        source_file = row["source_file"]
-        if source_file.strip().lower() == "source_file":
+with open(debug_filename, "w") as dbg:
+    dbg.write("=== Metadata Overhead Debug Log ===\n\n")
+    dbg.write("Scanning flush_info …\n")
+    for idx, row in df_flush.iterrows():
+        src  = row.source_file
+        nsrc = normalize_source(src)
+        if nsrc in seen_dirs:          # one map per entry-size folder
             continue
-        norm_source = normalize_source(source_file)
-        if norm_source in seen_source_dirs:
-            continue
-        seen_source_dirs.add(norm_source)
-        m_entry = entry_size_pattern.search(source_file)
-        if m_entry:
-            entry_size = int(m_entry.group(1))
-        else:
-            entry_size = 0
-        top_dir = get_top_dir(source_file)
-        experiment = get_experiment_type(source_file)
-        debug_file.write(
-            f"flush_info Row {idx}:\n"
-            f"  source_file={source_file}\n"
-            f"  normalized_source={norm_source}\n"
-            f"  top_dir={top_dir}\n"
-            f"  experiment_type={experiment}\n"
-            f"  entry_size={entry_size}\n\n"
-        )
-        entry_exp_map[norm_source] = (entry_size, experiment, top_dir)
+        seen_dirs.add(nsrc)
 
-combined_data = []
-with open(debug_filename, "a") as debug_file:
-    debug_file.write("Merging log_data.csv with flush_info mapping...\n")
-    for idx, row in df_log2.iterrows():
-        source_file = row["source_file"]
-        total_data_size = int(row["total_data_size"])
-        norm_source = normalize_source(source_file)
-        if norm_source not in entry_exp_map:
-            debug_file.write(f"Skipping log_data row {idx}: no flush_info mapping for {norm_source}\n")
-            continue
-        entry_size, experiment_type, top_dir = entry_exp_map[norm_source]
-        metadata_overhead = buffer_size_mb * 1024 * 1024 - total_data_size
-        debug_file.write(
-            f"log_data Row {idx}:\n"
-            f"  source_file={source_file}\n"
-            f"  norm_source={norm_source}\n"
-            f"  top_dir={top_dir}\n"
-            f"  total_data_size={total_data_size}\n"
-            f"  entry_size={entry_size}\n"
-            f"  experiment_type={experiment_type}\n"
-            f"  metadata_overhead={metadata_overhead}\n\n"
-        )
-        combined_data.append({
-            "source_file": source_file,
-            "top_dir": top_dir,
-            "experiment_type": experiment_type,
-            "entry_size": entry_size,
-            "total_data_size": total_data_size,
-            "metadata_overhead": metadata_overhead
-        })
+        m_ent = entry_size_pattern.search(src)
+        entry_sz = int(m_ent.group(1)) if m_ent else 0
 
-df_combined = pd.DataFrame(
-    combined_data,
-    columns=["source_file", "top_dir", "experiment_type", "entry_size", "total_data_size", "metadata_overhead"]
-)
-df_combined = df_combined[df_combined["entry_size"].isin(valid_entry_sizes)]
+        algo = get_top_dir(src)
+        exp  = get_experiment_type(src)
+
+        dbg.write(f"[flush] {idx}: nsrc={nsrc}, algo={algo}, entry={entry_sz}\n")
+        entry_exp_map[nsrc] = (entry_sz, exp, algo)
+
+# -- merge with LOG data -------------------------------------------------------#
+combined = []
+with open(debug_filename, "a") as dbg:
+    dbg.write("\nMerging log_data …\n")
+    for idx, row in df_log.iterrows():
+        src  = row.source_file
+        nsrc = normalize_source(src)
+        if nsrc not in entry_exp_map:
+            dbg.write(f"[skip] log row {idx}: no flush match for {nsrc}\n")
+            continue
+
+        entry_sz, exp, algo = entry_exp_map[nsrc]
+        md_over = buffer_size_mb*1024*1024 - int(row.total_data_size)
+
+        dbg.write(f"[ok]   log row {idx}: entry={entry_sz}, algo={algo}, md={md_over}\n")
+        combined.append(dict(source_file=src, top_dir=algo, experiment_type=exp,
+                             entry_size=entry_sz, total_data_size=row.total_data_size,
+                             metadata_overhead=md_over))
+
+df_combined = pd.DataFrame(combined)
+df_combined = df_combined[df_combined.entry_size.isin(valid_entry_sizes)]
 if excluded_experiments:
-    df_combined = df_combined[~df_combined["experiment_type"].isin(excluded_experiments)]
-df_combined["entry_size_index"] = df_combined["entry_size"].map({sz: i for i, sz in enumerate(valid_entry_sizes)})
+    df_combined = df_combined[~df_combined.experiment_type.isin(excluded_experiments)]
+df_combined["entry_size_index"] = df_combined.entry_size.map(
+    {sz:i for i, sz in enumerate(valid_entry_sizes)})
 
-with open(debug_filename, "a") as debug_file:
-    debug_file.write("\n=== Final DataFrame (after merging & filtering) ===\n")
-    debug_text = df_combined[["top_dir", "experiment_type", "entry_size", "entry_size_index",
-                                "total_data_size", "metadata_overhead", "source_file"]].sort_values(
-        ["top_dir", "experiment_type", "entry_size"]).to_string(index=False)
-    debug_file.write(debug_text + "\n")
+with open(debug_filename, "a") as dbg:
+    dbg.write("\nFinal combined dataframe:\n")
+    dbg.write(df_combined.to_string(index=False) + "\n")
 
+# -----------------------------------------------------------------------------#
+# 7.   PLOT
+# -----------------------------------------------------------------------------#
 style_map = {
-    "skiplist": {"color": "blue", "marker": "o", "linestyle": "-"},
-    "vector": {"color": "green", "marker": "s", "linestyle": "--"},
-    "hash_skip_list": {"color": "red", "marker": "^", "linestyle": "-."},
-    "hash_linked_list": {"color": "purple", "marker": "D", "linestyle": ":"},
-    "linklist": {"color": "orange", "marker": "v", "linestyle": (0, (3,1,1,1))}
+    "skiplist":        dict(color="blue",   marker="o", linestyle="-"),
+    "vector":          dict(color="green",  marker="s", linestyle="--"),
+    "hash_skip_list":  dict(color="red",    marker="^", linestyle="-."),
+    "hash_linked_list":dict(color="purple", marker="D", linestyle=":"),
+    "linklist":        dict(color="orange", marker="v", linestyle=(0,(3,1,1,1)))
 }
 
-unique_top_dirs = df_combined["top_dir"].unique()
-for tdir in unique_top_dirs:
-    sub_df = df_combined[df_combined["top_dir"] == tdir]
-    plt.figure(figsize=(10, 6))
-    grouped = sub_df.groupby("experiment_type")
-    for exp_type, group in grouped:
-        group_sorted = group.sort_values("entry_size_index")
-        style = style_map.get(exp_type, {"color": "black", "marker": "o", "linestyle": "-"})
-        plt.plot(group_sorted["entry_size_index"],
-                 group_sorted["metadata_overhead"] / 1048576,
-                 label=exp_type,
-                 **style)
+print("Unique top_dirs:", df_combined.top_dir.unique())
+
+for algo in df_combined.top_dir.unique():
+    sub = df_combined[df_combined.top_dir == algo]
+    plt.figure(figsize=(10,6))
+
+    for exp, grp in sub.groupby("experiment_type"):
+        grp_sorted = grp.sort_values("entry_size_index")
+        style = style_map.get(exp, dict(color="black", marker="o", linestyle="-"))
+        plt.plot(grp_sorted.entry_size_index,
+                 grp_sorted.metadata_overhead/1048576,
+                 label=exp, **style)
+
     plt.xlabel("Entry Size (bytes)")
     plt.ylabel("Metadata Overhead (MB)")
-    plt.title(f"Metadata Overhead vs Entry Size\n({tdir})")
+    plt.title(f"Metadata Overhead vs Entry Size\n({algo})")
     plt.legend(title="Experiment Type")
-    plt.grid(False)
     plt.xticks(range(len(valid_entry_sizes)), [str(sz) for sz in valid_entry_sizes])
     plt.ylim(bottom=0)
     plt.tight_layout()
-    plt.savefig(f"metadata_overhead_plot_{tdir}.png")
+    out_png = f"extracted_data/metadata_overhead_plot_{algo}.png"
+    plt.savefig(out_png)
     plt.show()
+    print(f"[saved] {out_png}")
 
-print("Data extracted and plots generated. Check extracted_data/ for CSVs and .png files.")
-print(f"Debug info in '{debug_filename}'.")
+print("\nData extracted and plots generated.  See extracted_data/ for CSVs & PNGs.")
+print(f"Debug details in {debug_filename}")

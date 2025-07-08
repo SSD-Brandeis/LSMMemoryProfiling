@@ -2,7 +2,7 @@
 
 entry_sizes_list=(8 16 32 64 128 256 512 1024)
 page_sizes=(4096)
-top_level_names=("reproduce_metadata_overhead")
+top_level_names=("new_metadata_overhead")
 
 # Workload parameters
 INSERTS=1000000
@@ -16,7 +16,7 @@ SIZE_RATIO=10
 SHOW_PROGRESS=1
 SANITY_CHECK=0
 
-BUCKET_COUNT=100000
+BUCKET_COUNT=1000000
 PREFIX_LENGTH=4
 LINKLIST_THRESHOLD_USE_SKIPLIST=${INSERTS}
 
@@ -35,29 +35,31 @@ extract_db_logs () {
 }
 
 declare -A BUFFER_IMPLEMENTATIONS=(
-  # [1]="skiplist"
-  # [2]="vector"
+  [1]="skiplist"
+  [2]="vector"
   [3]="hash_skip_list"
-  # [4]="hash_linked_list"
-  # [5]="unsorted_vector"
-  # [6]="always_sorted_vector"
+  [4]="hash_linked_list"
+  [5]="unsorted_vector"
+  [6]="always_sorted_vector"
 )
 
 for i in "${!page_sizes[@]}"; do
     PAGE_SIZE=${page_sizes[$i]}
     TOP_LEVEL_DIR_NAME=${top_level_names[$i]}
-    RESULT_PARENT_DIR="${PROJECT_DIR}/.result/interleave_wl/${TOP_LEVEL_DIR_NAME}"
+    RESULT_PARENT_DIR="${PROJECT_DIR}/.result/${TOP_LEVEL_DIR_NAME}"
     mkdir -p "${RESULT_PARENT_DIR}"
 
     for ENTRY_SIZE in "${entry_sizes_list[@]}"; do
         ENTRIES_PER_PAGE=$((PAGE_SIZE / ENTRY_SIZE))
         PAGE_TAG="${PAGE_SIZE}B_page"
         TAG="entry_${ENTRY_SIZE}b"
-
+        #mainly 64mb, partialy set 4kb page to 8mb buffer
         if [ "${PAGE_SIZE}" -eq 2048 ]; then
             PAGES_PER_FILE_LIST=(4096)
         elif [ "${PAGE_SIZE}" -eq 4096 ]; then
-            PAGES_PER_FILE_LIST=(16384)
+            PAGES_PER_FILE_LIST=(2048)
+            #64mb
+            # PAGES_PER_FILE_LIST=(16384)
         elif [ "${PAGE_SIZE}" -eq 8192 ]; then
             PAGES_PER_FILE_LIST=(1024)
         elif [ "${PAGE_SIZE}" -eq 16384 ]; then

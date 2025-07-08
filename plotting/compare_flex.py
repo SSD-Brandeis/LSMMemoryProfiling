@@ -4,13 +4,20 @@ from collections import defaultdict
 import re, itertools
 import matplotlib.pyplot as plt
 
+# EXPERIMENT_ROOTS = [
+#     Path("/home/cc/LSMMemoryProfiling/.result/"
+#          "7_2_rawop_low_pri_false_default_refill"),
+#     Path("/home/cc/LSMMemoryProfiling/.result/"
+#          "7_2_rawop_low_pri_true_default_refill"),
+#     Path("/home/cc/LSMMemoryProfiling/.result/"
+#          "7_2_rawop_low_pri_true_larger_refill"),
+# ]
+
 EXPERIMENT_ROOTS = [
-    Path("/home/cc/LSMMemoryProfiling/.result/"
-         "7_2_rawop_low_pri_false_default_refill"),
-    Path("/home/cc/LSMMemoryProfiling/.result/"
-         "7_2_rawop_low_pri_true_default_refill"),
-    Path("/home/cc/LSMMemoryProfiling/.result/"
-         "7_2_rawop_low_pri_true_larger_refill"),
+    Path("/home/cc/LSMMemoryProfiling/.result/dddebug_7_5_rawop_low_pri_true_default_refill"),
+    Path("/home/cc/LSMMemoryProfiling/.result/7_2_rawop_low_pri_true_default_refill"),
+    Path("/home/cc/LSMMemoryProfiling/.result/7_2_rawop_low_pri_false_default_refill"),
+
 ]
 
 OUT_SUBDIR        = "comparative flex plots"
@@ -21,10 +28,13 @@ LOG_SCALE = False
 
 COMPONENTS = [
     "Insert",
+    "Lock",
+    "MemTableRep",
     "MemTable",
-    # "PutCFImpl",
-    # "WriteBatchInternal",
-    # "DBImpl",
+    "PutCFImpl",
+    "WriteBatchInternal",
+    "DBImpl",
+
 ]
 
 
@@ -45,7 +55,7 @@ INSERT_MAP: Dict[str, str] = {
 _PREAMBLE = ("Destroying database", "kBlockSize", "Clearing system cache")
 PAIR_RE   = re.compile(r"([\w\[\]_/-]+):\s*([0-9]+)")
 
-# ───── CORE FUNCTIONS ─────────────────────────────────────────────────────────
+
 
 def _size_tag() -> Optional[str]:
     if TARGET_ENTRY_SIZE is None:

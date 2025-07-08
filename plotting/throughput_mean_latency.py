@@ -2,25 +2,38 @@
 import re
 import sys
 from pathlib import Path
+
 import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib.ticker import LogFormatterMathtext
+from math import ceil
 
+# ─── USER CONFIG ─────────────────────────────────────────────────────────────
+USE_LOG_SCALE = True             # switch between log/linear y-axis
+YLIM_LOG     = (10**0, 1e9)      # 10⁰ → 10⁹ when in log-scale
+ytl = 10**8
+YLIM_LINEAR  = (10**0, 10**8)    # 10⁰ → 10⁸ when in linear-scale
 
-RAWOP_ROOT = Path("/home/cc/LSMMemoryProfiling/.result/6_26_rawop_low_pri_true_default_refill")
-PARAM_RE   = re.compile(r"I(?P<insert>\d+)-Q(?P<point>\d+)-U\d+-S(?P<range>\d+)-Y(?P<selectivity>[\d\.]+)-T(?P<threads>\d+)")
-TIME_RE    = re.compile(r"^(?P<kind>(Inserts|PointQuery|RangeQuery)) Execution Time:\s*(?P<val>\d+)")
+# ─── TIME BASE CONSTANTS ────────────────────────────────────────────────────
+TIME_BASE_NS    = 1e9   # number of nanoseconds in one second\nSECONDS_PER_MIN = 60    # seconds per minute
+
+RAWOP_ROOT = Path("/home/cc/LSMMemoryProfiling/.result/7_5_rawop_low_pri_false_default_refill")
+PARAM_RE   = re.compile(
+    r"I(?P<insert>\d+)-Q(?P<point>\d+)-U\d+-S(?P<range>\d+)-"
+    r"Y(?P<selectivity>[\d\.]+)-T(?P<threads>\d+)"
+)
+TIME_RE    = re.compile(
+    r"^(?P<kind>(Inserts|PointQuery|RangeQuery)) Execution Time:\s*(?P<val>\d+)"
+)
 
 records = []
 for log_path in RAWOP_ROOT.rglob("workload.log"):
-
-    params_dir  = log_path.parent.parent  
-    buf_dir     = params_dir.parent.name   
-    buffer_kind = buf_dir
+    params_dir  = log_path.parent.parent
+    buffer_kind = params_dir.parent.name
 
     m = PARAM_RE.search(params_dir.name)
     if not m:
-        print(f"[Something Wrong] folder name unparsable: {params_dir.name}")
+        print(f"[Something Wrong] unparsable folder: {params_dir.name}")
         continue
 
     n_ins, n_pq, n_rq = map(int, (m["insert"], m["point"], m["range"]))
@@ -34,14 +47,23 @@ for log_path in RAWOP_ROOT.rglob("workload.log"):
         print(f"[WARN] no exec time in {log_path}")
         continue
 
+    # safe division helper
     safe = lambda a, b: a / b if (a and b) else 0
-    FACT_MIN = 60_000_000_000
-    thr_ins = safe(n_ins * FACT_MIN, exec_ns["Inserts"])
-    thr_pq  = safe(n_pq  * FACT_MIN, exec_ns["PointQuery"])
-    thr_rq  = safe(n_rq  * FACT_MIN, exec_ns["RangeQuery"])
-    lat_ins = safe(exec_ns["Inserts"], n_ins)
-    lat_pq  = safe(exec_ns["PointQuery"], n_pq)
-    lat_rq  = safe(exec_ns["RangeQuery"], n_rq)
+
+    # compute throughputs:
+    #   first ops/sec, then convert to ops/min
+    thr_ins_per_s = safe(n_ins * TIME_BASE_NS, exec_ns["Inserts"])
+    thr_pq_per_s  = safe(n_pq  * TIME_BASE_NS, exec_ns["PointQuery"])
+    thr_rq_per_s  = safe(n_rq  * TIME_BASE_NS, exec_ns["RangeQuery"])
+
+    thr_ins = thr_ins_per_s * SECONDS_PER_MIN
+    thr_pq  = thr_pq_per_s  * SECONDS_PER_MIN
+    thr_rq  = thr_rq_per_s  * SECONDS_PER_MIN
+
+    # compute mean latencies (ns/op)
+    lat_ins = safe(exec_ns["Inserts"],     n_ins)
+    lat_pq  = safe(exec_ns["PointQuery"],  n_pq)
+    lat_rq  = safe(exec_ns["RangeQuery"],  n_rq)
 
     records.append({
         "buffer":     buffer_kind,
@@ -54,34 +76,26 @@ for log_path in RAWOP_ROOT.rglob("workload.log"):
     })
 
 if not records:
-    sys.exit("No workload.log parsed.")
+    sys.exit("No workload.log files parsed.")
 
 df = pd.DataFrame(records)
-
-print("\n--- AGGREGATED VALUES USED FOR PLOTS --------------------------------")
-print(df[["buffer", "lat_insert", "lat_pq", "lat_rq", "thr_insert", "thr_pq", "thr_rq"]].to_string(index=False))
-print("---------------------------------------------------------------------\n")
 
 out_dir = RAWOP_ROOT / "throughput plots"
 out_dir.mkdir(exist_ok=True)
 df.to_csv(out_dir / "rawop_metrics.csv", index=False)
 
-def combined_bar(metric_cols, title, _ylabel, fname, log=False):
+def combined_bar(metric_cols, title, fname):
     cats = ["insert", "point queries", "range queries"]
     bufs = sorted(df["buffer"].unique())
     bar_w = 0.8 / len(bufs)
 
     hatch_map = {
-        # AlwayssortedVector dynamic & prealloc
         "AlwayssortedVector":              "",
         "preallocated AlwayssortedVector": "..",
-        # UnsortedVector dynamic & prealloc
         "UnsortedVector":                  "//",
         "preallocated UnsortedVector":     "\\\\",
-        # Vector dynamic & prealloc
         "Vector":                          "--",
         "preallocated Vector":             "++",
-        # other impls
         "hash_linked_list":                "\\\\",
         "hash_skip_list":                  "xx",
         "skiplist":                        "++",
@@ -102,35 +116,37 @@ def combined_bar(metric_cols, title, _ylabel, fname, log=False):
     ax.set_xticklabels(cats, fontsize=11)
     ax.set_ylabel(title, fontsize=12)
 
-    if log:
+    if USE_LOG_SCALE:
         ax.set_yscale("log", base=10)
         ax.yaxis.set_major_formatter(LogFormatterMathtext(base=10))
-        # hard-coded limits:
-        ax.set_ylim(10, 1e5)
+        ax.set_ylim(*YLIM_LOG)
     else:
-        ax.set_ylim(0, 1e6)
+        ax.set_ylim(*YLIM_LINEAR)
+        ax.ticklabel_format(style='plain', axis='y', useOffset=False)
 
+    ncol = ceil(len(bufs) / 2)
+    ax.legend(
+        loc="upper center",
+        bbox_to_anchor=(0.5, -0.18),
+        ncol=ncol,
+        frameon=False,
+        fontsize=9
+    )
 
-    ax.legend(loc="upper center", bbox_to_anchor=(0.5, 1.15),
-              ncol=len(bufs), frameon=False, fontsize=9)
-    ax.grid(False)
-    plt.tight_layout()
+    plt.tight_layout(rect=[0, 0.18, 1, 0.9])
     plt.savefig(out_dir / fname, dpi=300)
-    plt.close()
+    plt.close(fig)
 
+# draw your plots
 combined_bar(
     ["lat_insert", "lat_pq", "lat_rq"],
     "Mean Operation Latency (ns/op)",
-    None,
-    "latency_combined.png",
-    log=True
+    "latency_combined.png"
 )
 combined_bar(
     ["thr_insert", "thr_pq", "thr_rq"],
     "Throughput (ops/min)",
-    None,
-    "throughput_combined.png",
-    log=True
+    "throughput_combined.png"
 )
 
-print(f"[DONE] CSV + plots saved in {out_dir}")
+print(f"[DONE] CSV + plots saved in {out_dir} (log scale = {USE_LOG_SCALE})")

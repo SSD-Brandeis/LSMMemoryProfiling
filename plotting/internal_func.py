@@ -45,7 +45,7 @@ def collect_by_buffer(root: Path):
             continue
         matched += 1
 
-        buf = log_path.parent.parent.parent.name   # e.g.  "Vector" or "preallocated Vector"
+        buf = log_path.parent.parent.parent.name   #  "Vector" or "preallocated Vector"
 
         for line in log_path.read_text().splitlines():
             ln = line.strip()

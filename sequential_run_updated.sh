@@ -2,11 +2,11 @@
 entry_sizes_list=(128)
 page_sizes=(4096)
 
-INSERTS=300000
+INSERTS=10000
 UPDATES=0
-RANGE_QUERIES=1000
-SELECTIVITY=0.1
-POINT_QUERIES=10000
+RANGE_QUERIES=0
+SELECTIVITY=0
+POINT_QUERIES=0
 LAMBDA=0.5
 SIZE_RATIO=10
 SHOW_PROGRESS=1
@@ -42,17 +42,17 @@ reorder_workload () {
 
 
 declare -A BUFFER_IMPLEMENTATIONS=(
-  [1]="skiplist"
+  # [1]="skiplist"
   [2]="Vector"
-  [3]="hash_skip_list"
-  [4]="hash_linked_list"
-  [5]="UnsortedVector"
-  [6]="AlwayssortedVector"
+  # [3]="hash_skip_list"
+  # [4]="hash_linked_list"
+  # [5]="UnsortedVector"
+  # [6]="AlwayssortedVector"
 )
 
 
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-RESULT_PARENT_DIR_BASE="${PROJECT_DIR}/.result/7_5_rawop_low_pri_false_default_refill"
+RESULT_PARENT_DIR_BASE="${PROJECT_DIR}/.result/dddebug_7_5_rawop_low_pri_true_default_refill"
 
 LOAD_GEN_PATH="${PROJECT_DIR}/bin/load_gen"
 WORKING_VERSION_PATH="${PROJECT_DIR}/bin/working_version"
