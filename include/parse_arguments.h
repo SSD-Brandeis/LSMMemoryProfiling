@@ -107,6 +107,11 @@ int parse_arguments(int argc, char *argv[], std::unique_ptr<DBEnv> &env) {
       "[Preallocation Vector Size: Size to preallocation to vector memtable; "
       "def: 0]",
       {'A', "preallocation_size"});
+  args::ValueFlag<int> low_pri_cmd(
+      group1, "low_pri",
+      "Set the priority of write requests (0 means compactions aren't "
+      "prioritized) [def: 1]",
+      {"lowpri"});
 
   try {
     parser.ParseCLI(argc, argv);
@@ -175,8 +180,10 @@ int parse_arguments(int argc, char *argv[], std::unique_ptr<DBEnv> &env) {
       threshold_use_skiplist_cmd ? args::get(threshold_use_skiplist_cmd)
                                  : env->linklist_threshold_use_skiplist;
   env->vector_preallocation_size_in_bytes =
-      vector_pre_allocation_size_cmd ? args::get(vector_pre_allocation_size_cmd)
-                                     : env->entries_per_page * env->buffer_size_in_pages;
+      vector_pre_allocation_size_cmd
+          ? args::get(vector_pre_allocation_size_cmd)
+          : env->entries_per_page * env->buffer_size_in_pages;
+  env->low_pri = low_pri_cmd ? args::get(low_pri_cmd) : env->low_pri;
 
   return 0;
 }
