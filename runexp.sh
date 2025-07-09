@@ -63,6 +63,7 @@ for PAGE_SIZE in "${PAGE_SIZES[@]}"; do
             cd $EXP_DIR
 
             echo
+            echo "SETTINGS: ${SETTINGS}"
             echo "Debug: INSERTS=${INSERTS}, UPDATES=${UPDATES}, POINT_QUERIES=${POINT_QUERIES} RANGE_QUERIES=${RANGE_QUERIES}, SELECTIVITY=${SELECTIVITY}"
             echo "Generating workload ... (ENTRY_SIZE=${ENTRY_SIZE}, LAMBDA=${LAMBDA})"
             echo

@@ -13,7 +13,7 @@ INSERTS=10000
 UPDATES=0
 RANGE_QUERIES=0
 SELECTIVITY=0
-POINT_QUERIES=0
+POINT_QUERIES=100
 
 SIZE_RATIO=10
 
@@ -75,7 +75,7 @@ def process_log(file_path: Path) -> List[Dict[str, int]]:
     return data
 
 
-def plot_data(data, log_name):
+def plot_data(data, log_name, title: Optional[str] = None):
     # TODO (James) Use the Libertine format to generate pdf
     #              the one we used for tectonic
     fig, ax = plt.subplots(figsize=(8, 4))
@@ -94,6 +94,7 @@ def plot_data(data, log_name):
     ax.set_ylim(1e0, 1e6)
     ax.set_xlabel("operation")
     ax.set_ylabel("time (ns)")
+    ax.set_title(title if title else "")
     ax.legend(loc="lower center", ncol=3, fontsize=7, frameon=False, borderaxespad=0, labelspacing=0, 
                 borderpad=0, columnspacing=0.6)
     fig.tight_layout()
@@ -120,7 +121,6 @@ def main():
         for ENTRY_SIZE in ENTRY_SIZES:
             ENTRIES_PER_PAGE = page_size // ENTRY_SIZE
 
-
             for PAGES_PER_FILE in PAGES_PER_FILE_LIST:
                 EXP_DIR = RESULT_DIR / f"{TAG}-{SETTINGS}-I{INSERTS}-U{UPDATES}-Q{POINT_QUERIES}-S{RANGE_QUERIES}-Y{SELECTIVITY}-T{SIZE_RATIO}-P{PAGES_PER_FILE}-B{ENTRIES_PER_PAGE}-E{ENTRY_SIZE}"
 
@@ -134,19 +134,19 @@ def main():
                         #               the average result in the same format
                         log_file = EXP_DIR / f"{buffer_name}-dynamic" / f"run1.log"
                         data = process_log(log_file)
-                        plot_data(data, log_file.absolute())
+                        plot_data(data, log_file.absolute(), f"{buffer_name}-dynamic")
 
                         log_file = EXP_DIR / f"{buffer_name}-preallocated" / f"run1.log"
                         data = process_log(log_file)
-                        plot_data(data, log_file.absolute())
+                        plot_data(data, log_file.absolute(), f"{buffer_name}-preallocated")
                     elif buffer_name in ("hash_skip_list", "hash_linked_list"):
                         log_file = EXP_DIR / f"{buffer_name}-X{PREFIX_LENGTH}-H{BUCKET_COUNT}" / f"run1.log"
                         data = process_log(log_file)
-                        plot_data(data, log_file.absolute())
+                        plot_data(data, log_file.absolute(), buffer_name)
                     else:
                         log_file = EXP_DIR / f"{buffer_name}" / f"run1.log"
                         data = process_log(log_file)
-                        plot_data(data, log_file.absolute())
+                        plot_data(data, log_file.absolute(), buffer_name)
 
 if __name__ == "__main__":
     main()
