@@ -50,10 +50,10 @@ public:
 
 class FlushListner : public EventListener {
 public:
-  explicit FlushListner(std::shared_ptr<Buffer> &buffer) {
-    buffer_ = buffer;
-  }
-  void OnFlushCompleted(DB* db, const FlushJobInfo& fji) override;
+  explicit FlushListner(std::shared_ptr<Buffer> &buffer) { buffer_ = buffer; }
+  virtual ~FlushListner() = default;
+
+  void OnFlushCompleted(DB *db, const FlushJobInfo &fji) override;
 
 private:
   std::shared_ptr<Buffer> buffer_;
