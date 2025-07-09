@@ -5,17 +5,21 @@ This repository contains benchmarking for different write buffer implementations
 We also use a `KV-WorkloadGenerator` as a submodule for generating different type of workloads with different compositions (inserts, updates, point queries and range queries etc).
 
 ## Pre-requisites
+
 The step 1 is to clone this respository in your local machine. You can do this by running the following command:
+
 ```bash
 git clone https://github.com/SSD-Brandeis/LSMMemoryProfiling
 ```
 
 You might also need `cmake` and `make`. Other than this you may need to install `libgflags-dev` for RocksDB. You can install this by running the following command:
+
 ```bash
 sudo apt-get install libgflags-dev
 ```
 
 After installing the dependencies, you can run the following command to install all the submodules and build the project. Make sure you are in the root directory of the project:
+
 ```bash
 git submodule update --init --recursive
 mkdir build
@@ -25,6 +29,7 @@ make -j66  # 66 is the number of cores, change if required
 ```
 
 The above command will do the following:
+
 1. Install the `KV-WorkloadGenerator` submodule.
 2. Build the RocksDB source code.
 3. Build the `KV-WorkloadGenerator` source code.
@@ -33,7 +38,9 @@ The above command will do the following:
 ## Running the benchmarks
 
 ### Step 1: Generating the workload
+
 To run any benchmark, you have to first generate the workload. You can do this by going to the `KV-WorkloadGenerator` directory and running the following command:
+
 ```bash
 ./load_gen -I 100 -U 50 -Q 50 -S 100 -Y 0.1
 
@@ -45,30 +52,35 @@ To run any benchmark, you have to first generate the workload. You can do this b
 
 # You can also read the README file of KV-WorkloadGenerator for more details.
 ```
+
 **Note**: The above command will generate a `workload.txt` file in the same directory.
 
 ### Step 2: Running the benchmark
+
 After generating the workload, you may want to copy paste the `workload.txt` to the `./MemoryProfiling/examples/__working_branch` directory.
 
 Great! Now you can run the benchmark by running the following command:
+
 ```bash
 cd MemoryProfiling/examples/__working_branch
 
-./working_version 
+./working_version
 ```
 
 The above command will run the benchmark with default parameters. You can also pass different parameters to the benchmark. For example, if you want to run the benchmark with `vector` write buffer, you can run the following command:
+
 ```bash
 ./working_version --memtable_factory=2
 ```
 
 ### Step 3: Analyzing the results
+
 After running the benchmark, you can find the results in the `./MemoryProfiling/examples/__working_branch` directory. The execution will generate a workload.log file which contains the execution details including the time taken for each operation. You can also find the `db_working_home` directory which contains the RocksDB database files.
 
-
-
 ---
+
 > The `working_verion` takes few arguments as input. Here is the list of arguments:
+
 ```bash
 RocksDB_parser.
 
@@ -144,3 +156,14 @@ RocksDB_parser.
                                           [Preallocation Vector Size: Size to
                                           preallocation to vector memtable; def:
                                           0]
+```
+
+## Running on CC
+
+```bash
+sudo apt update && sudo apt upgrade -y
+sudo apt install libgflags-dev cmake tmux curl --no-install-suggests -y
+
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+```
