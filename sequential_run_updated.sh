@@ -15,6 +15,8 @@ BUCKET_COUNT=100000
 PREFIX_LENGTH=6
 LINKLIST_THRESHOLD_USE_SKIPLIST=${INSERTS}
 
+set -e
+
 log_info() { echo "[INFO] $*"; }
 log_error() { echo "[ERROR] $*"; }
 
@@ -37,6 +39,9 @@ reorder_workload() {
   cat "$tmpI" "$tmpQ" "$tmpS" >"$f"
   rm -f "$tmpI" "$tmpQ" "$tmpS"
 }
+
+cmake --build cmake-build-debug --target load_gen
+cmake --build cmake-build-debug --target working_version
 
 declare -A BUFFER_IMPLEMENTATIONS=(
   # [1]="skiplist"

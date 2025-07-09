@@ -90,8 +90,13 @@ def plot(data, labels, out_dir: Path):
     suffix = f"_{TARGET_ENTRY_SIZE}B" if TARGET_ENTRY_SIZE else ""
 
     for buf, per_exp in data.items():
+        SCALE = 4
         fig, axes = plt.subplots(
-            len(labels), 1, figsize=(8, 2.7 * len(labels)), sharex=True, sharey=False
+            len(labels),
+            1,
+            figsize=(SCALE * 8, SCALE * 2.7 * len(labels)),
+            sharex=True,
+            sharey=False,
         )
         axes = axes.flatten() if hasattr(axes, "flatten") else [axes]
 
