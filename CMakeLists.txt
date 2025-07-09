@@ -30,6 +30,7 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/lib/rocksdb/include)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/lib/KV-WorkloadGenerator/include)
 
+set(USE_RTTI ON CACHE STRING "Enable RTTI in builds" FORCE)
 add_subdirectory(lib/rocksdb)
 add_subdirectory(lib/KV-WorkloadGenerator)
 

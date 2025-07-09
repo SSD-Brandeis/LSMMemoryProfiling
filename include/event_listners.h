@@ -1,5 +1,4 @@
-#ifndef EVENT_LISTNER_H_
-#define EVENT_LISTNER_H_
+#pragma once
 
 #include <condition_variable>
 
@@ -15,7 +14,7 @@ extern bool compaction_complete;
 
 /*
  * Wait for compactions that are running (or will run) to make the
- * LSM tree in its shape. Check `CompactionListner` for more details.
+ * LSM tree in its shape. Check `CompactionListener` for more details.
  */
 void WaitForCompactions(DB *db);
 
@@ -26,9 +25,9 @@ void WaitForCompactions(DB *db);
  * After every compaction we check, if more compactions are required with
  * `WaitForCompaction` function, if not then it signals to close the db
  */
-class CompactionsListner : public EventListener {
+class CompactionsListener final : public EventListener {
 public:
-  explicit CompactionsListner() {}
+  explicit CompactionsListener() = default;
 
   void OnCompactionCompleted(DB *db, const CompactionJobInfo &ci) override {
     std::lock_guard<std::mutex> lock(mtx);
@@ -48,15 +47,13 @@ public:
   }
 };
 
-class FlushListner : public EventListener {
+class FlushListener final : public EventListener {
 public:
-  explicit FlushListner(std::shared_ptr<Buffer> &buffer) { buffer_ = buffer; }
-  virtual ~FlushListner() = default;
+  explicit FlushListener(const std::shared_ptr<Buffer> &buffer) { buffer_ = buffer; }
+  ~FlushListener() override;
 
   void OnFlushCompleted(DB *db, const FlushJobInfo &fji) override;
 
 private:
   std::shared_ptr<Buffer> buffer_;
 };
-
-#endif // EVENT_LISTNER_H_
