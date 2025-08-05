@@ -1,2 +1,16 @@
-mkdir -p /home/cc/LSMMemoryProfiling/.filter_result
-rsync -av --include '*/' --include 'workload.log' --exclude '*' /home/cc/LSMMemoryProfiling/.result/7_5_rawop_low_pri_false_default_refill/ /home/cc/LSMMemoryProfiling/.filter_result/7_5_rawop_low_pri_false_default_refill/
+mkdir -p /home/cc/LSMMemoryProfiling/.filter_result_804
+
+rsync -av \
+  --prune-empty-dirs \
+  --include '*/' \
+  --exclude 'run1.log' \
+  --exclude 'run2.log' \
+  --exclude 'run3.log' \
+  --exclude 'workload.txt' \
+  --exclude '.DS_Store' \
+  --exclude 'Icon?' \
+  /home/cc/LSMMemoryProfiling/.result/ \
+  /home/cc/LSMMemoryProfiling/.filter_result_804/
+
+
+  # --exclude 'stats.log' \

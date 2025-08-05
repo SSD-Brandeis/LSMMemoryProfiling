@@ -37,7 +37,7 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
 
   if (env->IsDestroyDatabaseEnabled()) {
     DestroyDB(env->kDBPath, options);
-    std::cout << "Destroying database ... done" << std::endl;
+    // std::cout << "Destroying database ... done" << std::endl;
   }
 
   PrintExperimentalSetup(env, buffer);
@@ -57,7 +57,7 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
   // Clearing the system cache
   if (env->clear_system_cache) {
 #ifdef __linux__
-    std::cout << "Clearing system cache ...";
+    // std::cout << "Clearing system cache ...";
     std::cout << system("sudo sh -c 'echo 3 >/proc/sys/vm/drop_caches'")
               << "done" << std::endl;
 #endif
@@ -104,6 +104,7 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
 #ifdef TIMER
       auto start = std::chrono::high_resolution_clock::now();
 #endif // TIMER
+      std::cout << "put operation: " << std::endl <<std::flush;
       s = db->Put(write_options, key, value);
 #ifdef TIMER
       auto stop = std::chrono::high_resolution_clock::now();
@@ -155,8 +156,10 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
 #ifdef TIMER
       auto start = std::chrono::high_resolution_clock::now();
 #endif // TIMER
+      std::cout << "get operation: " << std::endl <<std::flush;
       s = db->Get(read_options, key, &value);
-      std::cout << "Key: " << key << std::endl;
+ 
+      // std::cout << "Key: " << key << std::endl;
 #ifdef TIMER
       auto stop = std::chrono::high_resolution_clock::now();
       auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
@@ -180,7 +183,7 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
 #ifdef TIMER
       auto start = std::chrono::high_resolution_clock::now();
 #endif // TIMER
-
+      std::cout << "scan operation: " << std::endl <<std::flush;
       for (it->Seek(start_key); it->Valid(); it->Next()) {
         if (it->key().ToString() >= end_key) {
           break;

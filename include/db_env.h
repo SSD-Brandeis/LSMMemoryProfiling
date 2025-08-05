@@ -50,7 +50,7 @@ private:
 
   // buffer size in bytes
   size_t buffer_size_ = 0;           // [M]
-  bool enable_perf_iostat_ = false;  // [stat]
+  bool enable_perf_iostat_ = true;  // [stat]
   bool destroy_database_ = true;     // [d]
   bool show_progress_bar_ = false;   // [progress]
 

@@ -6,14 +6,14 @@ import matplotlib.pyplot as plt
 
 RESULTS_DIR=".result"
 
-TAG="experiment"
-SETTINGS="lowpri_false"
+TAG="perf_test"
+SETTINGS="lowpri_false_debug"
 
 INSERTS=10000
 UPDATES=0
 RANGE_QUERIES=0
 SELECTIVITY=0
-POINT_QUERIES=100
+POINT_QUERIES=0
 
 SIZE_RATIO=10
 
@@ -40,16 +40,16 @@ RESULT_DIR = PROJ_DIR / RESULTS_DIR
 if not RESULT_DIR.is_dir():
     raise SystemExit(f"Missing experiment dir: {RESULT_DIR}")
 
-# ==========================================================
+
 
 TIME_TO_PLOT = [
+    # "Lock",
     "VectorRep",
-    "Lock",
-    "MemTableRep",
-    "MemTable",
-    "PutCFImpl",
-    "WriteBatchInternal",
-    "DBImpl",
+    # "MemTableRep",
+    # "MemTable",
+    # "PutCFImpl",
+    # "WriteBatchInternal",
+    # "DBImpl",
 ]
 
 
@@ -59,7 +59,7 @@ def process_log(file_path: Path) -> List[Dict[str, int]]:
     with file_path.open() as f:
         for line in f:
             metric = dict()
-            if "," not in line or len(line.strip().split(",")) < 2:
+            if "," not in line or len(line.strip().split(",")) < 3:
                 continue
 
             functions = line.strip().split(",")
@@ -74,6 +74,73 @@ def process_log(file_path: Path) -> List[Dict[str, int]]:
                 data.append(metric)
     return data
 
+def process_cache_log(file_path: Path) -> Dict[int, Dict[str, int]]:
+    data = dict()
+
+    with file_path.open() as f:
+        op_num = -1
+        metric = dict()
+        for line in f:
+            if line.startswith("Op num:"):
+                op_num = int(line.strip().split(":")[1].strip())
+                continue
+            if not line.startswith("---------"):
+                name, value = line.strip().split(":")
+                name = name.strip()
+                value = int(value.strip())
+                metric[name] = int(value)
+            elif line.startswith("---------"):
+                data[op_num] = metric.copy()
+                metric.clear()
+                op_num = -1
+    return data
+
+def average_runs(runs: List[List[Dict[str,int]]]) -> List[Dict[str,int]]:
+    if not runs:
+        return []
+    n = len(runs)
+    length = len(runs[0])
+    avg = []
+    for i in range(length):
+       
+        keys = set().union(*(run[i].keys() for run in runs))
+        m: Dict[str,int] = {}
+        for k in keys:
+            total = sum(run[i].get(k, 0) for run in runs)
+            m[k] = total // n
+        avg.append(m)
+    return avg
+
+def plot_cache_data(data, log_name, title: Optional[str] = None):
+    fig, ax = plt.subplots(figsize=(8, 4))
+    cache_misses = [data[ith_op]["cache-misses"] if ith_op in data else 0 for ith_op in range(INSERTS)]
+    cache_references = [data[ith_op]["cache-references"] if ith_op in data else 0 for ith_op in range(INSERTS)]
+    dTLB_loads = [data[ith_op]["dTLB-loads"] if ith_op in data else 0 for ith_op in range(INSERTS)]
+    dTLB_load_misses = [data[ith_op]["dTLB-load-misses"] if ith_op in data else 0 for ith_op in range(INSERTS)]
+    branches = [data[ith_op]["branches"] if ith_op in data else 0 for ith_op in range(INSERTS)]
+    branch_misses = [data[ith_op]["branch-misses"] if ith_op in data else 0 for ith_op in range(INSERTS)]
+    page_faults = [data[ith_op]["page-faults"] if ith_op in data else 0 for ith_op in range(INSERTS)]
+    context_switches = [data[ith_op]["context-switches"] if ith_op in data else 0 for ith_op in range(INSERTS)]
+
+    # ax.plot(cache_misses, label="cache-misses")
+    # ax.plot(cache_references, label="cache-references")
+    # ax.plot(dTLB_loads, label="dTLB-loads")
+    # ax.plot(dTLB_load_misses, label="dTLB-load-misses")
+    # ax.plot(branches, label="branches")
+    # ax.plot(branch_misses, label="branch-misses")
+    ax.plot(page_faults, label="page-faults")
+    ax.plot(context_switches, label="context-switches")
+    
+    # ax.set_yscale("log")
+    # ax.set_ylim(1e0, 1e7)
+    ax.set_xlabel("operation")
+    ax.set_ylabel("count")
+    ax.set_title(title if title else "")
+    ax.legend(loc="upper center", ncol=3, frameon=False, borderaxespad=0, labelspacing=0, 
+                borderpad=0, columnspacing=0.6)
+    fig.tight_layout()
+    fig.savefig(f"{log_name}.pdf")
+    print(f"[SAVED] {log_name}.png")
 
 def plot_data(data, log_name, title: Optional[str] = None):
     # TODO (James) Use the Libertine format to generate pdf
@@ -87,11 +154,16 @@ def plot_data(data, log_name, title: Optional[str] = None):
             if func in TIME_TO_PLOT:
                 function_times[func].append(line[func])
 
-    for func, times in function_times.items():
-        ax.plot(times, label=func)
+    # for func, times in function_times.items():
+    #     ax.plot(times, label=func)
+    for func in TIME_TO_PLOT: 
+        times = function_times.get(func)
+        if times: 
+            ax.plot(times, label = func)
     
-    ax.set_yscale("log")
-    ax.set_ylim(1e0, 1e6)
+    # ax.set_yscale("log")
+    # ax.set_ylim(1e0, 1e6)
+    ax.set_ylim(0, 150000)
     ax.set_xlabel("operation")
     ax.set_ylabel("time (ns)")
     ax.set_title(title if title else "")
@@ -129,24 +201,27 @@ def main():
                 
                 for _, buffer_name in BUFFER_IMPLEMENTATIONS.items():
                     if buffer_name in ("Vector", "UnsortedVector", "AlwayssortedVector"):
-                        # TODO: (James) Read all three run file here
-                        #               Pass it to some function and get 
-                        #               the average result in the same format
-                        log_file = EXP_DIR / f"{buffer_name}-dynamic" / f"run1.log"
-                        data = process_log(log_file)
-                        plot_data(data, log_file.absolute(), f"{buffer_name}-dynamic")
+                        for variant in ("dynamic", "preallocated"):
+                            dir_path = EXP_DIR / f"{buffer_name}-{variant}"
+                            runs = [ process_log(dir_path / f"run{i}.log") for i in (1,) ] # 2, 3) ]
+                            avg_data = average_runs(runs)
+                            plot_data(avg_data, dir_path / "run_avg", f"{buffer_name}-{variant}")
 
-                        log_file = EXP_DIR / f"{buffer_name}-preallocated" / f"run1.log"
-                        data = process_log(log_file)
-                        plot_data(data, log_file.absolute(), f"{buffer_name}-preallocated")
+                            cache_log = process_cache_log(dir_path / f"cache.log")
+                            plot_cache_data(cache_log, dir_path / f"cache.log", f"{buffer_name}-{variant}")
+
                     elif buffer_name in ("hash_skip_list", "hash_linked_list"):
-                        log_file = EXP_DIR / f"{buffer_name}-X{PREFIX_LENGTH}-H{BUCKET_COUNT}" / f"run1.log"
-                        data = process_log(log_file)
-                        plot_data(data, log_file.absolute(), buffer_name)
+                        dir_path = EXP_DIR / f"{buffer_name}-X{PREFIX_LENGTH}-H{BUCKET_COUNT}"
+                        runs = [ process_log(dir_path / f"run{i}.log") for i in (1, 2, 3) ]
+                        avg_data = average_runs(runs)
+                        plot_data(avg_data, dir_path / "run_avg", buffer_name)
+
                     else:
-                        log_file = EXP_DIR / f"{buffer_name}" / f"run1.log"
-                        data = process_log(log_file)
-                        plot_data(data, log_file.absolute(), buffer_name)
+                        dir_path = EXP_DIR / buffer_name
+                        runs = [ process_log(dir_path / f"run{i}.log") for i in (1, 2, 3) ]
+                        avg_data = average_runs(runs)
+                        plot_data(avg_data, dir_path / "run_avg", buffer_name)
+
 
 if __name__ == "__main__":
     main()
