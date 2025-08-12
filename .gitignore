@@ -59,3 +59,9 @@ workload.txt
 
 # .vscode
 .vscode/
+
+# .vstats
+.vstats/
+.DS_Store
+**/__pycache__/**
+**.pdf
