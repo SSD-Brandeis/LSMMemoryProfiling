@@ -1,10 +1,10 @@
 RESULTS_DIR=".result"
 
-TAG=wastagebuffer
+TAG=x6wastagebuffer
 SETTINGS="lowpri_false"
 LOW_PRI=0
 
-# INSERTS=100000
+# INSERTS=1000000
 UPDATES=0
 RANGE_QUERIES=0
 SELECTIVITY=0
@@ -12,7 +12,7 @@ POINT_QUERIES=0
 
 SIZE_RATIO=10
 
-# ★ buffer sizes to sweep (MiB)
+
 BUFFER_SIZES_MB=(8 16 32 64 128 256 512 1024)
 
 ENTRY_SIZES=(1024)
@@ -20,19 +20,24 @@ LAMBDA=0.125
 PAGE_SIZES=(4096)
 
 BUCKET_COUNT=100000
-PREFIX_LENGTH=6
-THRESHOLD_TO_CONVERT_TO_SKIPLIST=${INSERTS}
+PREFIX_LENGTH=4
+#no optimization
+# THRESHOLD_TO_CONVERT_TO_SKIPLIST=1000000
+#default optimization by rocksdb
+THRESHOLD_TO_CONVERT_TO_SKIPLIST=256
+
 
 SHOW_PROGRESS=1
 SANITY_CHECK=0
 
 declare -A BUFFER_IMPLEMENTATIONS=(
-  [1]="skiplist"
-  [2]="Vector"
-  [3]="hash_skip_list"
-  [4]="hash_linked_list"
-  [5]="UnsortedVector"
-  [6]="AlwayssortedVector"
+  # [1]="skiplist"
+  # [2]="Vector"
+  # [3]="hash_skip_list"
+  # [4]="hash_linked_list"
+  [4]="hash_linked_list_optimized"
+  # [5]="UnsortedVector"
+  # [6]="AlwayssortedVector"
 )
 
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -42,15 +47,15 @@ WORKING_VERSION="${PROJECT_DIR}/bin/working_version"
 mkdir -p "$RESULTS_DIR"
 cd "$RESULTS_DIR"
 
-# ★ OUTER LOOP over desired buffer sizes
+
 for BUFFER_MB in "${BUFFER_SIZES_MB[@]}"; do
  INSERTS=$(( BUFFER_MB * 1024 * 11 * 2 / 10 ))
   BUFFER_LABEL="${BUFFER_MB}M"
 
   for PAGE_SIZE in "${PAGE_SIZES[@]}"; do
-    # ★ compute pages-per-file from buffer_MB and page_size
+  
     PAGES_PER_FILE=$(( (BUFFER_MB * 1024 * 1024) / PAGE_SIZE ))
-    PAGES_PER_FILE_LIST=("${PAGES_PER_FILE}")   # keeps inner loop unchanged
+    PAGES_PER_FILE_LIST=("${PAGES_PER_FILE}")   
 
     for ENTRY_SIZE in "${ENTRY_SIZES[@]}"; do
       ENTRIES_PER_PAGE=$((PAGE_SIZE / ENTRY_SIZE))

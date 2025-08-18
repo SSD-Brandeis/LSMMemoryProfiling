@@ -14,10 +14,10 @@ POINT_QUERIES=0
 
 SIZE_RATIO=10
 
-ENTRY_SIZES=(8 16 32 64 128 256 512 1024 2048)
+ENTRY_SIZES=(8 16 32 64 128 256 512 1024 2048 4096)
 LAMBDA=0.5
-PAGE_SIZES=(2048 4096 8192)
-
+# PAGE_SIZES=(2048 4096 8192 16384)
+PAGE_SIZES=(8192)
 BUCKET_COUNT=100000
 PREFIX_LENGTH=4
 THRESHOLD_TO_CONVERT_TO_SKIPLIST=${INSERTS}
@@ -44,6 +44,7 @@ for PAGE_SIZE in "${PAGE_SIZES[@]}"; do
     if   [ "$PAGE_SIZE" -eq 2048 ];  then PAGES_PER_FILE_LIST=(4096)
     elif [ "$PAGE_SIZE" -eq 4096 ];  then PAGES_PER_FILE_LIST=(2048)
     elif [ "$PAGE_SIZE" -eq 8192 ];  then PAGES_PER_FILE_LIST=(1024)
+    elif [ "$PAGE_SIZE" -eq 16384 ];  then PAGES_PER_FILE_LIST=(512)
     else
         echo "Unsupported PAGE_SIZE: $PAGE_SIZE"
         exit 1
@@ -53,11 +54,11 @@ for PAGE_SIZE in "${PAGE_SIZES[@]}"; do
         ENTRIES_PER_PAGE=$((PAGE_SIZE / ENTRY_SIZE))
 
         for PAGES_PER_FILE in "${PAGES_PER_FILE_LIST[@]}"; do
-            EXP_DIR="${TAG}-${SETTINGS}-I${INSERTS}-U${UPDATES}-Q${POINT_QUERIES}-S${RANGE_QUERIES}-Y${SELECTIVITY}-T${SIZE_RATIO}-P${PAGES_SIZE}-B${ENTRIES_PER_PAGE}-E${ENTRY_SIZE}"
+            EXP_DIR="${TAG}-${SETTINGS}-I${INSERTS}-U${UPDATES}-Q${POINT_QUERIES}-S${RANGE_QUERIES}-Y${SELECTIVITY}-T${SIZE_RATIO}-P${PAGES_PER_FILE_LIST}-B${ENTRIES_PER_PAGE}-E${ENTRY_SIZE}"
             FULL_EXP="$RESULTS_DIR/$EXP_DIR"
 
-            # mkdir -p "$FULL_EXP"
-            # pushd "$FULL_EXP" >/dev/null
+            mkdir -p "$FULL_EXP"
+            pushd "$FULL_EXP" >/dev/null
 
             echo
             echo "SETTINGS: ${SETTINGS}"
@@ -82,8 +83,8 @@ for PAGE_SIZE in "${PAGE_SIZES[@]}"; do
                     IMPL_DIR="${BUFFER_IMPL}"
                 fi
 
-                # mkdir -p "$IMPL_DIR"
-                # pushd "$IMPL_DIR" >/dev/null
+                mkdir -p "$IMPL_DIR"
+                pushd "$IMPL_DIR" >/dev/null
 
       
                 cp "../workload.txt" .

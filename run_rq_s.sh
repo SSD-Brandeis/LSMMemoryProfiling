@@ -2,14 +2,15 @@
 
 RESULTS_DIR=".result"
 
-TAG=totalorderseek
+TAG=rangequeryanalysis
 SETTINGS="lowpri_false"
 LOW_PRI=0
 
-INSERTS=100000
-RANGE_QUERIES=1
-SELECTIVITY=0.0001
-POINT_QUERIES=0
+INSERTS=300000
+UPDATES=0
+RANGE_QUERIES=1000
+SELECTIVITY=0.1
+POINT_QUERIES=10000
 
 SIZE_RATIO=10
 
@@ -29,11 +30,11 @@ SORT_WORKLOAD=1
 
 declare -A BUFFER_IMPLEMENTATIONS=(
   [1]="skiplist"
-#   [2]="Vector"
+  [2]="Vector"
   [3]="hash_skip_list"
-#   [4]="hash_linked_list"
-#   [5]="UnsortedVector"
-#   [6]="AlwayssortedVector"
+  [4]="hash_linked_list"
+  [5]="UnsortedVector"
+  [6]="AlwayssortedVector"
 )
 
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -46,9 +47,9 @@ cd $RESULTS_DIR
 for PAGE_SIZE in "${PAGE_SIZES[@]}"; do
     if   [ "$PAGE_SIZE" -eq 2048 ];  then PAGES_PER_FILE_LIST=(4096)
     #64mb
-    # elif [ "$PAGE_SIZE" -eq 4096 ];  then PAGES_PER_FILE_LIST=(16384)
+    elif [ "$PAGE_SIZE" -eq 4096 ];  then PAGES_PER_FILE_LIST=(16384)
     #512mb
-    elif [ "$PAGE_SIZE" -eq 4096 ];  then PAGES_PER_FILE_LIST=(131072)
+    # elif [ "$PAGE_SIZE" -eq 4096 ];  then PAGES_PER_FILE_LIST=(131072)
     elif [ "$PAGE_SIZE" -eq 8192 ];  then PAGES_PER_FILE_LIST=(1024)
     elif [ "$PAGE_SIZE" -eq 16384 ]; then PAGES_PER_FILE_LIST=(512)
     elif [ "$PAGE_SIZE" -eq 32768 ]; then PAGES_PER_FILE_LIST=(256)
@@ -73,7 +74,7 @@ for PAGE_SIZE in "${PAGE_SIZES[@]}"; do
             echo "Generating workload ... (ENTRY_SIZE=${ENTRY_SIZE}, LAMBDA=${LAMBDA})"
             echo
 
-            # "${LOAD_GEN}" -I "${INSERTS}" -U "${UPDATES}" -Q "${POINT_QUERIES}" -S "${RANGE_QUERIES}" -Y "${SELECTIVITY}" -E "${ENTRY_SIZE}" -L "${LAMBDA}"
+            "${LOAD_GEN}" -I "${INSERTS}" -U "${UPDATES}" -Q "${POINT_QUERIES}" -S "${RANGE_QUERIES}" -Y "${SELECTIVITY}" -E "${ENTRY_SIZE}" -L "${LAMBDA}"
 
 
             #SORT-WORKLOAD 

@@ -175,7 +175,7 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
 
       uint64_t keys_returned = 0, keys_read = 0;
       ReadOptions scan_read_options = ReadOptions(read_options);
-      scan_read_options.total_order_seek = true;
+      scan_read_options.total_order_seek = false;
       Iterator *it = db->NewIterator(scan_read_options);
       // it->Refresh();
       assert(it->status().ok());
@@ -188,7 +188,7 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
         if (it->key().ToString() >= end_key) {
           break;
         }
-        // std::cout << "Key: " << it->key().ToString() << std::endl;
+        std::cout << "Key: " << it->key().ToString() << std::endl;
         keys_returned++;
       }
       if (!it->status().ok()) {

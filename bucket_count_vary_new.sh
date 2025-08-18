@@ -1,8 +1,8 @@
 
 RESULTS_DIR=".result"
 
-TAG=varybucketcountnew
-SETTINGS="lowpri_true"
+TAG=varybucketcount
+SETTINGS="lowpri_false"
 LOW_PRI=0
 
 INSERTS=500000           

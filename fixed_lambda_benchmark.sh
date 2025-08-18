@@ -4,7 +4,7 @@ entry_sizes_list=(8 16 32 64 128 256 512 1024)
 page_sizes=(4096)
 top_level_names=("new_metadata_overhead")
 
-# Workload parameters
+#
 INSERTS=1000000
 UPDATES=0
 RANGE_QUERIES=0
@@ -53,7 +53,7 @@ for i in "${!page_sizes[@]}"; do
         ENTRIES_PER_PAGE=$((PAGE_SIZE / ENTRY_SIZE))
         PAGE_TAG="${PAGE_SIZE}B_page"
         TAG="entry_${ENTRY_SIZE}b"
-        #mainly 64mb, partialy set 4kb page to 8mb buffer
+        #mainly 64mb,  set 4kb page to 8mb buffer
         if [ "${PAGE_SIZE}" -eq 2048 ]; then
             PAGES_PER_FILE_LIST=(4096)
         elif [ "${PAGE_SIZE}" -eq 4096 ]; then
