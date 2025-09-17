@@ -11,6 +11,7 @@
 
 std::string buffer_file = "workload.log";
 std::string stats_file = "stats.log";
+std::string selectvity_file = "selectivity.log";
 
 int runWorkload(std::unique_ptr<DBEnv> &env) {
   DB *db;
@@ -25,6 +26,8 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
 
   std::shared_ptr<Buffer> buffer = std::make_unique<Buffer>(buffer_file);
   std::unique_ptr<Buffer> stats = std::make_unique<Buffer>(stats_file);
+  std::unique_ptr<Buffer> selectivity =
+      std::make_unique<Buffer>(selectvity_file);
 
   // Add custom listners
   std::shared_ptr<CompactionsListner> compaction_listener =
@@ -104,7 +107,7 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
 #ifdef TIMER
       auto start = std::chrono::high_resolution_clock::now();
 #endif // TIMER
-      std::cout << "put operation: " << std::endl <<std::flush;
+      // std::cout << "put operation: " << std::endl <<std::flush;
       s = db->Put(write_options, key, value);
 #ifdef TIMER
       auto stop = std::chrono::high_resolution_clock::now();
@@ -156,7 +159,7 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
 #ifdef TIMER
       auto start = std::chrono::high_resolution_clock::now();
 #endif // TIMER
-      std::cout << "get operation: " << std::endl <<std::flush;
+      // std::cout << "get operation: " << std::endl <<std::flush;
       s = db->Get(read_options, key, &value);
  
       // std::cout << "Key: " << key << std::endl;
@@ -175,7 +178,7 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
 
       uint64_t keys_returned = 0, keys_read = 0;
       ReadOptions scan_read_options = ReadOptions(read_options);
-      scan_read_options.total_order_seek = false;
+      scan_read_options.total_order_seek = true;
       Iterator *it = db->NewIterator(scan_read_options);
       // it->Refresh();
       assert(it->status().ok());
@@ -183,14 +186,15 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
 #ifdef TIMER
       auto start = std::chrono::high_resolution_clock::now();
 #endif // TIMER
-      std::cout << "scan operation: " << std::endl <<std::flush;
+      // std::cout << "scan operation: " << std::endl <<std::flush;
       for (it->Seek(start_key); it->Valid(); it->Next()) {
         if (it->key().ToString() >= end_key) {
           break;
         }
-        std::cout << "Key: " << it->key().ToString() << std::endl;
+        // std::cout << "Key: " << it->key().ToString() << std::endl;
         keys_returned++;
       }
+      (*selectivity) << "keys_returned: " << keys_returned << ", selectivity: " << (keys_returned/env->num_inserts) << std::endl;
       if (!it->status().ok()) {
         (*buffer) << it->status().ToString() << std::endl << std::flush;
       }
