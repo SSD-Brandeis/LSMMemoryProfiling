@@ -1,4 +1,4 @@
-mkdir -p /home/cc/LSMMemoryProfiling/.filter_result_400kbucket
+mkdir -p /home/cc/LSMMemoryProfiling/.filter_result_entrysize32 
 
 rsync -av \
   --prune-empty-dirs \
@@ -8,7 +8,7 @@ rsync -av \
   --exclude '.DS_Store' \
   --exclude 'Icon?' \
   /home/cc/LSMMemoryProfiling/.result/ \
-  /home/cc/LSMMemoryProfiling/.filter_result_400kbucket/
+  /home/cc/LSMMemoryProfiling/.filter_result_entrysize32/
 
 
 

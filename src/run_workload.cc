@@ -6,14 +6,121 @@
 #include <iostream>
 #include <tuple>
 
+#include <string>
+#include <random>
+#include <algorithm>
+#include <cstdlib> // For std::getenv
+
 #include "config_options.h"
 #include "utils.h"
+
+// +++  common prefix exp +++
+//  generate a random key of a given length
+std::string generate_random_key(size_t length) {
+    static const char charset[] =
+        "0123456789"
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        "abcdefghijklmnopqrstuvwxyz";
+    const size_t max_index = (sizeof(charset) - 2);
+
+    static std::random_device rd;
+    static std::mt19937 generator(rd());
+    std::uniform_int_distribution<int> distribution(0, max_index);
+
+    std::string random_string(length, 0);
+    std::generate_n(random_string.begin(), length, [&]() {
+        return charset[distribution(generator)];
+    });
+    return random_string;
+}
+//  reads workload.txt, modifies scan operations ,
+// and overwrites the workload.txt file
+void preprocess_workload_inplace() {
+    // remember to set this in .sh script bro
+    const char* common_prefix_env = std::getenv("COMMON_PREFIX_C");
+    if (common_prefix_env == nullptr) {
+        return; 
+    }
+
+    int c = -1;
+    try {
+        c = std::stoi(common_prefix_env);
+    } catch (...) {
+        std::cout << "something wrong with Invalid COMMON_PREFIX_C. Workload file will not be modified." << std::endl;
+        return;
+    }
+
+    if (c < 0) return;
+
+    // Phase 1: Read the  original workload 
+    std::vector<std::string> workload_lines;
+    std::string line;
+    std::ifstream workload_in("workload.txt");
+    if (!workload_in) {
+        std::cout << "Error: Could not open workload.txt for reading." << std::endl;
+        exit(1);
+    }
+    while (std::getline(workload_in, line)) {
+        workload_lines.push_back(line);
+    }
+    workload_in.close();
+
+    // Phase 2: overwrite scan wl 
+    for (std::string& current_line : workload_lines) {
+        if (current_line.empty() || current_line[0] != 'S') {
+            continue; // Skip non-scan lines
+        }
+
+        std::istringstream stream(current_line);
+        char operation;
+        std::string start_key, end_key;
+        stream >> operation >> start_key >> end_key;
+
+        size_t key_len = start_key.length();
+        int safe_c = (c > key_len) ? key_len : c;
+
+        // --- swap but do not discard ---
+
+        // Generate the first key. This will become the start_key.
+        start_key = generate_random_key(key_len);
+        
+        // Generate the second key based on the first key's prefix.
+        std::string prefix = start_key.substr(0, safe_c);
+        std::string suffix = generate_random_key(key_len - safe_c);
+        end_key = prefix + suffix;
+
+        // If the keys are identical or in the wrong order, swap them.
+        if (start_key >= end_key) {
+            std::swap(start_key, end_key);
+        }
+
+        // --- END OF swap do not discard---
+
+        // reconstruct new key
+        std::ostringstream oss;
+        oss << "S " << start_key << " " << end_key;
+        current_line = oss.str();
+    }
+
+    // Phase 3: write back to worklaod.txt with generated start/end key
+    std::ofstream workload_out("workload.txt", std::ios::trunc);
+    if (!workload_out) {
+        std::cout << "Error: Could not open workload.txt for writing." << std::endl;
+        exit(1);
+    }
+    for (const std::string& modified_line : workload_lines) {
+        workload_out << modified_line << std::endl;
+    }
+    workload_out.close();
+}
+// +++ END of common prefix exp +++
 
 std::string buffer_file = "workload.log";
 std::string stats_file = "stats.log";
 std::string selectvity_file = "selectivity.log";
 
 int runWorkload(std::unique_ptr<DBEnv> &env) {
+  preprocess_workload_inplace();
   DB *db;
   Options options;
   WriteOptions write_options;
@@ -176,6 +283,8 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
       std::string start_key, end_key;
       stream >> start_key >> end_key;
 
+
+
       uint64_t keys_returned = 0, keys_read = 0;
       ReadOptions scan_read_options = ReadOptions(read_options);
       scan_read_options.total_order_seek = true;
@@ -194,7 +303,7 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
         // std::cout << "Key: " << it->key().ToString() << std::endl;
         keys_returned++;
       }
-      (*selectivity) << "keys_returned: " << keys_returned << ", selectivity: " << (keys_returned/env->num_inserts) << std::endl;
+      (*selectivity) << "keys_returned: " << keys_returned << ", selectivity: " << ((float)keys_returned/(float)env->num_inserts) << std::endl;
       if (!it->status().ok()) {
         (*buffer) << it->status().ToString() << std::endl << std::flush;
       }
