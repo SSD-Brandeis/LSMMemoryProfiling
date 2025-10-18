@@ -4,24 +4,29 @@ set -e
 RESULTS_DIR=".result"
 
 # TAG="rqcommonprefix_selectivity"
-TAG="common_prefix_keysize_8_value_1016"
-# TAG="common_prefix_keysize_128_value_896"
+# TAG="common_prefix_keysize_8_value_1016"
+TAG="common_prefix_keysize_8_value_24"
+# TAG="ttestt"
 SETTINGS="lowpri_false"
 LOW_PRI=0
 
-INSERTS=480000
+INSERTS=6000000
 UPDATES=0
-POINT_QUERIES=0 # 10000
+POINT_QUERIES=0 # 10
 RANGE_QUERIES=100 # 000
 SELECTIVITY=0.001
 
+
+# one more plot with key size 8 and value size 24 (increase insert count )  (entry size 32) 
+
+
 SIZE_RATIO=10
 
-ENTRY_SIZES=(1024)
-# LAMBDA=0.125  # keysize 128
+ENTRY_SIZES=(32)
+# LAMBDA=0.125
 # keysize 8
-# LAMBDA = 8 / 1024 = 0.0078125
-LAMBDA=0.0078125 
+# LAMBDA = 8 / 32 = 0.25
+LAMBDA=0.25
 PAGE_SIZES=(4096)
 
 THRESHOLD_TO_CONVERT_TO_SKIPLIST=${INSERTS}
@@ -69,7 +74,6 @@ for PAGE_SIZE in "${PAGE_SIZES[@]}"; do
       rm -f "$IFILE" "$QFILE" "$SFILE"
     fi
 
-    # for C in 0 1 2 3 4 5 6 7 8; do
     for C in 8; do
       for impl in "${!BUFFER_IMPLEMENTATIONS[@]}"; do
         NAME="${BUFFER_IMPLEMENTATIONS[$impl]}"

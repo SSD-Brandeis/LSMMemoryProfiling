@@ -4,24 +4,29 @@ set -e
 RESULTS_DIR=".result"
 
 # TAG="rqcommonprefix_selectivity"
-TAG="common_prefix_keysize_8_value_1016"
-# TAG="common_prefix_keysize_128_value_896"
+# TAG="common_prefix_keysize_8_value_1016"
+TAG="1gbtest"
+# TAG="ttestt"
 SETTINGS="lowpri_false"
 LOW_PRI=0
 
-INSERTS=480000
+INSERTS=14000000
 UPDATES=0
-POINT_QUERIES=0 # 10000
+POINT_QUERIES=0 # 10
 RANGE_QUERIES=100 # 000
 SELECTIVITY=0.001
 
+
+# one more plot with key size 8 and value size 24 (increase insert count )  (entry size 32) 
+
+
 SIZE_RATIO=10
 
-ENTRY_SIZES=(1024)
-# LAMBDA=0.125  # keysize 128
+ENTRY_SIZES=(32)
+LAMBDA=0.125
 # keysize 8
-# LAMBDA = 8 / 1024 = 0.0078125
-LAMBDA=0.0078125 
+# LAMBDA = 8 / 32 = 0.25
+# LAMBDA=0.125
 PAGE_SIZES=(4096)
 
 THRESHOLD_TO_CONVERT_TO_SKIPLIST=${INSERTS}
@@ -31,7 +36,7 @@ declare -A BUFFER_IMPLEMENTATIONS=(
 # [1]="skiplist"
 # [2]="Vector"
   [3]="hash_skip_list"
-  [4]="hash_linked_list"
+  # [4]="hash_linked_list"
 # [5]="UnsortedVector"
 # [6]="AlwayssortedVector"
 )
@@ -45,7 +50,11 @@ cd "$RESULTS_DIR"
 
 for PAGE_SIZE in "${PAGE_SIZES[@]}"; do
   if   [ "$PAGE_SIZE" -eq 2048 ];  then PAGES_PER_FILE=4096
-  elif [ "$PAGE_SIZE" -eq 4096 ];  then PAGES_PER_FILE=131072
+  #512
+  # elif [ "$PAGE_SIZE" -eq 4096 ];  then PAGES_PER_FILE=131072
+  #1024
+  elif [ "$PAGE_SIZE" -eq 4096 ];  then PAGES_PER_FILE=262144
+
   elif [ "$PAGE_SIZE" -eq 8192 ];  then PAGES_PER_FILE=1024
   elif [ "$PAGE_SIZE" -eq 16384 ]; then PAGES_PER_FILE=512
   elif [ "$PAGE_SIZE" -eq 32768 ]; then PAGES_PER_FILE=256
@@ -69,8 +78,7 @@ for PAGE_SIZE in "${PAGE_SIZES[@]}"; do
       rm -f "$IFILE" "$QFILE" "$SFILE"
     fi
 
-    # for C in 0 1 2 3 4 5 6 7 8; do
-    for C in 8; do
+    for C in 0 1 2 3 4 5 6 7 8; do
       for impl in "${!BUFFER_IMPLEMENTATIONS[@]}"; do
         NAME="${BUFFER_IMPLEMENTATIONS[$impl]}"
         mkdir -p "${NAME}-X8-H1000000-C${C}"; cd "${NAME}-X8-H1000000-C${C}"
