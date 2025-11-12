@@ -287,7 +287,17 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
 
       uint64_t keys_returned = 0, keys_read = 0;
       ReadOptions scan_read_options = ReadOptions(read_options);
-      scan_read_options.total_order_seek = true;
+      // based on the prefix length X.
+      // read X character from the start and end key
+      // if both are identical, then set the total_order_seek to false. Otherwise, set it to true.
+      const size_t prefix_length = env->prefix_length;
+
+      if (start_key.compare(0, prefix_length, end_key, 0, prefix_length) == 0) {
+        scan_read_options.total_order_seek = false;
+      } else {
+        scan_read_options.total_order_seek = true;
+      }
+      // scan_read_options.total_order_seek = true;
       Iterator *it = db->NewIterator(scan_read_options);
       // it->Refresh();
       assert(it->status().ok());
