@@ -35,23 +35,32 @@ std::string generate_random_key(size_t length) {
 }
 //  reads workload.txt, modifies scan operations ,
 // and overwrites the workload.txt file
-void preprocess_workload_inplace() {
-    // remember to set this in .sh script bro
-    const char* common_prefix_env = std::getenv("COMMON_PREFIX_C");
-    if (common_prefix_env == nullptr) {
-        return; 
-    }
+void preprocess_workload_inplace(std::unique_ptr<DBEnv> &env) {
+    // remember to set this in .sh script bro if we are running common preifix config exp
+    // const char* common_prefix_env = std::getenv("COMMON_PREFIX_C");
+    // if (common_prefix_env == nullptr) {
+    //     return; 
+    // }
 
-    int c = -1;
-    try {
-        c = std::stoi(common_prefix_env);
-    } catch (...) {
-        std::cout << "something wrong with Invalid COMMON_PREFIX_C. Workload file will not be modified." << std::endl;
+    // int c = -1;
+    // try {
+    //     c = std::stoi(common_prefix_env);
+    // } catch (...) {
+    //     std::cout << "something wrong with Invalid COMMON_PREFIX_C. Workload file will not be modified." << std::endl;
+    //     return;
+    // }
+
+    // if (c < 0) return;
+    // this is for randomly generate RQ for prefix length exp. 
+    // Use the prefix_length from the command-line argument as the trigger
+    int c = env->prefix_length;
+
+    // If prefix_length is  negative, skip preprocessing.
+    // 
+    if (c < 0) {
+        std::cout << "prefix_length <= 0. Workload file will not be modified." << std::endl;
         return;
     }
-
-    if (c < 0) return;
-
     // Phase 1: Read the  original workload 
     std::vector<std::string> workload_lines;
     std::string line;
@@ -85,16 +94,15 @@ void preprocess_workload_inplace() {
         start_key = generate_random_key(key_len);
         
         // Generate the second key based on the first key's prefix.
-        std::string prefix = start_key.substr(0, safe_c);
-        std::string suffix = generate_random_key(key_len - safe_c);
-        end_key = prefix + suffix;
+        // std::string prefix = start_key.substr(0, safe_c);
+        // std::string suffix = generate_random_key(key_len - safe_c);
+        // end_key = prefix + suffix;
+        end_key = generate_random_key(key_len);
 
         // If the keys are identical or in the wrong order, swap them.
         if (start_key >= end_key) {
             std::swap(start_key, end_key);
         }
-
-        // --- END OF swap do not discard---
 
         // reconstruct new key
         std::ostringstream oss;
@@ -120,7 +128,7 @@ std::string stats_file = "stats.log";
 std::string selectvity_file = "selectivity.log";
 
 int runWorkload(std::unique_ptr<DBEnv> &env) {
-  preprocess_workload_inplace();
+  // preprocess_workload_inplace(env);
   DB *db;
   Options options;
   WriteOptions write_options;
@@ -290,14 +298,14 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
       // based on the prefix length X.
       // read X character from the start and end key
       // if both are identical, then set the total_order_seek to false. Otherwise, set it to true.
-      const size_t prefix_length = env->prefix_length;
+      // const size_t prefix_length = env->prefix_length;
 
-      if (start_key.compare(0, prefix_length, end_key, 0, prefix_length) == 0) {
-        scan_read_options.total_order_seek = false;
-      } else {
-        scan_read_options.total_order_seek = true;
-      }
-      // scan_read_options.total_order_seek = true;
+      // if (start_key.compare(0, prefix_length, end_key, 0, prefix_length) == 0) {
+      //   scan_read_options.total_order_seek = false;
+      // } else {
+      //   scan_read_options.total_order_seek = true;
+      // }
+      scan_read_options.total_order_seek = true;
       Iterator *it = db->NewIterator(scan_read_options);
       // it->Refresh();
       assert(it->status().ok());
@@ -305,7 +313,7 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
 #ifdef TIMER
       auto start = std::chrono::high_resolution_clock::now();
 #endif // TIMER
-      // std::cout << "scan operation: " << std::endl <<std::flush;
+      std::cout << "scan operation: " << start_key << " endkey: " << end_key << std::endl <<std::flush;
       for (it->Seek(start_key); it->Valid(); it->Next()) {
         if (it->key().ToString() >= end_key) {
           break;
