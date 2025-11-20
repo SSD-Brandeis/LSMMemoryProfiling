@@ -6,11 +6,6 @@
 #include <iostream>
 #include <tuple>
 
-#include <string>
-#include <random>
-#include <algorithm>
-#include <cstdlib> // For std::getenv
-
 #include "config_options.h"
 #include "utils.h"
 
@@ -291,8 +286,6 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
       std::string start_key, end_key;
       stream >> start_key >> end_key;
 
-
-
       uint64_t keys_returned = 0, keys_read = 0;
       ReadOptions scan_read_options = ReadOptions(read_options);
       // based on the prefix length X.
@@ -321,7 +314,7 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
         // std::cout << "Key: " << it->key().ToString() << std::endl;
         keys_returned++;
       }
-      (*selectivity) << "keys_returned: " << keys_returned << ", selectivity: " << ((float)keys_returned/(float)env->num_inserts) << std::endl;
+      (*selectivity) << "keys_returned: " << keys_returned << ", selectivity: " << (keys_returned/env->num_inserts) << std::endl;
       if (!it->status().ok()) {
         (*buffer) << it->status().ToString() << std::endl << std::flush;
       }

@@ -10,10 +10,10 @@ TAG="1gbtest"
 SETTINGS="lowpri_false"
 LOW_PRI=0
 
-INSERTS=14000000
+INSERTS=140000
 UPDATES=0
 POINT_QUERIES=0 # 10
-RANGE_QUERIES=100 # 000
+RANGE_QUERIES=0 # 000
 SELECTIVITY=0.001
 
 
@@ -34,8 +34,8 @@ SORT_WORKLOAD=1
 
 declare -A BUFFER_IMPLEMENTATIONS=(
 # [1]="skiplist"
-# [2]="Vector"
-  [3]="hash_skip_list"
+[2]="Vector"
+  # [3]="hash_skip_list"
   # [4]="hash_linked_list"
 # [5]="UnsortedVector"
 # [6]="AlwayssortedVector"

@@ -2,12 +2,12 @@
 
 RESULTS_DIR=".result"
 
-TAG=totalorderseek
-SETTINGS="lowpri_false"
-LOW_PRI=0
+TAG=write_stall_vector
+SETTINGS="lowpri_true"
+LOW_PRI=1
 
-INSERTS=100000
-RANGE_QUERIES=1
+INSERTS=1000000
+RANGE_QUERIES=0
 SELECTIVITY=0.0001
 POINT_QUERIES=0
 
@@ -28,9 +28,9 @@ SORT_WORKLOAD=1
 
 
 declare -A BUFFER_IMPLEMENTATIONS=(
-  [1]="skiplist"
-#   [2]="Vector"
-  [3]="hash_skip_list"
+#   [1]="skiplist"
+  [2]="Vector"
+#   [3]="hash_skip_list"
 #   [4]="hash_linked_list"
 #   [5]="UnsortedVector"
 #   [6]="AlwayssortedVector"

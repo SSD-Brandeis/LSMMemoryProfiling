@@ -1,20 +1,20 @@
 #!/bin/bash
 RESULTS_DIR=".result"
 
-TAG=debug_run1
+TAG=debug_get
 SETTINGS="lowpri_true"
 LOW_PRI=1
 
 INSERTS=10000
 UPDATES=0
-RANGE_QUERIES=10
-SELECTIVITY=0.1
-POINT_QUERIES=0
+RANGE_QUERIES=0
+SELECTIVITY=0
+POINT_QUERIES=1
 
 SIZE_RATIO=10
 
 ENTRY_SIZES=(1024)
-LAMBDA=0.125
+LAMBDA=0.5
 PAGE_SIZES=(4096)
 
 BUCKET_COUNT=100000
@@ -26,8 +26,8 @@ SANITY_CHECK=0
 
 declare -A BUFFER_IMPLEMENTATIONS=(
 #   [1]="skiplist"
-#   [2]="Vector"
-  [3]="hash_skip_list"
+  [2]="Vector"
+#   [3]="hash_skip_list"
 #   [4]="hash_linked_list"
 #   [5]="UnsortedVector"
 #   [6]="AlwayssortedVector"
@@ -61,9 +61,9 @@ cd "$RESULTS_DIR"
 for PAGE_SIZE in "${PAGE_SIZES[@]}"; do
     if   [ "$PAGE_SIZE" -eq 2048 ];  then PAGES_PER_FILE_LIST=(4096)
     #  512mb buffer
-    elif [ "$PAGE_SIZE" -eq 4096 ];  then PAGES_PER_FILE_LIST=(131072)
+    # elif [ "$PAGE_SIZE" -eq 4096 ];  then PAGES_PER_FILE_LIST=(131072)
     #8mb
-    # elif [ "$PAGE_SIZE" -eq 4096 ];  then PAGES_PER_FILE_LIST=(16384)
+    elif [ "$PAGE_SIZE" -eq 4096 ];  then PAGES_PER_FILE_LIST=(16384)
     elif [ "$PAGE_SIZE" -eq 8192 ];  then PAGES_PER_FILE_LIST=(1024)
     elif [ "$PAGE_SIZE" -eq 16384 ]; then PAGES_PER_FILE_LIST=(512)
     elif [ "$PAGE_SIZE" -eq 32768 ]; then PAGES_PER_FILE_LIST=(256)
