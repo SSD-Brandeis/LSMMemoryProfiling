@@ -5,6 +5,7 @@
 #include <iomanip>
 #include <iostream>
 #include <tuple>
+#include <random>
 
 #include "config_options.h"
 #include "utils.h"
@@ -191,10 +192,10 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
   workload_file.clear();
   workload_file.seekg(0, std::ios::beg);
 
-#ifdef TIMER
+#ifdef GET_TIMER
   unsigned long inserts_exec_time = 0, updates_exec_time = 0, pq_exec_time = 0,
                 pdelete_exec_time = 0, rq_exec_time = 0;
-#endif // TIMER
+#endif // GET_TIMER
   auto exec_start = std::chrono::high_resolution_clock::now();
 
   std::string line;
@@ -266,19 +267,19 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
       std::string key, value;
       stream >> key;
 
-#ifdef TIMER
+#ifdef GET_TIMER
       auto start = std::chrono::high_resolution_clock::now();
-#endif // TIMER
+#endif // GET_TIMER
       // std::cout << "get operation: " << std::endl <<std::flush;
       s = db->Get(read_options, key, &value);
  
       // std::cout << "Key: " << key << std::endl;
-#ifdef TIMER
+#ifdef GET_TIMER
       auto stop = std::chrono::high_resolution_clock::now();
       auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
       (*stats) << "GetTime: " << duration.count() << std::endl;
       pq_exec_time += duration.count();
-#endif // TIMER
+#endif // GET_TIMER
       break;
     }
       // [ScanRangeQuery]
@@ -306,7 +307,7 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
 #ifdef TIMER
       auto start = std::chrono::high_resolution_clock::now();
 #endif // TIMER
-      std::cout << "scan operation: " << start_key << " endkey: " << end_key << std::endl <<std::flush;
+      // std::cout << "scan operation: " << start_key << " endkey: " << end_key << std::endl <<std::flush;
       for (it->Seek(start_key); it->Valid(); it->Next()) {
         if (it->key().ToString() >= end_key) {
           break;
@@ -349,7 +350,7 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
       std::chrono::duration_cast<std::chrono::nanoseconds>(
           std::chrono::high_resolution_clock::now() - exec_start)
           .count();
-#ifdef TIMER
+#ifdef GET_TIMER
   (*buffer) << "=====================" << std::endl;
   (*buffer) << "Workload Execution Time: " << total_exec_time << std::endl;
   (*buffer) << "Inserts Execution Time: " << inserts_exec_time << std::endl;
@@ -357,7 +358,7 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
   (*buffer) << "PointQuery Execution Time: " << pq_exec_time << std::endl;
   (*buffer) << "PointDelete Execution Time: " << pdelete_exec_time << std::endl;
   (*buffer) << "RangeQuery Execution Time: " << rq_exec_time << std::endl;
-#endif // TIMER
+#endif // GET_TIMER
 
   // close db
   if (!s.ok())

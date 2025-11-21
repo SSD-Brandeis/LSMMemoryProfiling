@@ -6,16 +6,16 @@ bash ./scripts/rebuild.sh
 RESULTS_DIR=".result"
 
 
-TAG=debug_run4
+TAG=debug_whathappen
 # TAG=debug_run1
 SETTINGS="lowpri_true"
 LOW_PRI=1
 
 INSERTS=10000
 UPDATES=0
-RANGE_QUERIES=20
+RANGE_QUERIES=1
 SELECTIVITY=0.01
-POINT_QUERIES=0
+POINT_QUERIES=100
 
 SIZE_RATIO=10
 
@@ -32,11 +32,11 @@ SANITY_CHECK=0
 
 declare -A BUFFER_IMPLEMENTATIONS=(
   # [1]="skiplist"
-  # [2]="Vector"
-  [3]="hash_skip_list"
+  [2]="Vector"
+#   [3]="hash_skip_list"
 #   [4]="hash_linked_list"
-  # [5]="UnsortedVector"
-  # [6]="AlwayssortedVector"
+#   [5]="UnsortedVector"
+#   [6]="AlwayssortedVector"
 )
 
 # === FUNCTION DEFINITION ADDED HERE ===
@@ -98,7 +98,7 @@ for PAGE_SIZE in "${PAGE_SIZES[@]}"; do
                     reorder_workload "workload.txt"
                     # ==============================
                     # cp ../workload.txt ./workload.txt
-                    for run in 1 2 3; do
+                    for run in 1; do
                         echo "Run ${BUFFER_IMPL}-dynamic trial #${run}"
                         "${WORKING_VERSION}" --memtable_factory="$impl" \
                             -I "${INSERTS}" -U "${UPDATES}" -S "${RANGE_QUERIES}" -Y "${SELECTIVITY}" \
@@ -118,7 +118,7 @@ for PAGE_SIZE in "${PAGE_SIZES[@]}"; do
                     # === FUNCTION CALL ADDED HERE ===
                     reorder_workload "workload.txt"
                     # cp ../workload.txt ./workload.txt
-                    for run in 1 2 3; do
+                    for run in 1; do
                         echo "Run ${BUFFER_IMPL}-preallocated trial #${run}"
                         # ==============================
                         "${WORKING_VERSION}" --memtable_factory="$impl" \
@@ -171,7 +171,7 @@ for PAGE_SIZE in "${PAGE_SIZES[@]}"; do
                     # === FUNCTION CALL ADDED HERE ===
                     reorder_workload "workload.txt"
                     # cp ../workload.txt ./workload.txt
-                    for run in 1 2 3; do
+                    for run in 1; do
                         echo "Run ${BUFFER_IMPL} trial #${run}"
                         "${WORKING_VERSION}" --memtable_factory="$impl" \
                             -I "${INSERTS}" -U "${UPDATES}" -S "${RANGE_QUERIES}" -Y "${SELECTIVITY}" \
