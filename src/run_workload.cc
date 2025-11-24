@@ -172,7 +172,7 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
   if (env->clear_system_cache) {
 #ifdef __linux__
     // std::cout << "Clearing system cache ...";
-    std::cout << system("sudo sh -c 'echo 3 >/proc/sys/vm/drop_caches'")
+    std::cerr << system("sudo sh -c 'echo 3 >/proc/sys/vm/drop_caches'")
               << "done" << std::endl;
 #endif
   }

@@ -6,16 +6,16 @@ bash ./scripts/rebuild.sh
 RESULTS_DIR=".result"
 
 
-TAG=sequential_get_path
-# TAG=debug_run1
+# TAG=interleave_get_path
+TAG=debug_run1_get_interleave
 SETTINGS="lowpri_true"
 LOW_PRI=1
 
-INSERTS=450000
+INSERTS=100000
 UPDATES=0
-RANGE_QUERIES=1000
+RANGE_QUERIES=0
 SELECTIVITY=0.1
-POINT_QUERIES=10000
+POINT_QUERIES=50
 
 SIZE_RATIO=10
 
@@ -39,19 +39,7 @@ declare -A BUFFER_IMPLEMENTATIONS=(
 #   [6]="AlwayssortedVector"
 )
 
-# === FUNCTION DEFINITION ADDED HERE ===
-reorder_workload() {
-  local f="$1"
-  echo "Reordering workload file: $f"
-  tmpI=$(mktemp)
-  tmpQ=$(mktemp)
-  tmpS=$(mktemp)
-  grep '^I ' "$f" >"$tmpI" || true
-  grep '^Q ' "$f" >"$tmpQ" || true
-  grep '^S ' "$f" >"$tmpS" || true
-  cat "$tmpI" "$tmpQ" "$tmpS" >"$f"
-  rm -f "$tmpI" "$tmpQ" "$tmpS"
-}
+# === FUNCTION DEFINITION REMOVED HERE ===
 # ======================================
 
 echo 3 | sudo tee /proc/sys/vm/drop_caches
@@ -94,8 +82,8 @@ for PAGE_SIZE in "${PAGE_SIZES[@]}"; do
                     mkdir -p "${BUFFER_IMPL}-dynamic"
                     cd "${BUFFER_IMPL}-dynamic"
                     "${LOAD_GEN}" -I "${INSERTS}" -U "${UPDATES}" -Q "${POINT_QUERIES}" -S "${RANGE_QUERIES}" -Y "${SELECTIVITY}" -E "${ENTRY_SIZE}" -L "${LAMBDA}"
-                    # === FUNCTION CALL ADDED HERE ===
-                    reorder_workload "workload.txt"
+                    # === FUNCTION CALL REMOVED HERE ===
+                    # reorder_workload "workload.txt"
                     # ==============================
                     # cp ../workload.txt ./workload.txt
                     for run in 1; do
@@ -115,8 +103,8 @@ for PAGE_SIZE in "${PAGE_SIZES[@]}"; do
                     mkdir -p "${BUFFER_IMPL}-preallocated"
                     cd "${BUFFER_IMPL}-preallocated"
                     "${LOAD_GEN}" -I "${INSERTS}" -U "${UPDATES}" -Q "${POINT_QUERIES}" -S "${RANGE_QUERIES}" -Y "${SELECTIVITY}" -E "${ENTRY_SIZE}" -L "${LAMBDA}"
-                    # === FUNCTION CALL ADDED HERE ===
-                    reorder_workload "workload.txt"
+                    # === FUNCTION CALL REMOVED HERE ===
+                    # reorder_workload "workload.txt"
                     # cp ../workload.txt ./workload.txt
                     for run in 1; do
                         echo "Run ${BUFFER_IMPL}-preallocated trial #${run}"
@@ -137,9 +125,9 @@ for PAGE_SIZE in "${PAGE_SIZES[@]}"; do
                     mkdir -p "${BUFFER_IMPL}-X${PREFIX_LENGTH}-H${BUCKET_COUNT}"
                     cd "${BUFFER_IMPL}-X${PREFIX_LENGTH}-H${BUCKET_COUNT}"
                     # "${LOAD_GEN}" -I "${INSERTS}" -U "${UPDATES}" -Q "${POINT_QUERIES}" -S "${RANGE_QUERIES}" -Y "${SELECTIVITY}" -E "${ENTRY_SIZE}" -L "${LAMBDA}"
-                    # # === FUNCTION CALL ADDED HERE ===
-                    # reorder_workload "workload.txt"
-                    # ==============================
+                    # # === FUNCTION CALL REMOVED HERE ===
+                    # # reorder_workload "workload.txt"
+                    # # ==============================
                     # cp ../workload.txt ./workload.txt
                     for run in 1; do  # 2 3
                         echo "Run ${BUFFER_IMPL} trial #${run}"
@@ -168,8 +156,8 @@ for PAGE_SIZE in "${PAGE_SIZES[@]}"; do
                     mkdir -p "${BUFFER_IMPL}"
                     cd "${BUFFER_IMPL}"
                     "${LOAD_GEN}" -I "${INSERTS}" -U "${UPDATES}" -Q "${POINT_QUERIES}" -S "${RANGE_QUERIES}" -Y "${SELECTIVITY}" -E "${ENTRY_SIZE}" -L "${LAMBDA}"
-                    # === FUNCTION CALL ADDED HERE ===
-                    reorder_workload "workload.txt"
+                    # === FUNCTION CALL REMOVED HERE ===
+                    # reorder_workload "workload.txt"
                     # cp ../workload.txt ./workload.txt
                     for run in 1; do
                         echo "Run ${BUFFER_IMPL} trial #${run}"

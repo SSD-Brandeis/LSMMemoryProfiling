@@ -1,4 +1,4 @@
-mkdir -p /home/cc/LSMMemoryProfiling/.filter_result_totalorderflag
+mkdir -p /home/cc/LSMMemoryProfiling/.filter_result_getpath_interleave
 
 rsync -av \
   --prune-empty-dirs \
@@ -7,7 +7,7 @@ rsync -av \
   --exclude '.DS_Store' \
   --exclude 'Icon?' \
   /home/cc/LSMMemoryProfiling/.result/ \
-  /home/cc/LSMMemoryProfiling/.filter_result_totalorderflag/
+  /home/cc/LSMMemoryProfiling/.filter_result_getpath_interleave/
 
 
 

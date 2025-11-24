@@ -6,16 +6,16 @@ bash ./scripts/rebuild.sh
 RESULTS_DIR=".result"
 
 
-TAG=sequential_get_path
-# TAG=debug_run1
+# TAG=sequential_get_path
+TAG=debug_run1_rawop
 SETTINGS="lowpri_true"
 LOW_PRI=1
 
-INSERTS=450000
+INSERTS=100000
 UPDATES=0
-RANGE_QUERIES=1000
+RANGE_QUERIES=0
 SELECTIVITY=0.1
-POINT_QUERIES=10000
+POINT_QUERIES=50
 
 SIZE_RATIO=10
 
