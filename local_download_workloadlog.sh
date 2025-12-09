@@ -1,4 +1,4 @@
-mkdir -p /home/cc/LSMMemoryProfiling/.filter_result_getpath_interleave
+mkdir -p /home/cc/LSMMemoryProfiling/.filter_result_compare_vec_variants_get_internal_debug
 
 rsync -av \
   --prune-empty-dirs \
@@ -7,7 +7,7 @@ rsync -av \
   --exclude '.DS_Store' \
   --exclude 'Icon?' \
   /home/cc/LSMMemoryProfiling/.result/ \
-  /home/cc/LSMMemoryProfiling/.filter_result_getpath_interleave/
+  /home/cc/LSMMemoryProfiling/.filter_result_compare_vec_variants_get_internal_debug/
 
 
 

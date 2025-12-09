@@ -192,6 +192,12 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
   workload_file.clear();
   workload_file.seekg(0, std::ios::beg);
 
+#ifdef TIMER
+  unsigned long inserts_exec_time = 0, updates_exec_time = 0, pq_exec_time = 0,
+                pdelete_exec_time = 0, rq_exec_time = 0;
+#endif // TIMER
+
+
 #ifdef GET_TIMER
   unsigned long inserts_exec_time = 0, updates_exec_time = 0, pq_exec_time = 0,
                 pdelete_exec_time = 0, rq_exec_time = 0;
@@ -272,7 +278,7 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
 #endif // GET_TIMER
       // std::cout << "get operation: " << std::endl <<std::flush;
       s = db->Get(read_options, key, &value);
- 
+      // std::cout << "PQ key: " << key << " PQ value: " << value << std::endl <<std::flush;
       // std::cout << "Key: " << key << std::endl;
 #ifdef GET_TIMER
       auto stop = std::chrono::high_resolution_clock::now();
@@ -360,6 +366,15 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
   (*buffer) << "RangeQuery Execution Time: " << rq_exec_time << std::endl;
 #endif // GET_TIMER
 
+#ifdef TIMER
+  (*buffer) << "=====================" << std::endl;
+  (*buffer) << "Workload Execution Time: " << total_exec_time << std::endl;
+  (*buffer) << "Inserts Execution Time: " << inserts_exec_time << std::endl;
+  (*buffer) << "Updates Execution Time: " << updates_exec_time << std::endl;
+  (*buffer) << "PointQuery Execution Time: " << pq_exec_time << std::endl;
+  (*buffer) << "PointDelete Execution Time: " << pdelete_exec_time << std::endl;
+  (*buffer) << "RangeQuery Execution Time: " << rq_exec_time << std::endl;
+#endif // TIMER
   // close db
   if (!s.ok())
     std::cerr << s.ToString() << std::endl;

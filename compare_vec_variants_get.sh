@@ -11,7 +11,8 @@ RUN_PREALLOCATED=0
 # =================================================
 
 # TAG=sequential_get_path
-TAG=compare_vec_variants
+# TAG=vec_validate_variants_correctness
+TAG=fixed_pq_vec_variants
 SETTINGS="lowpri_true"
 LOW_PRI=1
 
@@ -23,8 +24,8 @@ POINT_QUERIES=100
 
 SIZE_RATIO=10
 
-ENTRY_SIZES=(1024)
-LAMBDA=0.125
+ENTRY_SIZES=(8)
+LAMBDA=0.5
 PAGE_SIZES=(4096)
 
 BUCKET_COUNT=100000
@@ -70,7 +71,8 @@ cd "$RESULTS_DIR"
 
 for PAGE_SIZE in "${PAGE_SIZES[@]}"; do
     if   [ "$PAGE_SIZE" -eq 2048 ];  then PAGES_PER_FILE_LIST=(4096)
-    elif [ "$PAGE_SIZE" -eq 4096 ];  then PAGES_PER_FILE_LIST=(131072)
+    #131072 is 512 mb
+    elif [ "$PAGE_SIZE" -eq 4096 ];  then PAGES_PER_FILE_LIST=(524288)
     elif [ "$PAGE_SIZE" -eq 8192 ];  then PAGES_PER_FILE_LIST=(1024)
     elif [ "$PAGE_SIZE" -eq 16384 ]; then PAGES_PER_FILE_LIST=(512)
     elif [ "$PAGE_SIZE" -eq 32768 ]; then PAGES_PER_FILE_LIST=(256)
