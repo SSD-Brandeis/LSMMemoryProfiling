@@ -273,6 +273,9 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
       std::string key, value;
       stream >> key;
 
+#ifdef TIMER
+      auto start = std::chrono::high_resolution_clock::now();
+#endif 
 #ifdef GET_TIMER
       auto start = std::chrono::high_resolution_clock::now();
 #endif // GET_TIMER
@@ -286,6 +289,13 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
       (*stats) << "GetTime: " << duration.count() << std::endl;
       pq_exec_time += duration.count();
 #endif // GET_TIMER
+
+#ifdef TIMER
+      auto stop = std::chrono::high_resolution_clock::now();
+      auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+      (*stats) << "GetTime: " << duration.count() << std::endl;
+      pq_exec_time += duration.count();
+#endif // TIMER
       break;
     }
       // [ScanRangeQuery]
