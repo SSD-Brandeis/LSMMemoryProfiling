@@ -12,15 +12,15 @@ RUN_PREALLOCATED=0
 
 # TAG=sequential_get_path
 # TAG=fixed_ondisk_sequential_smallwl
-TAG=dec30_inmemory_interleave
+TAG=dec30_inmemory_interleave_fk
 SETTINGS="lowpri_true"
 LOW_PRI=1
 
-INSERTS=450000
+INSERTS=4500
 UPDATES=0
 RANGE_QUERIES=0
 SELECTIVITY=0
-POINT_QUERIES=450000
+POINT_QUERIES=0
 
 SIZE_RATIO=10
 
@@ -38,10 +38,10 @@ SANITY_CHECK=0
 declare -A BUFFER_IMPLEMENTATIONS=(
   [1]="skiplist"
   [2]="Vector"
-  # [3]="hash_skip_list"
-  # [4]="hash_linked_list"
-  # [5]="UnsortedVector"
-  # [6]="AlwayssortedVector"
+  [3]="hash_skip_list"
+  [4]="hash_linked_list"
+  [5]="UnsortedVector"
+  [6]="AlwayssortedVector"
 )
 
 # === FUNCTION DEFINITION ===
@@ -87,7 +87,7 @@ for PAGE_SIZE in "${PAGE_SIZES[@]}"; do
             # 1. GENERATE WORKLOAD ONCE FOR THIS CONFIGURATION
             # ==========================================================
             echo "Generating unified workload for ${EXP_DIR}..."
-            # "${LOAD_GEN}" -I "${INSERTS}" -U "${UPDATES}" -Q "${POINT_QUERIES}" -S "${RANGE_QUERIES}" -Y "${SELECTIVITY}" -E "${ENTRY_SIZE}" -L "${LAMBDA}"
+            "${LOAD_GEN}" -I "${INSERTS}" -U "${UPDATES}" -Q "${POINT_QUERIES}" -S "${RANGE_QUERIES}" -Y "${SELECTIVITY}" -E "${ENTRY_SIZE}" -L "${LAMBDA}"
             reorder_workload "workload.txt"
             # ==========================================================
 

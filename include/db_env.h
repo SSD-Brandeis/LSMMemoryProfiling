@@ -50,9 +50,9 @@ private:
 
   // buffer size in bytes
   size_t buffer_size_ = 0;           // [M]
-  bool enable_perf_ = false;  // [perf]
-  bool enable_iostat = false; //[iostat]
-  bool enable_rocksdb_stats = false; //[stat]
+  bool enable_perf_ = true;  // [perf]
+  bool enable_iostat = true; //[iostat]
+  bool enable_rocksdb_stats = true; //[stat]
   bool destroy_database_ = true;     // [d]
   bool show_progress_bar_ = false;   // [progress]
 
