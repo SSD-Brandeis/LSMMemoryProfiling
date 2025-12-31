@@ -50,9 +50,12 @@ private:
 
   // buffer size in bytes
   size_t buffer_size_ = 0;           // [M]
-  bool enable_perf_iostat_ = true;  // [stat]
+  bool enable_perf_ = false;  // [perf]
+  bool enable_iostat = false; //[iostat]
+  bool enable_rocksdb_stats = false; //[stat]
   bool destroy_database_ = true;     // [d]
   bool show_progress_bar_ = false;   // [progress]
+
 
 public:
   static std::string kDBPath;
@@ -68,7 +71,9 @@ public:
   uint64_t GetBlockSize() const { return entries_per_page * entry_size; }
 
   void SetBufferSize(size_t buffer_size) { buffer_size_ = buffer_size; }
-  void SetPerfIOStat(bool value) { enable_perf_iostat_ = value; }
+  void SetPerf(bool value) { enable_perf_ = value; }
+  void SetIoStat(bool value) { enable_iostat = value; }
+  void SetRocksDBStats(bool value) { enable_rocksdb_stats = value; }
   void SetDestroyDatabase(bool value) { destroy_database_ = value; }
   void SetShowProgress(bool value) { show_progress_bar_ = value; }
 
@@ -78,7 +83,9 @@ public:
                ? buffer_size_
                : buffer_size_in_pages * entries_per_page * entry_size;
   }
-  bool IsPerfIOStatEnabled() const { return enable_perf_iostat_; }
+  bool IsPerfEnabled() const { return enable_perf_; }
+  bool IsIoStatEnabled() const { return enable_iostat; }
+  bool IsRocksDBStatsEnabled() const { return enable_rocksdb_stats; } 
   bool IsDestroyDatabaseEnabled() const { return destroy_database_; }
   bool IsShowProgressEnabled() const { return show_progress_bar_; }
 

@@ -60,9 +60,15 @@ int parse_arguments(int argc, char *argv[], std::unique_ptr<DBEnv> &env) {
       {'b', "bits_per_key"});
   args::ValueFlag<int> block_cache_cmd(
       group1, "bb", "Block cache size in MB [def: 8 MB]", {"bb"});
-  args::ValueFlag<int> enable_perf_iostat_cmd(
+  args::ValueFlag<int> enable_perf_cmd(
       group1, "enable_perf_iostat",
-      "Enable RocksDB's internal Perf and IOstat [def: 0]", {"stat"});
+      "Enable RocksDB's internal Perf and IOstat [def: 0]", {"perf"});
+  args::ValueFlag<int> enable_iostat_cmd(
+      group1, "enable_iostat",
+      "Enable RocksDB's internal IOstat [def: 0]", {"iostat"});
+  args::ValueFlag<int> enable_rocksdb_stats_cmd(
+      group1, "enable_rocksdb_stats",
+      "Enable RocksDB's internal RocksDB stats [def: 0]", {"stat"});
   args::ValueFlag<int> show_progress_cmd(
       group1, "show_progress_bar", "Shows progress bar [def: 0]", {"progress"});
 
@@ -148,6 +154,7 @@ int parse_arguments(int argc, char *argv[], std::unique_ptr<DBEnv> &env) {
       file_to_memtable_size_ratio_cmd
           ? args::get(file_to_memtable_size_ratio_cmd)
           : env->file_to_memtable_size_ratio;
+  env->level0_file_num_compaction_trigger = env->size_ratio;
   env->compaction_pri =
       compaction_pri_cmd ? args::get(compaction_pri_cmd) : env->compaction_pri;
   env->compaction_style = compaction_style_cmd ? args::get(compaction_style_cmd)
@@ -156,8 +163,13 @@ int parse_arguments(int argc, char *argv[], std::unique_ptr<DBEnv> &env) {
       bits_per_key_cmd ? args::get(bits_per_key_cmd) : env->bits_per_key;
   env->block_cache =
       block_cache_cmd ? args::get(block_cache_cmd) : env->block_cache;
-  env->SetPerfIOStat(enable_perf_iostat_cmd ? args::get(enable_perf_iostat_cmd)
-                                            : env->IsPerfIOStatEnabled());
+  env->SetPerf(enable_perf_cmd ? args::get(enable_perf_cmd)
+                                            : env->IsPerfEnabled());
+  env->SetIoStat(enable_iostat_cmd ? args::get(enable_iostat_cmd)
+                                            : env->IsIoStatEnabled());
+  env->SetRocksDBStats(enable_rocksdb_stats_cmd ? args::get(enable_rocksdb_stats_cmd)
+                                            : env->IsRocksDBStatsEnabled());
+
   env->SetShowProgress(show_progress_cmd ? args::get(show_progress_cmd)
                                          : env->IsShowProgressEnabled());
 

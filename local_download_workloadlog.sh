@@ -1,4 +1,4 @@
-mkdir -p /home/cc/LSMMemoryProfiling/.filter_result_fixed_interleave_throughput
+mkdir -p /home/cc/LSMMemoryProfiling/.filter_result_dec30
 
 rsync -av \
   --prune-empty-dirs \
@@ -7,7 +7,7 @@ rsync -av \
   --exclude '.DS_Store' \
   --exclude 'Icon?' \
   /home/cc/LSMMemoryProfiling/.result/ \
-  /home/cc/LSMMemoryProfiling/.filter_result_fixed_interleave_throughput/
+  /home/cc/LSMMemoryProfiling/.filter_result_dec30/
 
 
 

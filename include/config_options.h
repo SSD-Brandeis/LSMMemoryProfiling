@@ -333,21 +333,20 @@ void configOptions(std::unique_ptr<DBEnv> &env, Options *options,
   flush_options->allow_write_stall = env->allow_write_stall;
 #pragma endregion // [FlushOptions]
 
-  if (env->IsPerfIOStatEnabled()) {
+  if (env->IsPerfEnabled()) {
     rocksdb::SetPerfLevel(
         rocksdb::PerfLevel::kEnableTimeAndCPUTimeExceptForMutex);
     rocksdb::get_perf_context()->Reset();
     rocksdb::get_perf_context()->ClearPerLevelPerfContext();
     rocksdb::get_perf_context()->EnablePerLevelPerfContext();
-    rocksdb::get_iostats_context()->Reset();
-    options->statistics.reset();
-    options->statistics = rocksdb::CreateDBStatistics();
-  } else {
-#ifdef PROFILE
-    options->statistics.reset();
-    options->statistics = rocksdb::CreateDBStatistics();
-#endif // PROFILE
   }
+  if (env->IsIoStatEnabled()) {
+    rocksdb::get_iostats_context()->Reset();
+  }
+  if (env->IsRocksDBStatsEnabled()) {
+    options->statistics.reset();
+    options->statistics = rocksdb::CreateDBStatistics();
+  } 
 
   // NOTE: Keep this block in last of this file
 #ifdef DOSTO

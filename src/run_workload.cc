@@ -376,9 +376,10 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
   (*buffer) << "RangeQuery Execution Time: " << rq_exec_time << std::endl;
 #endif // GET_TIMER
 
+(*buffer) << "=====================" << std::endl;
+(*buffer) << "Workload Execution Time: " << total_exec_time << std::endl;
 #ifdef TIMER
-  (*buffer) << "=====================" << std::endl;
-  (*buffer) << "Workload Execution Time: " << total_exec_time << std::endl;
+ 
   (*buffer) << "Inserts Execution Time: " << inserts_exec_time << std::endl;
   (*buffer) << "Updates Execution Time: " << updates_exec_time << std::endl;
   (*buffer) << "PointQuery Execution Time: " << pq_exec_time << std::endl;

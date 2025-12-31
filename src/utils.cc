@@ -51,7 +51,7 @@ void PrintExperimentalSetup(std::unique_ptr<DBEnv> &env,
 
 void PrintRocksDBPerfStats(std::unique_ptr<DBEnv> &env,
                            std::shared_ptr<Buffer> &buffer, Options options) {
-  if (env->IsPerfIOStatEnabled()) {
+  if (env->IsPerfEnabled()) {
     rocksdb::SetPerfLevel(rocksdb::PerfLevel::kDisable);
 
     (*buffer) << "\n\n===============================\n";
