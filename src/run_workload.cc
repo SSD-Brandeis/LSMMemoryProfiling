@@ -172,7 +172,7 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
   if (env->clear_system_cache) {
 #ifdef __linux__
     // std::cout << "Clearing system cache ...";
-    std::cerr << system("sudo sh -c 'echo 3 >/proc/sys/vm/drop_caches'")
+    std::cerr << system("sudo h -c 'echo 3 >/proc/sys/vm/drop_caches'")
               << "done" << std::endl;
 #endif
   }
@@ -202,7 +202,8 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
   unsigned long inserts_exec_time = 0, updates_exec_time = 0, pq_exec_time = 0,
                 pdelete_exec_time = 0, rq_exec_time = 0;
 #endif // GET_TIMER
-  auto exec_start = std::chrono::high_resolution_clock::now();
+  
+  unsigned long total_exec_time = 0;
 
   std::string line;
   unsigned long ith_op = 0;
@@ -214,6 +215,9 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
     std::istringstream stream(line);
     char operation;
     stream >> operation;
+
+    // --- START CLOCK FOR SINGLE CLOCK EXPERIMENT ---
+    auto start_single = std::chrono::high_resolution_clock::now();
 
     switch (operation) {
       // [Insert]
@@ -349,6 +353,10 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
       break;
     }
 
+    // --- STOP AND ACCUMULATE FOR SINGLE CLOCK EXPERIMENT ---
+    auto stop_single = std::chrono::high_resolution_clock::now();
+    total_exec_time += std::chrono::duration_cast<std::chrono::nanoseconds>(stop_single - start_single).count();
+
     ith_op += 1;
     UpdateProgressBar(env, ith_op, total_operations,
                       (int)total_operations * 0.02);
@@ -362,10 +370,6 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
   LogRocksDBStatistics(db, options, buffer);
 #endif // PROFILE
 
-  auto total_exec_time =
-      std::chrono::duration_cast<std::chrono::nanoseconds>(
-          std::chrono::high_resolution_clock::now() - exec_start)
-          .count();
 #ifdef GET_TIMER
   (*buffer) << "=====================" << std::endl;
   (*buffer) << "Workload Execution Time: " << total_exec_time << std::endl;

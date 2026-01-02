@@ -8,11 +8,11 @@ set(CMAKE_CXX_STANDARD 17)
 # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -DTIMER -DPROFILE")
 # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -DPROFILE")
 
-# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2")
-# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -DDEFAULTTIMER")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -DPROFILE")
+# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -DDEFAULTTIMER")
+# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -DPROFILE")
 
 
 # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DPROFILE")
@@ -74,6 +74,6 @@ add_dependencies(working_version rocksdb)
 # target_compile_definitions(working_version PRIVATE -DTIMER -DPROFILE)
 # target_compile_definitions(working_version PRIVATE -DPROFILE)
 
-# target_compile_definitions(working_version PRIVATE)
+target_compile_definitions(working_version PRIVATE)
 
-target_compile_definitions(working_version PRIVATE -DDEFAULTTIMER -DPROFILE)
+# target_compile_definitions(working_version PRIVATE -DDEFAULTTIMER -DPROFILE)

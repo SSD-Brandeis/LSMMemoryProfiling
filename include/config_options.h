@@ -339,14 +339,20 @@ void configOptions(std::unique_ptr<DBEnv> &env, Options *options,
     rocksdb::get_perf_context()->Reset();
     rocksdb::get_perf_context()->ClearPerLevelPerfContext();
     rocksdb::get_perf_context()->EnablePerLevelPerfContext();
+  }else{
+    rocksdb::SetPerfLevel(rocksdb::PerfLevel::kDisable);
   }
   if (env->IsIoStatEnabled()) {
     rocksdb::get_iostats_context()->Reset();
+  }else{
+    rocksdb::get_iostats_context()->disable_iostats = true;
   }
   if (env->IsRocksDBStatsEnabled()) {
     options->statistics.reset();
     options->statistics = rocksdb::CreateDBStatistics();
-  } 
+  } else{
+    options->statistics.reset();
+  }
 
   // NOTE: Keep this block in last of this file
 #ifdef DOSTO

@@ -61,9 +61,16 @@ void PrintRocksDBPerfStats(std::unique_ptr<DBEnv> &env,
     (*buffer) << "[Perf Context]\n";
     (*buffer) << rocksdb::get_perf_context()->ToString() << "\n";
 
+  }
+  if (env->IsIoStatEnabled()) {
+    (*buffer) << "\n\n===============================\n";
+    (*buffer) << "       RocksDB IO Stats        \n";
+    (*buffer) << "===============================\n";
+
     (*buffer) << "\n[IO Stats Context]\n";
     (*buffer) << rocksdb::get_iostats_context()->ToString() << "\n";
-
+  }
+  if (env->IsRocksDBStatsEnabled()) {
     (*buffer) << "\n[Rocksdb Stats]\n";
     (*buffer) << options.statistics->ToString();
     options.statistics.reset();
