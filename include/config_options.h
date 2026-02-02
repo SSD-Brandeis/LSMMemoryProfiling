@@ -11,6 +11,11 @@
 #include "event_listners.h"
 #include "fluid_lsm.h"
 
+
+namespace ROCKSDB_NAMESPACE {
+  extern MemTableRepFactory* NewSimpleSkipListRepFactory();
+}
+
 void configOptions(std::unique_ptr<DBEnv> &env, Options *options,
                    BlockBasedTableOptions *table_options,
                    WriteOptions *write_options, ReadOptions *read_options,
@@ -108,6 +113,10 @@ void configOptions(std::unique_ptr<DBEnv> &env, Options *options,
   //         // add linklist buffer
   case 7:
     options->memtable_factory.reset(NewLinkListRepFactory());
+    break;
+  // Add SimpleSkipList 
+  case 8:
+    options->memtable_factory.reset(ROCKSDB_NAMESPACE::NewSimpleSkipListRepFactory());
     break;
   default:
     std::cerr << "Error[" << __FILE__ << " : " << __LINE__
