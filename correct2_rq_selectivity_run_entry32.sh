@@ -108,13 +108,13 @@ for PAGE_SIZE in "${PAGE_SIZES[@]}"; do
           mv workload.log "./workload${run}.log"
           rm -rf db
         done
-        # --- CHANGE: REMOVED the line "rm -f workload.txt" ---
+        # "rm -f workload.txt" ---
         cd ..
       done
-      # --- CHANGE: REMOVED the line "rm -f workload.txt" ---
+      # "rm -f workload.txt" ---
     done
     
-    # --- CHANGE: Added a single cleanup at the end of the experiment ---
+
     rm -f workload.txt
     cd ..
   done

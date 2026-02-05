@@ -285,6 +285,7 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
 #endif // GET_TIMER
       // std::cout << "get operation: " << std::endl <<std::flush;
       s = db->Get(read_options, key, &value);
+
       // std::cout << "PQ key: " << key << " PQ value: " << value << std::endl <<std::flush;
       // std::cout << "Key: " << key << std::endl;
 #ifdef GET_TIMER
@@ -332,7 +333,7 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
         if (it->key().ToString() >= end_key) {
           break;
         }
-        // std::cout << "Key: " << it->key().ToString() << std::endl;
+        // std::cout << "RQKey: " << it->key().ToString() << "RQValue: "<< it->value().ToString()<< std::endl;
         keys_returned++;
       }
       (*selectivity) << "keys_returned: " << keys_returned << ", selectivity: " << (keys_returned/env->num_inserts) << std::endl;
