@@ -12,15 +12,15 @@ RUN_PREALLOCATED=0
 
 # TAG=sequential_get_path
 # TAG=fixed_ondisk_sequential_smallwl
-TAG=fixed_rerun_ondisk_sequential_T_5_feb8
+TAG=skiplist_compare_feb11_nothrottling_orderedwl
 SETTINGS="lowpri_true"
 LOW_PRI=1
 
-INSERTS=250000
+INSERTS=100000
 UPDATES=0
-RANGE_QUERIES=1000
-SELECTIVITY=0.1
-POINT_QUERIES=10000
+RANGE_QUERIES=0
+SELECTIVITY=0
+POINT_QUERIES=0
 
 SIZE_RATIO=5
 
@@ -28,7 +28,7 @@ ENTRY_SIZES=(128)
 LAMBDA=0.25
 PAGE_SIZES=(4096)
 
-BUCKET_COUNT=100000
+BUCKET_COUNT=1
 PREFIX_LENGTH=6
 THRESHOLD_TO_CONVERT_TO_SKIPLIST=${INSERTS}
 
@@ -37,25 +37,27 @@ SANITY_CHECK=0
 
 declare -A BUFFER_IMPLEMENTATIONS=(
   [1]="skiplist"
-  [2]="Vector"
+  # [2]="Vector"
   [3]="hash_skip_list"
-  [4]="hash_linked_list"
-  [5]="UnsortedVector"
-  [6]="AlwayssortedVector"
+  # [4]="hash_linked_list"
+  # [5]="UnsortedVector"
+  # [6]="AlwayssortedVector"
+  [8]="simpleskipList"
 )
 
 # === FUNCTION DEFINITION ===
 reorder_workload() {
-  local f="$1"
-  echo "Reordering workload file: $f"
-  tmpI=$(mktemp)
-  tmpQ=$(mktemp)
-  tmpS=$(mktemp)
-  grep '^I ' "$f" >"$tmpI" || true
-  grep '^Q ' "$f" >"$tmpQ" || true
-  grep '^S ' "$f" >"$tmpS" || true
-  cat "$tmpI" "$tmpQ" "$tmpS" >"$f"
-  rm -f "$tmpI" "$tmpQ" "$tmpS"
+  echo "No Ordering Done"
+#   local f="$1"
+#   echo "Reordering workload file: $f"
+#   tmpI=$(mktemp)
+#   tmpQ=$(mktemp)
+#   tmpS=$(mktemp)
+#   grep '^I ' "$f" >"$tmpI" || true
+#   grep '^Q ' "$f" >"$tmpQ" || true
+#   grep '^S ' "$f" >"$tmpS" || true
+#   cat "$tmpI" "$tmpQ" "$tmpS" >"$f"
+#   rm -f "$tmpI" "$tmpQ" "$tmpS"
 }
 # ======================================
 
@@ -72,9 +74,9 @@ cd "$RESULTS_DIR"
 for PAGE_SIZE in "${PAGE_SIZES[@]}"; do
     if   [ "$PAGE_SIZE" -eq 2048 ];  then PAGES_PER_FILE_LIST=(4096)
     #4mb
-    elif [ "$PAGE_SIZE" -eq 4096 ];  then PAGES_PER_FILE_LIST=(1024)
+    # elif [ "$PAGE_SIZE" -eq 4096 ];  then PAGES_PER_FILE_LIST=(1024)
     
-    # elif [ "$PAGE_SIZE" -eq 4096 ];  then PAGES_PER_FILE_LIST=(131072)
+    elif [ "$PAGE_SIZE" -eq 4096 ];  then PAGES_PER_FILE_LIST=(131072)
     elif [ "$PAGE_SIZE" -eq 8192 ];  then PAGES_PER_FILE_LIST=(1024)
     elif [ "$PAGE_SIZE" -eq 16384 ]; then PAGES_PER_FILE_LIST=(512)
     elif [ "$PAGE_SIZE" -eq 32768 ]; then PAGES_PER_FILE_LIST=(256)
@@ -96,7 +98,7 @@ for PAGE_SIZE in "${PAGE_SIZES[@]}"; do
             # 1. GENERATE WORKLOAD ONCE FOR THIS CONFIGURATION
             # ==========================================================
             echo "Generating unified workload for ${EXP_DIR}..."
-            "${LOAD_GEN}" -I "${INSERTS}" -U "${UPDATES}" -Q "${POINT_QUERIES}" -S "${RANGE_QUERIES}" -Y "${SELECTIVITY}" -E "${ENTRY_SIZE}" -L "${LAMBDA}"
+            # "${LOAD_GEN}" -I "${INSERTS}" -U "${UPDATES}" -Q "${POINT_QUERIES}" -S "${RANGE_QUERIES}" -Y "${SELECTIVITY}" -E "${ENTRY_SIZE}" -L "${LAMBDA}"
             reorder_workload "workload.txt"
             # ==========================================================
 

@@ -1,4 +1,4 @@
-mkdir -p /home/cc/LSMMemoryProfiling/.filter_result_dec30
+mkdir -p /home/cc/LSMMemoryProfiling/.filter_result_feb11_hash_compare
 
 rsync -av \
   --prune-empty-dirs \
@@ -7,7 +7,7 @@ rsync -av \
   --exclude '.DS_Store' \
   --exclude 'Icon?' \
   /home/cc/LSMMemoryProfiling/.result/ \
-  /home/cc/LSMMemoryProfiling/.filter_result_dec30/
+  /home/cc/LSMMemoryProfiling/.filter_result_feb11_hash_compare/
 
 
 
