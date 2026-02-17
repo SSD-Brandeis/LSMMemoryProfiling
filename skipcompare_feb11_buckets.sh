@@ -13,7 +13,7 @@ RUN_PREALLOCATED=0
 # TAG=sequential_get_path
 # TAG=fixed_ondisk_sequential_smallwl
 # TAG=skiplist_compare_feb11_nothrottling_manybuckets_sequential
-TAG=skiplist_compare_feb11_nothrottling_small_insert
+TAG=skiplist_compare_feb14_nothrottling_hash_breakdown_sanity_assert
 SETTINGS="lowpri_true"
 LOW_PRI=0
 
@@ -30,7 +30,8 @@ LAMBDA=0.25
 PAGE_SIZES=(4096)
 
 # === CHANGE: Defined as an array now ===
-BUCKET_COUNTS=(1 2 5 10 100000)
+# BUCKET_COUNTS=(1 2 5 10 100000)
+BUCKET_COUNTS=(1)
 # =======================================
 
 PREFIX_LENGTH=6
@@ -41,12 +42,12 @@ SANITY_CHECK=0
 
 declare -A BUFFER_IMPLEMENTATIONS=(
   [1]="skiplist"
-  [2]="Vector"
+#   [2]="Vector"
   [3]="hash_skip_list"
-  [4]="hash_linked_list"
+#   [4]="hash_linked_list"
   # [5]="UnsortedVector"
   # [6]="AlwayssortedVector"
-  [8]="simpleskipList"
+#   [8]="simpleskiplist"
 )
 
 # === FUNCTION DEFINITION ===
@@ -79,7 +80,7 @@ for PAGE_SIZE in "${PAGE_SIZES[@]}"; do
     if   [ "$PAGE_SIZE" -eq 2048 ];  then PAGES_PER_FILE_LIST=(4096)
     #4mb
     # elif [ "$PAGE_SIZE" -eq 4096 ];  then PAGES_PER_FILE_LIST=(1024)
-    
+    #512mb
     elif [ "$PAGE_SIZE" -eq 4096 ];  then PAGES_PER_FILE_LIST=(131072)
     elif [ "$PAGE_SIZE" -eq 8192 ];  then PAGES_PER_FILE_LIST=(1024)
     elif [ "$PAGE_SIZE" -eq 16384 ]; then PAGES_PER_FILE_LIST=(512)

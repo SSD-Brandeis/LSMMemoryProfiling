@@ -35,12 +35,14 @@
 **.log
 workload.txt
 
+
 # db_working_home
 **/db/**
 
 **/bin**
 **/build/**
 **result**
+**defaultRDB**
 
 .idea
 cmake-build-debug/
@@ -65,3 +67,4 @@ workload.txt
 .DS_Store
 **/__pycache__/**
 **.pdf
+
