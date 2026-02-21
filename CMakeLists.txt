@@ -1,33 +1,21 @@
 cmake_minimum_required(VERSION 3.10)
-project(LSMMemoryProfiling VERSION 1.0)
+project(LSMBufferAnalysis)
 
-set(CMAKE_CXX_STANDARD 17)
+include(FetchContent)
 
-# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -DGET_TIMER -DPROFILE")
+FetchContent_Declare(
+  cxxopts
+  GIT_REPOSITORY https://github.com/jarro2783/cxxopts.git
+  GIT_TAG        v3.1.1
+  SOURCE_DIR     ${CMAKE_CURRENT_SOURCE_DIR}/lib/cxxopts
+)
 
-# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -DTIMER -DPROFILE")
-# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -DPROFILE")
+FetchContent_MakeAvailable(cxxopts)
 
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
 
-# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -DDEFAULTTIMER")
-# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -DPROFILE")
-
-
-# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DPROFILE")
-# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-omit-frame-pointer")
-
-if(NOT DISABLE_JEMALLOC)
-    if(JEMALLOC)
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DROCKSDB_JEMALLOC -DJEMALLOC_NO_DEMANGLE ${JEMALLOC_INCLUDE}")
-        list(APPEND EXEC_LDFLAGS "${JEMALLOC_LIB}" "-lpthread")
-    else()
-        list(APPEND EXEC_LDFLAGS "-lpthread")
-    endif()
-else()
-    list(APPEND EXEC_LDFLAGS "-lpthread")
-endif()
+find_package(Threads REQUIRED)
 
 option(WITH_TESTS "Build with tests" OFF)
 option(WITH_TOOLS "Build with tools" OFF)
@@ -36,44 +24,54 @@ option(WITH_BENCHMARK_TOOLS "Build with benchmark tools" OFF)
 option(WITH_CORE_TOOLS "Build with core tools" OFF)
 option(WITH_TRACE_TOOLS "Build with trace tools" OFF)
 
+if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+  set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
+endif()
 
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/lib/rocksdb/include)
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/lib/KV-WorkloadGenerator/include)
-
-set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Build type" FORCE)
-
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -frtti")
+set(USE_RTTI 1 CACHE BOOL "" FORCE)
 
 add_subdirectory(lib/rocksdb)
-set_target_properties(rocksdb PROPERTIES COMPILE_FLAGS "-frtti")
-
 add_subdirectory(lib/KV-WorkloadGenerator)
 
-set(SOURCES
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/aux_time.cc 
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/buffer.cc
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/db_env.cc
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/event_listners.cc
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/fluid_lsm.cc
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/utils.cc
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/run_workload.cc
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/working_version.cc 
+# ---- Tectonic build (Rust project) ----
+add_custom_target(tectonic-cli ALL
+    COMMAND cargo build --release
+    COMMAND ${CMAKE_COMMAND} -E copy
+            ${CMAKE_CURRENT_SOURCE_DIR}/lib/Tectonic/target/release/tectonic-cli
+            ${CMAKE_CURRENT_SOURCE_DIR}/bin/tectonic-cli
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/lib/Tectonic
+    COMMENT "Building tectonic in release mode"
 )
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/bin)
 
-add_executable(working_version ${SOURCES})
+add_executable(working_version    
+    src/aux_time.cc 
+    src/buffer.cc
+    src/db_env.cc
+    src/event_listners.cc
+    src/fluid_lsm.cc
+    src/utils.cc
+    src/run_workload.cc
+    src/working_version.cc )
+add_executable(rocksdb_experiment  src/defaultRDB.cc)
 
-target_link_libraries(working_version ${CMAKE_BINARY_DIR}/lib/rocksdb/librocksdb.a ${EXEC_LDFLAGS})
+target_include_directories(rocksdb_experiment PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/lib/rocksdb/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/lib/cxxopts/include
+)
 
-add_dependencies(working_version rocksdb)
+target_include_directories(working_version PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/lib/rocksdb/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
 
-# target_compile_definitions(working_version PRIVATE -DGET_TIMER -DPROFILE)
+target_link_libraries(rocksdb_experiment PRIVATE
+    rocksdb
+    Threads::Threads
+)
 
-# target_compile_definitions(working_version PRIVATE -DTIMER -DPROFILE)
-# target_compile_definitions(working_version PRIVATE -DPROFILE)
-
-target_compile_definitions(working_version PRIVATE)
-
-# target_compile_definitions(working_version PRIVATE -DDEFAULTTIMER -DPROFILE)
+target_link_libraries(working_version PRIVATE
+    rocksdb
+    Threads::Threads
+)

@@ -4,7 +4,6 @@
 #include <condition_variable>
 
 #include <rocksdb/db.h>
-#include <rocksdb/customizable.h>
 
 #include "buffer.h"
 

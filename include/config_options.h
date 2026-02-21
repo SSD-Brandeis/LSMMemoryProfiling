@@ -1,19 +1,19 @@
+#include <iostream>
+#include <rocksdb/db.h>
 #include <rocksdb/filter_policy.h>
 #include <rocksdb/iostats_context.h>
 #include <rocksdb/options.h>
 #include <rocksdb/perf_context.h>
+#include <rocksdb/slice_transform.h>
 #include <rocksdb/statistics.h>
 #include <rocksdb/table.h>
-#include <rocksdb/slice_transform.h>
-#include <iostream>
 
 #include "db_env.h"
 #include "event_listners.h"
 #include "fluid_lsm.h"
 
-
 namespace ROCKSDB_NAMESPACE {
-  extern MemTableRepFactory* NewSimpleSkipListRepFactory();
+extern MemTableRepFactory *NewSimpleSkipListRepFactory();
 }
 
 void configOptions(std::unique_ptr<DBEnv> &env, Options *options,
@@ -80,9 +80,7 @@ void configOptions(std::unique_ptr<DBEnv> &env, Options *options,
     break;
   case 2:
     options->memtable_factory.reset(
-        new VectorRepFactory(
-          env->vector_preallocation_size_in_bytes
-        ));
+        new VectorRepFactory(env->vector_preallocation_size_in_bytes));
     break;
   case 3:
     options->memtable_factory.reset(
@@ -101,22 +99,21 @@ void configOptions(std::unique_ptr<DBEnv> &env, Options *options,
         NewFixedPrefixTransform(env->prefix_length));
     break;
   case 5:
-    options->memtable_factory.reset(new UnsortedVectorRepFactory(
-        env->vector_preallocation_size_in_bytes
-      ));
+    options->memtable_factory.reset(
+        new UnsortedVectorRepFactory(env->vector_preallocation_size_in_bytes));
     break;
   case 6:
     options->memtable_factory.reset(new AlwaysSortedVectorRepFactory(
-      env->vector_preallocation_size_in_bytes
-    ));
+        env->vector_preallocation_size_in_bytes));
     break;
   //         // add linklist buffer
   case 7:
     options->memtable_factory.reset(NewLinkListRepFactory());
     break;
-  // Add SimpleSkipList 
+  // Add SimpleSkipList
   case 8:
-    options->memtable_factory.reset(ROCKSDB_NAMESPACE::NewSimpleSkipListRepFactory());
+    options->memtable_factory.reset(
+        ROCKSDB_NAMESPACE::NewSimpleSkipListRepFactory());
     break;
   default:
     std::cerr << "Error[" << __FILE__ << " : " << __LINE__
@@ -348,18 +345,18 @@ void configOptions(std::unique_ptr<DBEnv> &env, Options *options,
     rocksdb::get_perf_context()->Reset();
     rocksdb::get_perf_context()->ClearPerLevelPerfContext();
     rocksdb::get_perf_context()->EnablePerLevelPerfContext();
-  }else{
+  } else {
     rocksdb::SetPerfLevel(rocksdb::PerfLevel::kDisable);
   }
   if (env->IsIoStatEnabled()) {
     rocksdb::get_iostats_context()->Reset();
-  }else{
+  } else {
     rocksdb::get_iostats_context()->disable_iostats = true;
   }
   if (env->IsRocksDBStatsEnabled()) {
     options->statistics.reset();
     options->statistics = rocksdb::CreateDBStatistics();
-  } else{
+  } else {
     options->statistics.reset();
   }
 
