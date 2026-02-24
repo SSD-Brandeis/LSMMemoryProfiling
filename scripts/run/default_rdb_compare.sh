@@ -102,7 +102,7 @@ for mem in "${!BUFFER_IMPLEMENTATIONS[@]}"; do
     "$WORKING_VERSION" --memtable_factory="$mem" \
         -I "${INSERTS}" -U "${UPDATES}" -S "${RANGE_QUERIES}" -Y "${SELECTIVITY}" \
         -T "${SIZE_RATIO}" -P "${PAGES_PER_FILE}" -B "${ENTRIES_PER_PAGE}" \
-        -E "${ENTRY_SIZE}" --lowpri "${LOW_PRI}" --stat 1 | tee -a "$LOG_FILE"
+        -E "${ENTRY_SIZE}" --lowpri "${LOW_PRI}" --stat 1 > "$LOG_FILE"
 
     # Preserve logs
     if [ -f "db/LOG" ]; then

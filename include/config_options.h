@@ -103,7 +103,7 @@ void configOptions(std::unique_ptr<DBEnv> &env, Options *options,
         new UnsortedVectorRepFactory(env->vector_preallocation_size_in_bytes));
     break;
   case 6:
-    options->memtable_factory.reset(new AlwaysSortedVectorRepFactory(
+    options->memtable_factory.reset(new SortedVectorRepFactory(
         env->vector_preallocation_size_in_bytes));
     break;
   //         // add linklist buffer

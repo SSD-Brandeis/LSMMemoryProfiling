@@ -185,7 +185,7 @@ int runWorkload(std::unique_ptr<DBEnv> &env)
   {
 #ifdef __linux__
     // std::cout << "Clearing system cache ...";
-    std::cerr << system("sudo h -c 'echo 3 >/proc/sys/vm/drop_caches'")
+    std::cerr << system("sudo sh -c 'echo 3 >/proc/sys/vm/drop_caches'")
               << "done" << std::endl;
 #endif
   }
@@ -306,7 +306,7 @@ int runWorkload(std::unique_ptr<DBEnv> &env)
 #endif // GET_TIMER
       // std::cout << "get operation: " << std::endl <<std::flush;
       s = db->Get(read_options, key, &value);
-      std::cout << "PQ key: " << key << " PQ value: " << value << std::endl <<std::flush;
+       (*buffer) << "PQ key: " << key << " PQ value: " << value << std::endl <<std::flush;
       // std::cout << "Key: " << key << std::endl;
 #ifdef GET_TIMER
       auto stop = std::chrono::high_resolution_clock::now();
