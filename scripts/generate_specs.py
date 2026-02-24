@@ -15,19 +15,19 @@ def build_specs(args):
             "key": {"uniform": {"len": key_size}},
             "val": {"uniform": {"len": val_size}},
         },
-        # "point_queries": {
-        #     "op_count": numexpr(args.point_queries),
-        # },
+        "point_queries": {
+            "op_count": numexpr(args.point_queries),
+        },
         # "updates": {
         #     "op_count": numexpr(args.updates),
         #     "val": {"uniform": {"len": val_size}},
         #     "selection": {"uniform": {"min": 0, "max": 1}},
         # },
-        # "range_queries": {
-        #     "op_count": numexpr(args.range_queries),
-        #     "selectivity": numexpr(args.range_selectivity),
-        #     "range_format": "StartEnd",
-        # },
+        "range_queries": {
+            "op_count": numexpr(args.range_queries),
+            "selectivity": numexpr(args.range_selectivity),
+            "range_format": "StartEnd",
+        },
         # "point_deletes": {
         #     "op_count": numexpr(args.point_deletes),
         # },

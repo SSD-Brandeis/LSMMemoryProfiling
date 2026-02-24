@@ -6,13 +6,13 @@ set -e
 # Config
 # -------------------------------
 # TAG="lsmbuffer-concurrent-write-off-WAL-0-compression-disabled-feb16"
-TAG="lsmbuffer-concurrent-write-off-WAL-0-compression-disabled-feb1_test"
+TAG="lsmbuffer-concurrent-write-off-WAL-0-compression-disabled-feb23_test"
 
 
 ENTRY_SIZE=128
 LAMBDA=0.125
 
-INSERTS=1000000
+INSERTS=10000
 UPDATES=0
 POINT_QUERIES=0
 POINT_DELETES=0
@@ -42,7 +42,7 @@ python3 ../../scripts/generate_specs.py \
 
 $TECTONIC generate -w "workload.specs.json"
 
-for mem in 1 2 3; do  # 4 <-- this is not finishing so
+for mem in 1 2 3 4 5 6 ; do  # 4 <-- this is not finishing so
     mkdir -p "buffer-$mem"
     echo "Running experiment in $buffer-$mem"
     cd "buffer-$mem"

@@ -14,8 +14,8 @@ set -e
 TAG="lsmbuffer-concurrent-write-off-WAL-0-compression-disabled-feb21_test"
 
 declare -A BUFFER_IMPLEMENTATIONS=(
-#   [1]="skiplist"
-  [2]="Vector"
+  [1]="skiplist"
+#   [2]="Vector"
 #   [3]="hash_skip_list"
 #   [4]="hash_linked_list"
 #   [5]="UnsortedVector"
@@ -30,8 +30,8 @@ INSERTS=100000
 UPDATES=0
 POINT_QUERIES=10
 POINT_DELETES=0
-RANGE_QUERIES=1
-SELECTIVITY=0.1
+RANGE_QUERIES=0
+SELECTIVITY=0
 RANGE_DELETES=0
 RANGE_DELETES_SEL=0
 
@@ -50,8 +50,14 @@ TECTONIC="${PROJECT_ROOT}/bin/tectonic-cli"
 ROCKSDB_EXE="${PROJECT_ROOT}/bin/rocksdb_experiment"
 WORKING_VERSION="${PROJECT_ROOT}/bin/working_version"
 
-# cmake -B defaultRDBbuild
+echo "Building RocksDB Experiment with C++20..."
+
+# Force the C++ standard to 20
+# cmake -B defaultRDBbuild -DCMAKE_CXX_STANDARD=20
 # cmake --build defaultRDBbuild -j$(nproc)
+
+cmake -B defaultRDBbuild
+cmake --build defaultRDBbuild -j$(nproc)
 
 mkdir -p "$BASE_EXP_DIR"
 cd "$BASE_EXP_DIR" || exit

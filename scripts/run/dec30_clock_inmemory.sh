@@ -16,11 +16,11 @@ TAG=dec30_clock_inmemory_exp4
 SETTINGS="lowpri_true"
 LOW_PRI=1
 
-INSERTS=450000
+INSERTS=100000
 UPDATES=0
-RANGE_QUERIES=0
-SELECTIVITY=0
-POINT_QUERIES=0
+RANGE_QUERIES=1
+SELECTIVITY=0.1
+POINT_QUERIES=10
 
 SIZE_RATIO=10
 
@@ -37,11 +37,13 @@ SANITY_CHECK=0
 
 declare -A BUFFER_IMPLEMENTATIONS=(
   [1]="skiplist"
-  # [2]="Vector"
-  # [3]="hash_skip_list"
-  # [4]="hash_linked_list"
-  # [5]="UnsortedVector"
-  # [6]="AlwayssortedVector"
+  [2]="Vector"
+  [3]="hash_skip_list"
+  [4]="hash_linked_list"
+  [5]="UnsortedVector"
+  [6]="AlwayssortedVector"
+  [7]="linkedlist"
+  [8]="simple_skiplist"
 )
 
 # === FUNCTION DEFINITION ===

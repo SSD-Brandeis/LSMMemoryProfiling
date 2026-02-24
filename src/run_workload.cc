@@ -292,6 +292,7 @@ int runWorkload(std::unique_ptr<DBEnv> &env)
       break;
     }
       // [ProbePointQuery]
+    case 'P':
     case 'Q':
     {
       std::string key, value;
@@ -305,7 +306,7 @@ int runWorkload(std::unique_ptr<DBEnv> &env)
 #endif // GET_TIMER
       // std::cout << "get operation: " << std::endl <<std::flush;
       s = db->Get(read_options, key, &value);
-      // std::cout << "PQ key: " << key << " PQ value: " << value << std::endl <<std::flush;
+      std::cout << "PQ key: " << key << " PQ value: " << value << std::endl <<std::flush;
       // std::cout << "Key: " << key << std::endl;
 #ifdef GET_TIMER
       auto stop = std::chrono::high_resolution_clock::now();
@@ -356,6 +357,7 @@ int runWorkload(std::unique_ptr<DBEnv> &env)
           break;
         }
         // std::cout << "Key: " << it->key().ToString() << std::endl;
+         (*buffer) << "Key: " << it->key().ToString() << std::endl;
         keys_returned++;
       }
       (*selectivity) << "keys_returned: " << keys_returned << ", selectivity: " << (keys_returned / env->num_inserts) << std::endl;
