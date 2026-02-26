@@ -1,17 +1,6 @@
 cmake_minimum_required(VERSION 3.10)
 project(LSMBufferAnalysis)
 
-include(FetchContent)
-
-FetchContent_Declare(
-  cxxopts
-  GIT_REPOSITORY https://github.com/jarro2783/cxxopts.git
-  GIT_TAG        v3.1.1
-  SOURCE_DIR     ${CMAKE_CURRENT_SOURCE_DIR}/lib/cxxopts
-)
-
-FetchContent_MakeAvailable(cxxopts)
-
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2")
 

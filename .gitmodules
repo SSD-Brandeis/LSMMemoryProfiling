@@ -9,6 +9,3 @@
 [submodule "lib/Tectonic"]
 	path = lib/Tectonic
 	url = https://github.com/SSD-Brandeis/Tectonic.git
-[submodule "lib/cxxopts"]
-	path = lib/cxxopts
-	url = https://github.com/jarro2783/cxxopts.git
