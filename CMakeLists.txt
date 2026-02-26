@@ -54,21 +54,9 @@ add_executable(working_version
     src/utils.cc
     src/run_workload.cc
     src/working_version.cc )
-add_executable(rocksdb_experiment  src/defaultRDB.cc)
-
-target_include_directories(rocksdb_experiment PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/lib/rocksdb/include
-    ${CMAKE_CURRENT_SOURCE_DIR}/lib/cxxopts/include
-)
-
 target_include_directories(working_version PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/lib/rocksdb/include
     ${CMAKE_CURRENT_SOURCE_DIR}/include
-)
-
-target_link_libraries(rocksdb_experiment PRIVATE
-    rocksdb
-    Threads::Threads
 )
 
 target_link_libraries(working_version PRIVATE
