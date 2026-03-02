@@ -18,11 +18,11 @@ def build_specs(args):
         "point_queries": {
             "op_count": numexpr(args.point_queries),
         },
-        # "updates": {
-        #     "op_count": numexpr(args.updates),
-        #     "val": {"uniform": {"len": val_size}},
-        #     "selection": {"uniform": {"min": 0, "max": 1}},
-        # },
+        "updates": {
+            "op_count": numexpr(args.updates),
+            "val": {"uniform": {"len": val_size}},
+            "selection": {"uniform": {"min": 0, "max": 1}},
+        },
         "range_queries": {
             "op_count": numexpr(args.range_queries),
             "selectivity": numexpr(args.range_selectivity),

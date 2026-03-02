@@ -67,8 +67,7 @@ reorder_workload() {
 }
 # ======================================
 
-echo 3 | sudo tee /proc/sys/vm/drop_caches
-sudo sysctl kernel.perf_event_paranoid=-1
+
 
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 LOAD_GEN="${PROJECT_DIR}/bin/load_gen"

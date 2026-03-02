@@ -250,7 +250,7 @@ int runWorkload(std::unique_ptr<DBEnv> &env)
 #ifdef DEFAULTTIMER
       auto stop = std::chrono::high_resolution_clock::now();
       auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
-      (*stats) << "InsertTime: " << duration.count() << std::endl;
+      // (*stats) << "InsertTime: " << duration.count() << std::endl;
       inserts_exec_time += duration.count();
 #endif // DEFAULTTIMER
       break;
@@ -268,7 +268,7 @@ int runWorkload(std::unique_ptr<DBEnv> &env)
 #ifdef DEFAULTTIMER
       auto stop = std::chrono::high_resolution_clock::now();
       auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
-      (*stats) << "UpdateTime: " << duration.count() << std::endl;
+      // (*stats) << "UpdateTime: " << duration.count() << std::endl;
       updates_exec_time += duration.count();
 #endif // DEFAULTTIMER
       break;
@@ -306,7 +306,7 @@ int runWorkload(std::unique_ptr<DBEnv> &env)
 #endif // GET_TIMER
       // std::cout << "get operation: " << std::endl <<std::flush;
       s = db->Get(read_options, key, &value);
-       (*buffer) << "PQ key: " << key << " PQ value: " << value << std::endl <<std::flush;
+      //  (*buffer) << "PQ key: " << key << " PQ value: " << value << std::endl <<std::flush;
       // std::cout << "Key: " << key << std::endl;
 #ifdef GET_TIMER
       auto stop = std::chrono::high_resolution_clock::now();
@@ -357,7 +357,7 @@ int runWorkload(std::unique_ptr<DBEnv> &env)
           break;
         }
         // std::cout << "Key: " << it->key().ToString() << std::endl;
-         (*buffer) << "Key: " << it->key().ToString() << std::endl;
+        //  (*buffer) << "Key: " << it->key().ToString() << std::endl;
         keys_returned++;
       }
       (*selectivity) << "keys_returned: " << keys_returned << ", selectivity: " << (keys_returned / env->num_inserts) << std::endl;
@@ -409,6 +409,7 @@ int runWorkload(std::unique_ptr<DBEnv> &env)
 
   (*buffer) << "=====================" << std::endl;
   (*buffer) << "Workload Execution Time: " << total_exec_time << std::endl;
+  
 #ifdef DEFAULTTIMER
 
   (*buffer) << "Inserts Execution Time: " << inserts_exec_time << std::endl;

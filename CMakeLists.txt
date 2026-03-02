@@ -2,7 +2,10 @@ cmake_minimum_required(VERSION 3.10)
 project(LSMBufferAnalysis)
 
 set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2")
+
+# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2" )
+
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -DDEFAULTTIMER ")
 
 find_package(Threads REQUIRED)
 
@@ -48,7 +51,11 @@ target_include_directories(working_version PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
-target_link_libraries(working_version PRIVATE
+target_link_libraries(working_version PRIVATE -DDEFAULTTIMER
     rocksdb
     Threads::Threads
 )
+# target_link_libraries(working_version PRIVATE 
+#     rocksdb
+#     Threads::Threads
+# )
