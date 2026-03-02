@@ -4,7 +4,7 @@ set -e
 
 # ==============================================================================
 # TAG="lsmbuffer-concurrent-write-off-WAL-0-compression-disabled-feb24_unsortedvectest"
-TAG="debug_update_noseq"
+TAG="debug_update_debug"
 RUN_PREALLOCATED=0
 
 declare -A BUFFER_IMPLEMENTATIONS=(
@@ -63,13 +63,13 @@ mkdir -p "$BASE_EXP_DIR"
 # ==============================================================================
 # 3. WORKLOAD GENERATION (Toggle between New and Old here)
 # ==============================================================================
-cd "$BASE_EXP_DIR"
+# cd "$BASE_EXP_DIR"
 # --- METHOD A: Python + Tectonic (NEW SCRIPT) ---
-# echo "Generating workload using Method A (Python + Tectonic)..."
-# python3 "$GEN_SCRIPT" \
-#     -I ${INSERTS} -U ${UPDATES} -Q ${POINT_QUERIES} -D ${POINT_DELETES} \
-#     -S ${RANGE_QUERIES} -Y ${SELECTIVITY} -R ${RANGE_DELETES} \
-#     -y ${RANGE_DELETES_SEL} -E ${ENTRY_SIZE} -L ${LAMBDA}
+echo "Generating workload using Method A (Python + Tectonic)..."
+python3 "$GEN_SCRIPT" \
+    -I ${INSERTS} -U ${UPDATES} -Q ${POINT_QUERIES} -D ${POINT_DELETES} \
+    -S ${RANGE_QUERIES} -Y ${SELECTIVITY} -R ${RANGE_DELETES} \
+    -y ${RANGE_DELETES_SEL} -E ${ENTRY_SIZE} -L ${LAMBDA}
 "$TECTONIC" generate -w "workload.specs.json"
 
 # --- METHOD B: load_gen (OLD SCRIPT) ---
@@ -79,9 +79,9 @@ cd "$BASE_EXP_DIR"
 #              -L "${LAMBDA}"
 
 
-# mv "$WORKLOAD_TXT" "workload.specs.json" "$BASE_EXP_DIR/"
+mv "$WORKLOAD_TXT" "workload.specs.json" "$BASE_EXP_DIR/"
 
-# cd "$BASE_EXP_DIR"
+cd "$BASE_EXP_DIR"
 
 # ==============================================================================
 # 4. EXECUTION LOOP
