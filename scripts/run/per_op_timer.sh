@@ -4,30 +4,31 @@ set -e
 
 # ==============================================================================
 # TAG="lsmbuffer-concurrent-write-off-WAL-0-compression-disabled-feb24_unsortedvectest"
-TAG="hashvec"
+# TAG="wall_clock"
+TAG="perop_clock"
 RUN_PREALLOCATED=0
 
 declare -A BUFFER_IMPLEMENTATIONS=(
-#   [1]="skiplist"
+  [1]="skiplist"
 #   [2]="vector"
 #   [3]="hash_skip_list"
 #   [4]="hash_linked_list"
-#   [5]="unsortedvector"
+  # [5]="unsortedvector"
 #   [6]="alwayssortedVector"
 #   [7]="linkedlist"
 #   [8]="simple_skiplist"
-  [9]="hash_vector"
-#   [10]="inplaceupdatesortedvector"
+#   [9]="hash_vector"
+  # [10]="inplaceupdatesortedvector"
 )
 
-ENTRY_SIZE=1024
+ENTRY_SIZE=128
 LAMBDA=0.125
-INSERTS=100000
+INSERTS=500000
 UPDATES=0
-POINT_QUERIES=10
+POINT_QUERIES=0
 POINT_DELETES=0
-RANGE_QUERIES=1
-SELECTIVITY=0.01
+RANGE_QUERIES=0
+SELECTIVITY=0
 RANGE_DELETES=0
 RANGE_DELETES_SEL=0
 
@@ -37,11 +38,12 @@ ENTRIES_PER_PAGE=$((PAGE_SIZE / ENTRY_SIZE))
 #512mb
 # PAGES_PER_FILE=131072
 #4mb
-PAGES_PER_FILE=2048
+# PAGES_PER_FILE=2048
+#128mb
+PAGES_PER_FILE=32768
 LOW_PRI=0
 
-# BUCKET_COUNTS=(1 5 10 100000) 
-BUCKET_COUNTS=(100000)
+BUCKET_COUNTS=(1 5 10 100000) 
 PREFIX_LENGTH=6
 THRESHOLD_TO_CONVERT_TO_SKIPLIST=${INSERTS}
 
@@ -64,11 +66,11 @@ mkdir -p "$BASE_EXP_DIR"
 # cd "$BASE_EXP_DIR"
 # --- METHOD A: tectonic ---
 # echo "Generating workload using Method A (Python + Tectonic)..."
-python3 "$GEN_SCRIPT" \
-    -I ${INSERTS} -U ${UPDATES} -Q ${POINT_QUERIES} -D ${POINT_DELETES} \
-    -S ${RANGE_QUERIES} -Y ${SELECTIVITY} -R ${RANGE_DELETES} \
-    -y ${RANGE_DELETES_SEL} -E ${ENTRY_SIZE} -L ${LAMBDA}
-"$TECTONIC" generate -w "workload.specs.json"
+# python3 "$GEN_SCRIPT" \
+#     -I ${INSERTS} -U ${UPDATES} -Q ${POINT_QUERIES} -D ${POINT_DELETES} \
+#     -S ${RANGE_QUERIES} -Y ${SELECTIVITY} -R ${RANGE_DELETES} \
+#     -y ${RANGE_DELETES_SEL} -E ${ENTRY_SIZE} -L ${LAMBDA}
+# "$TECTONIC" generate -w "workload.specs.json"
 
 # --- METHOD B: load_gen  ---
 # echo "Generating workload using Method B (load_gen)..."
@@ -77,7 +79,7 @@ python3 "$GEN_SCRIPT" \
 #              -L "${LAMBDA}"
 
 
-mv "$WORKLOAD_TXT" "workload.specs.json" "$BASE_EXP_DIR/"
+# mv "$WORKLOAD_TXT" "workload.specs.json" "$BASE_EXP_DIR/"
 
 cd "$BASE_EXP_DIR"
 
