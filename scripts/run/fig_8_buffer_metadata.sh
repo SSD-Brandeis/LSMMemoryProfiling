@@ -6,34 +6,36 @@ set -e
 # ==============================================================================
 # Powers: 6 (64KB), 8 (256KB), 10 (1MB), 12 (4MB), 14 (16MB), 16 (64MB), 18 (256MB), 20 (1GB)
 # BUFFER_SIZES_KB=(6 8 10 12 14 16 18 20)
-BUFFER_SIZES_KB=(14 16 18 20 )
-# BUFFER_SIZES_KB=( 18 20)
+
+# BUFFER_SIZES_KB=(18 20)
+BUFFER_SIZES_KB=(17)
 ENTRY_SIZE=128
+# ENTRY_SIZE=128
 PAGE_SIZE=4096
-# B = 4096 / 128 = 32. This ensures B*E is always 4KB.
+# B = 4096 / 32 = 128. This ensures B*E is always 4KB.
 ENTRIES_PER_PAGE=$((PAGE_SIZE / ENTRY_SIZE))
 
 # TAG="lsmbuffer-concurrent-write-off-WAL-0-compression-disabled-feb24_unsortedvectest"
-TAG="fig_8_metadata_varybuffer"
+TAG="fig_8_metadata_varybuffer_128MB"
 RUN_PREALLOCATED=0
 
 declare -A BUFFER_IMPLEMENTATIONS=(
 #   [1]="skiplist"
 #   [2]="vector"
 #   [3]="hash_skip_list"
-#   [4]="hash_linked_list"
+  [4]="hash_linked_list"
 #   [5]="unsortedvector"
 #   [6]="alwayssortedVector"
 #   [7]="linkedlist"
 #   [8]="simple_skiplist"
-  [9]="hash_vector"
+#   [9]="hash_vector"
 #   [10]="inplaceupdatesortedvector"
 )
 
-# Shared workload parameters
-LAMBDA=0.5
+
+LAMBDA=0.25
 # 8388608 fills a 1GB buffer exactly with 128B entries
-INSERTS=500000
+INSERTS=5050000
 UPDATES=0
 POINT_QUERIES=0
 POINT_DELETES=0
