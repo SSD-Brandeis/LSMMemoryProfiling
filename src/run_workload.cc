@@ -221,6 +221,8 @@ int runWorkload(std::unique_ptr<DBEnv> &env)
 
   std::string line;
   unsigned long ith_op = 0;
+  rocksdb::get_perf_context()->Reset();
+  rocksdb::get_iostats_context()->Reset();
   while (std::getline(workload_file, line))
   {
     if (line.empty())
@@ -385,6 +387,23 @@ int runWorkload(std::unique_ptr<DBEnv> &env)
     total_exec_time += std::chrono::duration_cast<std::chrono::nanoseconds>(stop_single - start_single).count();
 
     ith_op += 1;
+    #ifdef RESET
+    if (ith_op == 1000)
+    {
+      (*buffer) << "=====================" << std::endl;
+      (*buffer) << "Workload Execution Time: " << total_exec_time << std::endl;
+
+      (*buffer) << "Inserts Execution Time: " << inserts_exec_time << std::endl;
+      (*buffer) << "Updates Execution Time: " << updates_exec_time << std::endl;
+      (*buffer) << "PointQuery Execution Time: " << pq_exec_time << std::endl;
+      (*buffer) << "PointDelete Execution Time: " << pdelete_exec_time << std::endl;
+      (*buffer) << "RangeQuery Execution Time: " << rq_exec_time << std::endl;
+
+      PrintRocksDBPerfStats(env, buffer, options);
+      options.statistics->Reset();
+    }
+    #endif // RESET
+
     UpdateProgressBar(env, ith_op, total_operations,
                       (int)total_operations * 0.02);
     if (is_last_line)
@@ -394,7 +413,7 @@ int runWorkload(std::unique_ptr<DBEnv> &env)
 #ifdef PROFILE
   (*buffer) << "=====================" << std::endl;
   LogTreeState(db, buffer);
-  LogRocksDBStatistics(db, options, buffer);
+  // LogRocksDBStatistics(db, options, buffer);
 #endif // PROFILE
 
 #ifdef GET_TIMER
@@ -409,7 +428,7 @@ int runWorkload(std::unique_ptr<DBEnv> &env)
 
   (*buffer) << "=====================" << std::endl;
   (*buffer) << "Workload Execution Time: " << total_exec_time << std::endl;
-  
+
 #ifdef DEFAULTTIMER
 
   (*buffer) << "Inserts Execution Time: " << inserts_exec_time << std::endl;
