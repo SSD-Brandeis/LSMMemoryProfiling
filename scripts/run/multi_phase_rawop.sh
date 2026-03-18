@@ -191,7 +191,7 @@ done
 echo "------------------------------------------------"
 echo "All experiments finished. Cleaning up workload files..."
 
-Remove the master workload file in the current directory (BASE_EXP_DIR)
+# Remove the master workload file in the current directory (BASE_EXP_DIR)
 rm -f "$WORKLOAD_TXT"
 
 find . -maxdepth 2 -name "$WORKLOAD_TXT" -delete

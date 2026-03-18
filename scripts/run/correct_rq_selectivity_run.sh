@@ -21,7 +21,7 @@ ENTRY_SIZES=(1024)
 # LAMBDA=0.125  # keysize 128
 # keysize 8
 # LAMBDA = 8 / 1024 = 0.0078125
-LAMBDA=0.0078125 
+LAMBDA=0.0625
 PAGE_SIZES=(4096)
 
 THRESHOLD_TO_CONVERT_TO_SKIPLIST=${INSERTS}
@@ -32,8 +32,7 @@ declare -A BUFFER_IMPLEMENTATIONS=(
 # [2]="Vector"
   [3]="hash_skip_list"
   [4]="hash_linked_list"
-# [5]="UnsortedVector"
-# [6]="AlwayssortedVector"
+  [9]="hash_vector"
 )
 
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -45,7 +44,9 @@ cd "$RESULTS_DIR"
 
 for PAGE_SIZE in "${PAGE_SIZES[@]}"; do
   if   [ "$PAGE_SIZE" -eq 2048 ];  then PAGES_PER_FILE=4096
-  elif [ "$PAGE_SIZE" -eq 4096 ];  then PAGES_PER_FILE=131072
+  #128MB
+  elif [ "$PAGE_SIZE" -eq 4096 ];  then PAGES_PER_FILE=32768 
+  # elif [ "$PAGE_SIZE" -eq 4096 ];  then PAGES_PER_FILE=131072
   elif [ "$PAGE_SIZE" -eq 8192 ];  then PAGES_PER_FILE=1024
   elif [ "$PAGE_SIZE" -eq 16384 ]; then PAGES_PER_FILE=512
   elif [ "$PAGE_SIZE" -eq 32768 ]; then PAGES_PER_FILE=256

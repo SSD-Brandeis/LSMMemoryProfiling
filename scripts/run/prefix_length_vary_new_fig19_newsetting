@@ -1,0 +1,156 @@
+#!/bin/bash
+set -e
+
+# ==============================================================================
+# 1. Configuration & Parameters
+# ==============================================================================
+TAG="vary1to4prefix_tectonic_single_run"
+SETTINGS="lowpri_false"
+RESULTS_BASE_DIR=".results"
+
+RUN_PREALLOCATED=0
+
+BUFFER_SIZES_MB=(128)
+PAGE_SIZES=(4096)
+ENTRY_SIZES=(128)
+prefix_length_list=(1 2 3 4)
+fixed_bucket_count=100000
+
+INSERTS=900000
+UPDATES=0
+POINT_QUERIES=0
+RANGE_QUERIES=0
+SELECTIVITY=0
+LAMBDA=0.0625
+SIZE_RATIO=10
+LOW_PRI=0
+THRESHOLD_TO_CONVERT_TO_SKIPLIST=${INSERTS}
+
+declare -A BUFFER_IMPLEMENTATIONS=(
+  [1]="skiplist"
+  [2]="vector"
+  [3]="hash_skip_list"
+  [4]="hash_linked_list"
+  [9]="hash_vector"
+)
+
+PROJECT_ROOT=$(pwd)
+GEN_SCRIPT="${PROJECT_ROOT}/scripts/generate_specs.py"
+TECTONIC="${PROJECT_ROOT}/bin/tectonic-cli"
+WORKING_VERSION="${PROJECT_ROOT}/bin/working_version"
+REBUILD_SCRIPT="${PROJECT_ROOT}/scripts/rebuild.sh"
+
+# ==============================================================================
+# 2. Setup
+# ==============================================================================
+if [ -f "$REBUILD_SCRIPT" ]; then
+    bash "$REBUILD_SCRIPT"
+fi
+
+mkdir -p "${RESULTS_BASE_DIR}"
+
+# ==============================================================================
+# 3. Experiment Loops
+# ==============================================================================
+for BUFFER_MB in "${BUFFER_SIZES_MB[@]}"; do
+  BUFFER_LABEL="${BUFFER_MB}M"
+
+  for PAGE_SIZE in "${PAGE_SIZES[@]}"; do
+    PAGES_PER_FILE=$(( (BUFFER_MB * 1024 * 1024) / PAGE_SIZE ))
+
+    for ENTRY_SIZE in "${ENTRY_SIZES[@]}"; do
+      ENTRIES_PER_PAGE=$(( PAGE_SIZE / ENTRY_SIZE ))
+
+      EXP_DIR="${RESULTS_BASE_DIR}/${TAG}-${BUFFER_LABEL}-P${PAGE_SIZE}-E${ENTRY_SIZE}"
+      mkdir -p "${EXP_DIR}"
+      cd "${EXP_DIR}"
+
+      python3 "$GEN_SCRIPT" \
+          -I "${INSERTS}" -U "${UPDATES}" -Q "${POINT_QUERIES}" \
+          -S "${RANGE_QUERIES}" -Y "${SELECTIVITY}" \
+          -E "${ENTRY_SIZE}" -L "${LAMBDA}"
+      
+      "$TECTONIC" generate -w "workload.specs.json"
+      MASTER_WORKLOAD="$(pwd)/workload.txt"
+
+      for impl_idx in "${!BUFFER_IMPLEMENTATIONS[@]}"; do
+        impl_name="${BUFFER_IMPLEMENTATIONS[${impl_idx}]}"
+
+        # --- FIX: Check for "hash" FIRST to catch hash_vector ---
+        if [[ "$impl_name" == *"hash"* ]]; then
+          for PREFIX_LENGTH in "${prefix_length_list[@]}"; do
+            OUT_DIR="${impl_name}-X${PREFIX_LENGTH}-H${fixed_bucket_count}"
+            mkdir -p "${OUT_DIR}"
+            cp "$MASTER_WORKLOAD" "${OUT_DIR}/workload.txt"
+            cd "${OUT_DIR}"
+
+            echo "Running Hash-based: ${impl_name} [X=${PREFIX_LENGTH}]"
+            COMMON_ARGS=(
+              --memtable_factory="${impl_idx}"
+              -I "${INSERTS}" -U "${UPDATES}" -S "${RANGE_QUERIES}" -Y "${SELECTIVITY}"
+              -T "${SIZE_RATIO}" -P "${PAGES_PER_FILE}" -B "${ENTRIES_PER_PAGE}"
+              -E "${ENTRY_SIZE}" --bucket_count="${fixed_bucket_count}"
+              --prefix_length="${PREFIX_LENGTH}" --lowpri "${LOW_PRI}" --stat 1
+              --threshold_use_skiplist="${THRESHOLD_TO_CONVERT_TO_SKIPLIST}"
+            )
+            
+            "$WORKING_VERSION" "${COMMON_ARGS[@]}" > "run1.log"
+            
+            [ -f "db/LOG" ] && mv db/LOG "LOG1"
+            [ -f "workload.log" ] && mv workload.log "workload1.log"
+            rm -rf db && rm -f workload.txt && cd ..
+          done
+
+        # --- Then check for other Vector types (non-hash) ---
+        elif [[ "$impl_name" == *"vector"* ]]; then
+          modes=("dynamic")
+          [[ $RUN_PREALLOCATED -eq 1 ]] && modes+=("preallocated")
+
+          for mode in "${modes[@]}"; do
+            OUT_DIR="${impl_name}-${mode}"
+            mkdir -p "${OUT_DIR}"
+            cp "$MASTER_WORKLOAD" "${OUT_DIR}/workload.txt"
+            cd "${OUT_DIR}"
+
+            echo "Running Vector: ${impl_name} [${mode}]"
+            EXTRA_ARGS=""
+            [[ "$mode" == "dynamic" ]] && EXTRA_ARGS="-A 0"
+
+            "$WORKING_VERSION" --memtable_factory="${impl_idx}" \
+              -I "${INSERTS}" -U "${UPDATES}" -S "${RANGE_QUERIES}" -Y "${SELECTIVITY}" \
+              -T "${SIZE_RATIO}" -P "${PAGES_PER_FILE}" -B "${ENTRIES_PER_PAGE}" \
+              -E "${ENTRY_SIZE}" ${EXTRA_ARGS} --lowpri "${LOW_PRI}" --stat 1 \
+              > "run1.log"
+            
+            [ -f "db/LOG" ] && mv db/LOG "LOG1"
+            [ -f "workload.log" ] && mv workload.log "workload1.log"
+            rm -rf db && rm -f workload.txt && cd ..
+          done
+
+        # --- CASE 3: Standard (SkipList, etc.) ---
+        else
+          OUT_DIR="${impl_name}"
+          mkdir -p "${OUT_DIR}"
+          cp "$MASTER_WORKLOAD" "${OUT_DIR}/workload.txt"
+          cd "${OUT_DIR}"
+
+          echo "Running Standard: ${impl_name}"
+          "$WORKING_VERSION" --memtable_factory="${impl_idx}" \
+            -I "${INSERTS}" -U "${UPDATES}" -S "${RANGE_QUERIES}" -Y "${SELECTIVITY}" \
+            -T "${SIZE_RATIO}" -P "${PAGES_PER_FILE}" -B "${ENTRIES_PER_PAGE}" \
+            -E "${ENTRY_SIZE}" --lowpri "${LOW_PRI}" --stat 1 \
+            > "run1.log"
+          
+          [ -f "db/LOG" ] && mv db/LOG "LOG1"
+          [ -f "workload.log" ] && mv workload.log "workload1.log"
+          rm -rf db && rm -f workload.txt && cd ..
+        fi
+      done 
+
+      cd "${PROJECT_ROOT}"
+    done
+  done
+done
+
+echo "------------------------------------------------"
+echo "Experiment complete."

@@ -2,11 +2,11 @@
 
 RESULTS_DIR=".result"
 
-TAG=vary1to4prefixnew
+TAG=vary1to4prefixnew_fig18_316
 SETTINGS="lowpri_false"
 LOW_PRI=0
 
-INSERTS=500000
+INSERTS=5000
 UPDATES=0
 RANGE_QUERIES=0
 SELECTIVITY=0
@@ -23,7 +23,7 @@ PAGE_SIZES=(4096)
 
 
 # prefix_length_list=(2 4 6 8 10)
-prefix_length_list=(1 2 3 4)
+prefix_length_list=(1 2 3 4 5 6 7 8)
 
 fixed_bucket_count=100000
 
@@ -34,8 +34,8 @@ declare -A BUFFER_IMPLEMENTATIONS=(
   [2]="Vector"
   [3]="hash_skip_list"
   [4]="hash_linked_list"
-  # [5]="UnsortedVector"
-  # [6]="AlwayssortedVector"
+
+  [9]="hash_vector"
 )
 
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
