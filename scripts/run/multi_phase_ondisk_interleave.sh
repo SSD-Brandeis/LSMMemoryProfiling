@@ -4,7 +4,7 @@ set -e
 
 # ==============================================================================
 # TAG="lsmbuffer-concurrent-write-off-WAL-0-compression-disabled-feb24_unsortedvectest"
-TAG="multiphase_ondisk_setup1_t2"
+TAG="multiphase_ondisk_setup1_t10"
 RUN_PREALLOCATED=1
 
 declare -A BUFFER_IMPLEMENTATIONS=(
@@ -31,7 +31,7 @@ SELECTIVITY=0
 RANGE_DELETES=0
 RANGE_DELETES_SEL=0
 
-SIZE_RATIO=2
+SIZE_RATIO=10
 PAGE_SIZE=4096
 ENTRIES_PER_PAGE=$((PAGE_SIZE / ENTRY_SIZE))
 #512mb
