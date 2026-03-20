@@ -117,7 +117,9 @@ void configOptions(std::unique_ptr<DBEnv> &env, Options *options,
     break;
   case 9:
     options->memtable_factory.reset(
-        ROCKSDB_NAMESPACE::NewHashVectorRepFactory());
+        ROCKSDB_NAMESPACE::NewHashVectorRepFactory(
+          env->bucket_count
+        ));
   break;
 case 10:
     options->memtable_factory.reset(

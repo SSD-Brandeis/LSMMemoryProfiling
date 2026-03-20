@@ -13,7 +13,7 @@ RANGE_QUERIES=0
 SELECTIVITY=0
 POINT_QUERIES=0
 
-TAG="fig18_partc_single-I${INSERTS}"
+TAG="fig18_partc_single-I${INSERTS}_hashvec_makeup"
 SETTINGS="lowpri_false"
 LOW_PRI=0
 
@@ -28,10 +28,10 @@ PREFIX_LENGTH=6
 THRESHOLD_TO_CONVERT_TO_SKIPLIST=${INSERTS}
 
 declare -A BUFFER_IMPLEMENTATIONS=(
-  [1]="skiplist"
-  [2]="Vector"
-  [3]="hash_skip_list"
-  [4]="hash_linked_list"
+  # [1]="skiplist"
+  # [2]="Vector"
+  # [3]="hash_skip_list"
+  # [4]="hash_linked_list"
   [9]="hash_vector"
 )
 

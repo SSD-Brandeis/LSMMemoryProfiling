@@ -1,5 +1,4 @@
-mkdir -p /home/cc/LSMMemoryProfiling/.filter_result_feb24_linklist_insert
-
+mkdir -p /home/cc/LSMMemoryProfiling/.filter_result_mar16_commonprefix_fig19D
 rsync -av \
   --prune-empty-dirs \
   --include '*/' \
@@ -7,13 +6,13 @@ rsync -av \
   --exclude '.DS_Store' \
   --exclude 'Icon?' \
   --exclude 'stats.log' \
-  /home/cc/LSMMemoryProfiling/.results/ \
-  /home/cc/LSMMemoryProfiling/.filter_result_feb24_linklist_insert/
+  /home/cc/LSMMemoryProfiling/.result/ \
+  /home/cc/LSMMemoryProfiling/.filter_result_mar16_commonprefix_fig19D/
 
 
 
   # --exclude 'run1.log' \
   # --exclude 'run2.log' \
   # --exclude 'run3.log' \
-
+  # --exclude 'stats.log' \
 

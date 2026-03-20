@@ -320,7 +320,7 @@ int runWorkload(std::unique_ptr<DBEnv> &env)
 #ifdef DEFAULTTIMER
       auto stop = std::chrono::high_resolution_clock::now();
       auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
-      (*stats) << "GetTime: " << duration.count() << std::endl;
+      // (*stats) << "GetTime: " << duration.count() << std::endl;
       pq_exec_time += duration.count();
 #endif // DEFAULTTIMER
       break;
@@ -388,7 +388,7 @@ int runWorkload(std::unique_ptr<DBEnv> &env)
 
     ith_op += 1;
     #ifdef RESET
-    if (ith_op == 1000)
+    if (ith_op == 100000000)
     {
       (*buffer) << "=====================" << std::endl;
       (*buffer) << "Workload Execution Time: " << total_exec_time << std::endl;

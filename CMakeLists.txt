@@ -5,7 +5,7 @@ set(CMAKE_CXX_STANDARD 20)
 
 # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2" )
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -DDEFAULTTIMER ")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -DDEFAULTTIMER -DPROFILE -DRESET")
 
 find_package(Threads REQUIRED)
 
@@ -51,7 +51,7 @@ target_include_directories(working_version PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
-target_link_libraries(working_version PRIVATE -DDEFAULTTIMER
+target_link_libraries(working_version PRIVATE -DDEFAULTTIMER -DPROFILE -DRESET
     rocksdb
     Threads::Threads
 )

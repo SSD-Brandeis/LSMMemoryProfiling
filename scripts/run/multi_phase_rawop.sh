@@ -8,26 +8,26 @@ TAG="multiphase"
 RUN_PREALLOCATED=1
 
 declare -A BUFFER_IMPLEMENTATIONS=(
-  [1]="skiplist"
-  [2]="vector"
-  [3]="hash_skip_list"
-  [4]="hash_linked_list"
-  [5]="unsortedvector"
-  [6]="alwayssortedVector"
-  [7]="linkedlist"
-  [8]="simple_skiplist"
+#   [1]="skiplist"
+#   [2]="vector"
+#   [3]="hash_skip_list"
+#   [4]="hash_linked_list"
+#   [5]="unsortedvector"
+#   [6]="alwayssortedVector"
+#   [7]="linkedlist"
+#   [8]="simple_skiplist"
   [9]="hash_vector"
   # [10]="inplaceupdatesortedvector"
 )
 
 ENTRY_SIZE=128
 LAMBDA=0.0625
-INSERTS=740000
+INSERTS=100000
 UPDATES=0
-POINT_QUERIES=50000
+POINT_QUERIES=0
 POINT_DELETES=0
-RANGE_QUERIES=1000
-SELECTIVITY=0.1
+RANGE_QUERIES=0
+SELECTIVITY=0
 RANGE_DELETES=0
 RANGE_DELETES_SEL=0
 
@@ -61,10 +61,10 @@ mkdir -p "$BASE_EXP_DIR"
 # cd "$BASE_EXP_DIR"
 # --- METHOD A: tectonic ---
 echo "Generating workload using Method A (Python + Tectonic)..."
-# python3 "$GEN_SCRIPT" \
-#     -I ${INSERTS} -U ${UPDATES} -Q ${POINT_QUERIES} -D ${POINT_DELETES} \
-#     -S ${RANGE_QUERIES} -Y ${SELECTIVITY} -R ${RANGE_DELETES} \
-#     -y ${RANGE_DELETES_SEL} -E ${ENTRY_SIZE} -L ${LAMBDA}
+python3 "$GEN_SCRIPT" \
+    -I ${INSERTS} -U ${UPDATES} -Q ${POINT_QUERIES} -D ${POINT_DELETES} \
+    -S ${RANGE_QUERIES} -Y ${SELECTIVITY} -R ${RANGE_DELETES} \
+    -y ${RANGE_DELETES_SEL} -E ${ENTRY_SIZE} -L ${LAMBDA}
 
 # Check for spec file in current dir or results dir to allow toggling Python gen
 if [ -f "workload.specs.json" ]; then
