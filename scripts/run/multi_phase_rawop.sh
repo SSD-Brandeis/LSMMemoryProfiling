@@ -4,18 +4,18 @@ set -e
 
 # ==============================================================================
 # TAG="lsmbuffer-concurrent-write-off-WAL-0-compression-disabled-feb24_unsortedvectest"
-TAG="multiphase"
+TAG="multiphase_rawop"
 RUN_PREALLOCATED=1
 
 declare -A BUFFER_IMPLEMENTATIONS=(
-#   [1]="skiplist"
-#   [2]="vector"
-#   [3]="hash_skip_list"
-#   [4]="hash_linked_list"
-#   [5]="unsortedvector"
-#   [6]="alwayssortedVector"
-#   [7]="linkedlist"
-#   [8]="simple_skiplist"
+  [1]="skiplist"
+  [2]="vector"
+  [3]="hash_skip_list"
+  [4]="hash_linked_list"
+  [5]="unsortedvector"
+  [6]="alwayssortedVector"
+  [7]="linkedlist"
+  [8]="simple_skiplist"
   [9]="hash_vector"
   # [10]="inplaceupdatesortedvector"
 )
@@ -189,11 +189,9 @@ done
 
 
 echo "------------------------------------------------"
-echo "All experiments finished. Cleaning up workload files..."
+echo "All experiments finished. Cleaning up redundant workload copies..."
 
-# Remove the master workload file in the current directory (BASE_EXP_DIR)
-rm -f "$WORKLOAD_TXT"
+# Delete only the copies inside subdirectories, keeping the master file in BASE_EXP_DIR
+find . -mindepth 2 -name "$WORKLOAD_TXT" -delete
 
-find . -maxdepth 2 -name "$WORKLOAD_TXT" -delete
-
-echo "Cleanup complete."
+echo "Cleanup complete. Master workload preserved in $BASE_EXP_DIR."
