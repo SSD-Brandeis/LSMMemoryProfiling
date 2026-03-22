@@ -3,7 +3,7 @@ set -e
 RESULTS_DIR=".result"
 
 # TAG="rqcommonprefix_selectivity"
-TAG="testing"
+TAG="fig19ABCrerun"
 SETTINGS="lowpri_false"
 LOW_PRI=0
 
