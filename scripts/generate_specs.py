@@ -15,19 +15,16 @@ def build_specs(args):
             "key": {"uniform": {"len": key_size}},
             "val": {"uniform": {"len": val_size}},
         },
+    }
+    group2 = {
         "point_queries": {
             "op_count": numexpr(args.point_queries),
         },
-        "updates": {
-            "op_count": numexpr(args.updates),
-            "val": {"uniform": {"len": val_size}},
-            "selection": {"uniform": {"min": 0, "max": 1}},
-        },
-        "range_queries": {
-            "op_count": numexpr(args.range_queries),
-            "selectivity": numexpr(args.range_selectivity),
-            "range_format": "StartEnd",
-        },
+        # "updates": {
+        #     "op_count": numexpr(args.updates),
+        #     "val": {"uniform": {"len": val_size}},
+        #     "selection": {"uniform": {"min": 0, "max": 1}},
+        # },
         # "point_deletes": {
         #     "op_count": numexpr(args.point_deletes),
         # },
@@ -37,12 +34,25 @@ def build_specs(args):
         #     "range_format": "StartEnd",
         # },
     }
+    group3 = {
+        "range_queries": {
+            "op_count": numexpr(args.range_queries),
+            "selectivity": numexpr(args.range_selectivity),
+            "range_format": "StartEnd",
+        },
+    }
 
     group1 = {
         k: v for k, v in group1.items() if v and args.__dict__[k.replace("-", "_")] > 0
     }
+    group2 = {
+        k: v for k, v in group2.items() if v and args.__dict__[k.replace("-", "_")] > 0
+    }
+    group3 = {
+        k: v for k, v in group3.items() if v and args.__dict__[k.replace("-", "_")] > 0
+    }
 
-    return {"sections": [{"groups": [group1]}]}
+    return {"sections": [{"groups": [group1, group2, group3]}]}
 
 
 def main():

@@ -1,3 +1,5 @@
+#include <iostream>
+
 #include "event_listners.h"
 
 std::mutex mtx;
@@ -30,3 +32,9 @@ void FlushListner::OnFlushCompleted(DB* db, const FlushJobInfo& fji) {
   (*buffer_) << "[Flush Stats] raw_key_size: " << fji.table_properties.raw_key_size
             << ", raw_value_size: " << fji.table_properties.raw_value_size << std::endl;
 }
+
+void CompactionsListner::OnCompactionBegin(DB *db,
+                                           const CompactionJobInfo &ci) {}
+
+void CompactionsListner::OnCompactionCompleted(DB *db,
+                                               const CompactionJobInfo &ci) {}

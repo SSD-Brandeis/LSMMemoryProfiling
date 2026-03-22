@@ -6,28 +6,24 @@
 
 #include "buffer.h"
 
-namespace Default
-{
+namespace Default {
 
-  const unsigned int ENTRY_SIZE = 64;
-  const unsigned int ENTRIES_PER_PAGE = 64;
-  const unsigned int BUFFER_SIZE_IN_PAGES = 128;
+const unsigned int ENTRY_SIZE = 64;
+const unsigned int ENTRIES_PER_PAGE = 64;
+const unsigned int BUFFER_SIZE_IN_PAGES = 128;
 
-  const double SIZE_RATIO = 4;
-  const unsigned int FILE_TO_MEMTABLE_SIZE_RATIO = 1;
+const double SIZE_RATIO = 4;
+const unsigned int FILE_TO_MEMTABLE_SIZE_RATIO = 1;
 
-  // The default and the minimum number is 2
-  const int MAX_WRITE_BUFFER_NUMBER = 2;
-  const int LEVEL0_FILE_NUM_COMPACTION_TRIGGER = 1;
+// The default and the minimum number is 2
+const int MAX_WRITE_BUFFER_NUMBER = 2;
+const int LEVEL0_FILE_NUM_COMPACTION_TRIGGER = SIZE_RATIO;
 
-  // kMaxMultiTrivialMove, default is 4 for RocksDB
-  const size_t MAX_MULTI_TRIVIAL_MOVE = 4;
+// kMaxMultiTrivialMove, default is 4 for RocksDB
+const size_t MAX_MULTI_TRIVIAL_MOVE = 4;
 
-  const int MAX_OPEN_FILES = 50;
-  const int MAX_FILE_OPENING_THREADS = 80;
-
-  // const long VECTOR_PREALLOCATION_SIZE_IN_BYTES = 16777216;  // [16MB]
-  // const long VECTOR_PREALLOCATION_SIZE_IN_BYTES = ENTRY_SIZE * ENTRIES_PER_PAGE * BUFFER_SIZE_IN_PAGES;
+const int MAX_OPEN_FILES = 1000;
+const int MAX_FILE_OPENING_THREADS = 80;
 
 } // namespace Default
 
@@ -37,8 +33,7 @@ namespace Default
  *
  * For more information, look at options.h, advanced_options.h
  */
-class DBEnv
-{
+class DBEnv {
 private:
   DBEnv() = default;
   ~DBEnv() = default;
@@ -51,19 +46,18 @@ private:
   static std::mutex mutex_;
 
   // buffer size in bytes
-  size_t buffer_size_ = 0;          // [M]
-  bool enable_perf_ = true;         // [perf]
-  bool enable_iostat = true;        //[iostat]
-  bool enable_rocksdb_stats = true; //[stat]
-  bool destroy_database_ = true;    // [d]
-  bool show_progress_bar_ = true;   // [progress]
+  size_t buffer_size_ = 0;         // [M]
+  bool rocksdb_stats_ = false;     // [stat]
+  bool perf_stats_ = false;        // [perf]
+  bool iostat_stats_ = false;      // [iostat]
+  bool destroy_database_ = true;   // [d]
+  bool show_progress_bar_ = false; // [progress]
 
 public:
   static std::string kDBPath;
   static std::string kSavedDBPath;
 
-  static std::unique_ptr<DBEnv> GetInstance()
-  {
+  static std::unique_ptr<DBEnv> GetInstance() {
     std::lock_guard<std::mutex> lock(mutex_);
     if (instance_ == nullptr)
       instance_ = std::unique_ptr<DBEnv>(new DBEnv());
@@ -73,32 +67,28 @@ public:
   uint64_t GetBlockSize() const { return entries_per_page * entry_size; }
 
   void SetBufferSize(size_t buffer_size) { buffer_size_ = buffer_size; }
-  void SetPerf(bool value) { enable_perf_ = value; }
-  void SetIoStat(bool value) { enable_iostat = value; }
-  void SetRocksDBStats(bool value) { enable_rocksdb_stats = value; }
+  void SetRocksDBStat(bool value) { rocksdb_stats_ = value; }
+  void SetPerfStat(bool value) { perf_stats_ = value; }
+  void SetIOStat(bool value) { iostat_stats_ = value; }
   void SetDestroyDatabase(bool value) { destroy_database_ = value; }
   void SetShowProgress(bool value) { show_progress_bar_ = value; }
 
-  size_t GetBufferSize() const
-  {
+  size_t GetBufferSize() const {
     // usually buffer_size = P * B * E
     return buffer_size_ != 0
                ? buffer_size_
                : buffer_size_in_pages * entries_per_page * entry_size;
   }
-  bool IsPerfEnabled() const { return enable_perf_; }
-  bool IsIoStatEnabled() const { return enable_iostat; }
-  bool IsRocksDBStatsEnabled() const { return enable_rocksdb_stats; }
+  bool IsRocksDBStatEnabled() const { return rocksdb_stats_; }
+  bool IsPerfStatEnabled() const { return perf_stats_; }
+  bool IsIOStatEnabled() const { return iostat_stats_; }
   bool IsDestroyDatabaseEnabled() const { return destroy_database_; }
   bool IsShowProgressEnabled() const { return show_progress_bar_; }
 
   long GetTargetFileSizeBase() const { return GetBufferSize(); }
 
   // control maximum total data size for level base (i.e. level 1)
-  uint64_t GetMaxBytesForLevelBase() const
-  {
-    return GetTargetFileSizeBase() * size_ratio;
-  }
+  uint64_t GetMaxBytesForLevelBase() const { return GetTargetFileSizeBase(); }
 
 #pragma region[DBOptions]
   bool create_if_missing = true;
@@ -175,6 +165,11 @@ public:
    * 2 for vector
    * 3 for hash skip list
    * 4 for hash linked list
+   * 5 for unsorted vector
+   * 6 for sorted vector
+   * 7 for linked list
+   * 8 for simple skip list
+   * 9 for hash vector
    */
   uint16_t memtable_factory = 1; // [m]
 
@@ -200,7 +195,7 @@ public:
       Default::LEVEL0_FILE_NUM_COMPACTION_TRIGGER;
 
   // number of levels for this database
-  int num_levels = 20;
+  int num_levels = 10;
 
   // by default target_file_size_multiplier is 1, which means
   // by default files in different levels will have similar size.
@@ -437,6 +432,7 @@ public:
   uint32_t linklist_threshold_use_skiplist = 256;
 
   // refer memtable.h (VectorRepFactory)
+  // This size is computed in number of entries that can fit in buffer theoretically
   size_t vector_preallocation_size_in_bytes = 0;
 #pragma endregion // LSMMemoryBuffer
 };

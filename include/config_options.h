@@ -1,5 +1,4 @@
 #include <iostream>
-#include <rocksdb/db.h>
 #include <rocksdb/filter_policy.h>
 #include <rocksdb/iostats_context.h>
 #include <rocksdb/options.h>
@@ -37,6 +36,7 @@ void configOptions(std::unique_ptr<DBEnv> &env, Options *options,
       env->delete_obsolete_files_period_micros;
   options->allow_mmap_reads = env->allow_mmap_reads;
   options->allow_mmap_writes = env->allow_mmap_writes;
+  options->info_log_level = InfoLogLevel::INFO_LEVEL;
 #pragma endregion
 
   options->max_bytes_for_level_multiplier = env->size_ratio;
@@ -103,8 +103,8 @@ void configOptions(std::unique_ptr<DBEnv> &env, Options *options,
         new UnsortedVectorRepFactory(env->vector_preallocation_size_in_bytes));
     break;
   case 6:
-    options->memtable_factory.reset(new SortedVectorRepFactory(
-        env->vector_preallocation_size_in_bytes));
+    options->memtable_factory.reset(
+        new SortedVectorRepFactory(env->vector_preallocation_size_in_bytes));
     break;
   //         // add linklist buffer
   case 7:
@@ -116,14 +116,15 @@ void configOptions(std::unique_ptr<DBEnv> &env, Options *options,
         ROCKSDB_NAMESPACE::NewSimpleSkipListRepFactory());
     break;
   case 9:
-    options->memtable_factory.reset(
-        ROCKSDB_NAMESPACE::NewHashVectorRepFactory());
-  break;
-case 10:
-    options->memtable_factory.reset(
-        new InPlaceUpdateSortedVectorRepFactory(
-            env->vector_preallocation_size_in_bytes));
+    options->memtable_factory.reset(NewHashVectorRepFactory(env->bucket_count));
+    options->prefix_extractor.reset(
+        NewFixedPrefixTransform(env->prefix_length));
     break;
+    // case 10:
+    //     options->memtable_factory.reset(
+    //         new InPlaceUpdateSortedVectorRepFactory(
+    //             env->vector_preallocation_size_in_bytes));
+    //     break;
   default:
     std::cerr << "Error[" << __FILE__ << " : " << __LINE__
               << "]: Invalid memtable factory!" << std::endl;
@@ -348,32 +349,34 @@ case 10:
   flush_options->allow_write_stall = env->allow_write_stall;
 #pragma endregion // [FlushOptions]
 
-  if (env->IsPerfEnabled()) {
-    rocksdb::SetPerfLevel(
-        rocksdb::PerfLevel::kEnableTimeAndCPUTimeExceptForMutex);
+  options->statistics = rocksdb::CreateDBStatistics();
+  if (env->IsRocksDBStatEnabled()) {
+    options->statistics->set_stats_level(rocksdb::StatsLevel::kAll);
+  } else {
+    options->statistics->set_stats_level(rocksdb::StatsLevel::kDisableAll);
+  }
+
+  rocksdb::PerfLevel perf_level = rocksdb::PerfLevel::kDisable;
+
+  if (env->IsPerfStatEnabled()) {
+    perf_level = rocksdb::PerfLevel::kEnableTimeAndCPUTimeExceptForMutex;
+  } else if (env->IsIOStatEnabled()) {
+    perf_level = rocksdb::PerfLevel::kEnableCount;
+  }
+
+  rocksdb::SetPerfLevel(perf_level);
+
+  if (env->IsPerfStatEnabled()) {
     rocksdb::get_perf_context()->Reset();
     rocksdb::get_perf_context()->ClearPerLevelPerfContext();
     rocksdb::get_perf_context()->EnablePerLevelPerfContext();
   } else {
-    rocksdb::SetPerfLevel(rocksdb::PerfLevel::kDisable);
+    rocksdb::get_perf_context()->DisablePerLevelPerfContext();
   }
-  if (env->IsIoStatEnabled()) {
+
+  if (env->IsIOStatEnabled()) {
     rocksdb::get_iostats_context()->Reset();
   } else {
     rocksdb::get_iostats_context()->disable_iostats = true;
   }
-  if (env->IsRocksDBStatsEnabled()) {
-    options->statistics.reset();
-    options->statistics = rocksdb::CreateDBStatistics();
-  } else {
-    options->statistics.reset();
-  }
-
-  // NOTE: Keep this block in last of this file
-#ifdef DOSTO
-  std::shared_ptr<FluidLSM> tree = std::make_shared<FluidLSM>(
-      env->size_ratio, env->smaller_lvl_runs_count, env->larger_lvl_runs_count,
-      env->GetTargetFileSizeBase(), options);
-  options->listeners.emplace_back(tree);
-#endif // DOSTO
 }
