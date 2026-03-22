@@ -120,6 +120,8 @@ void configOptions(std::unique_ptr<DBEnv> &env, Options *options,
         ROCKSDB_NAMESPACE::NewHashVectorRepFactory(
           env->bucket_count
         ));
+    options->prefix_extractor.reset(
+      NewFixedPrefixTransform(env->prefix_length));
   break;
 case 10:
     options->memtable_factory.reset(
