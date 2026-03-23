@@ -4,7 +4,10 @@ set -e
 # Rebuild before starting
 bash ./scripts/rebuild.sh
 
-RESULTS_DIR=".result"
+# --- Configuration & Paths ---
+# Navigate to the project root relative to this script's location
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_DIR="$(cd "${SCRIPT_DIR}/../../" && pwd)"
 
 # --- Parameters ---
 INSERTS=800000 
