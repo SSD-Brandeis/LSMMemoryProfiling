@@ -4,7 +4,11 @@ set -e
 
 # ==============================================================================
 # TAG="lsmbuffer-concurrent-write-off-WAL-0-compression-disabled-feb24_unsortedvectest"
+<<<<<<< Updated upstream
 TAG="multiphase_ondisk_setup2_t2"
+=======
+TAG="multiphase_ondisk_setup2_t10"
+>>>>>>> Stashed changes
 RUN_PREALLOCATED=1
 
 declare -A BUFFER_IMPLEMENTATIONS=(
@@ -60,7 +64,16 @@ RANGE_DELETES_SEL=0
 SIZE_RATIO=2
 PAGE_SIZE=4096
 ENTRIES_PER_PAGE=$((PAGE_SIZE / ENTRY_SIZE))
+<<<<<<< Updated upstream
 
+=======
+#512mb
+# PAGES_PER_FILE=131072
+#128MB
+# PAGES_PER_FILE=32768 
+# 32MB
+# PAGES_PER_FILE=8192
+>>>>>>> Stashed changes
 #1MB
 PAGES_PER_FILE=256
 LOW_PRI=1
@@ -101,7 +114,7 @@ else
     exit 1
 fi
 
-# "$TECTONIC" generate -w "$SPEC_PATH"
+"$TECTONIC" generate -w "$SPEC_PATH"
 
 # --- METHOD B: load_gen  ---
 # echo "Generating workload using Method B (load_gen)..."
