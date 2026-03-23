@@ -133,7 +133,8 @@ std::string buffer_file = "workload.log";
 std::string stats_file = "stats.log";
 // std::string selectvity_file = "selectivity.log";
 
-int runWorkload(std::unique_ptr<DBEnv> &env) {
+int runWorkload(std::unique_ptr<DBEnv> &env)
+{
   // preprocess_workload_inplace(env);
   DB *db;
   Options options;
@@ -158,7 +159,8 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
       std::make_shared<FlushListner>(buffer);
   options.listeners.emplace_back(flush_listener);
 
-  if (env->IsDestroyDatabaseEnabled()) {
+  if (env->IsDestroyDatabaseEnabled())
+  {
     DestroyDB(env->kDBPath, options);
     std::cerr << "Destroying database ... done" << std::endl;
   }
@@ -171,7 +173,8 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
   assert(s.ok());
 
   // Clearing the system cache
-  if (env->clear_system_cache) {
+  if (env->clear_system_cache)
+  {
 #ifdef __linux__
     std::cerr << "Clearing system cache ...";
     std::cerr << system("sudo sh -c 'echo 3 >/proc/sys/vm/drop_caches'")
@@ -184,9 +187,11 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
   assert(workload_file);
 
   size_t total_operations = 0;
-  if (env->IsShowProgressEnabled()) {
+  if (env->IsShowProgressEnabled())
+  {
     std::string line;
-    while (std::getline(workload_file, line)) {
+    while (std::getline(workload_file, line))
+    {
       ++total_operations;
     }
   }
@@ -210,7 +215,8 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
 
   std::string line;
   unsigned long ith_op = 0;
-  while (std::getline(workload_file, line)) {
+  while (std::getline(workload_file, line))
+  {
     if (line.empty())
       break;
     bool is_last_line = (workload_file.peek() == EOF);
@@ -219,9 +225,11 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
     char operation;
     stream >> operation;
 
-    switch (operation) {
+    switch (operation)
+    {
       // [Insert]
-    case 'I': {
+    case 'I':
+    {
       std::string key, value;
       stream >> key >> value;
 
@@ -239,7 +247,8 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
       break;
     }
       // [Update]
-    case 'U': {
+    case 'U':
+    {
       std::string key, value;
       stream >> key >> value;
 
@@ -257,7 +266,8 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
       break;
     }
       // [PointDelete]
-    case 'D': {
+    case 'D':
+    {
       std::string key;
       stream >> key;
 
@@ -276,7 +286,8 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
     }
       // [ProbePointQuery]
     case 'P':
-    case 'Q': {
+    case 'Q':
+    {
       std::string key, value;
       stream >> key;
 
@@ -303,22 +314,26 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
       break;
     }
       // [ScanRangeQuery]
-    case 'S': {
+    case 'S':
+    {
       std::string start_key, end_key;
       stream >> start_key >> end_key;
 
       uint64_t keys_returned = 0, keys_read = 0;
       ReadOptions scan_read_options = ReadOptions(read_options);
-      
+
       // based on the prefix length X.
       // read X character from the start and end key
       // if both are identical, then set the total_order_seek to false. Otherwise, set it to true.
       const size_t prefix_length = (env->prefix_length > 0) ? (size_t)env->prefix_length : 0;
 
       if (prefix_length > 0 && start_key.length() >= prefix_length && end_key.length() >= prefix_length &&
-          start_key.compare(0, prefix_length, end_key, 0, prefix_length) == 0) {
+          start_key.compare(0, prefix_length, end_key, 0, prefix_length) == 0)
+      {
         scan_read_options.total_order_seek = false;
-      } else {
+      }
+      else
+      {
         scan_read_options.total_order_seek = true;
       }
 
@@ -329,8 +344,10 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
       auto start = std::chrono::high_resolution_clock::now();
 #endif // PER_OP_TIMER
 
-      for (it->Seek(start_key); it->Valid(); it->Next()) {
-        if (it->key().ToString() >= end_key) {
+      for (it->Seek(start_key); it->Valid(); it->Next())
+      {
+        if (it->key().ToString() >= end_key)
+        {
           break;
         }
         // std::cout << "Key: " << it->key().ToString()
@@ -338,8 +355,10 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
         // keys_returned++;
       }
       // (*selectivity) << "keys_returned: " << keys_returned << ", selectivity: " << (keys_returned / (double)env->num_inserts) << std::endl;
-      if (!it->status().ok()) {
-        (*buffer) << it->status().ToString() << std::endl << std::flush;
+      if (!it->status().ok())
+      {
+        (*buffer) << it->status().ToString() << std::endl
+                  << std::flush;
       }
       // std::cout << "Total Keys Returned: " << keys_returned << std::endl;
 #ifdef PER_OP_TIMER
@@ -353,7 +372,8 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
       break;
     }
     // [RangeDelete]
-    case 'R': {
+    case 'R':
+    {
       std::string start_key, end_key;
       stream >> start_key >> end_key;
       s = db->DeleteRange(write_options, start_key, end_key);
@@ -365,26 +385,79 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
     }
 
     ith_op += 1;
-    #ifdef RESET
+#ifdef RESET
+
     if (ith_op == 1000000)
     {
       auto now = std::chrono::high_resolution_clock::now();
       auto elapsed_so_far = std::chrono::duration_cast<std::chrono::nanoseconds>(now - exec_start).count();
       (*buffer) << "=====================" << std::endl;
       (*buffer) << "Workload Execution Time: " << elapsed_so_far << std::endl;
-      // (*buffer) << "Workload Execution Time: " << total_exec_time << std::endl;
-
       (*buffer) << "Inserts Execution Time: " << inserts_exec_time << std::endl;
       (*buffer) << "Updates Execution Time: " << updates_exec_time << std::endl;
       (*buffer) << "PointQuery Execution Time: " << pq_exec_time << std::endl;
       (*buffer) << "PointDelete Execution Time: " << pdelete_exec_time << std::endl;
       (*buffer) << "RangeQuery Execution Time: " << rq_exec_time << std::endl;
-
       PrintRocksDBPerfStats(env, buffer, options);
-      options.statistics->Reset();
+      options.statistics.reset();
       options.statistics = rocksdb::CreateDBStatistics();
+      db->Close();
+      if (env->IsRocksDBStatEnabled())
+      {
+        options.statistics->set_stats_level(rocksdb::StatsLevel::kAll);
+      }
+      else
+      {
+        options.statistics->set_stats_level(rocksdb::StatsLevel::kDisableAll);
+      }
+
+      rocksdb::PerfLevel perf_level = rocksdb::PerfLevel::kDisable;
+
+      if (env->IsPerfStatEnabled())
+      {
+        perf_level = rocksdb::PerfLevel::kEnableTimeAndCPUTimeExceptForMutex;
+      }
+      else if (env->IsIOStatEnabled())
+      {
+        perf_level = rocksdb::PerfLevel::kEnableCount;
+      }
+
+      rocksdb::SetPerfLevel(perf_level);
+
+      if (env->IsPerfStatEnabled())
+      {
+        rocksdb::get_perf_context()->Reset();
+        rocksdb::get_perf_context()->ClearPerLevelPerfContext();
+        rocksdb::get_perf_context()->EnablePerLevelPerfContext();
+      }
+      else
+      {
+        rocksdb::get_perf_context()->DisablePerLevelPerfContext();
+      }
+
+      if (env->IsIOStatEnabled())
+      {
+        rocksdb::get_iostats_context()->Reset();
+      }
+      else
+      {
+        rocksdb::get_iostats_context()->disable_iostats = true;
+      }
+      auto reopen = DB::Open(options, env->kDBPath, &db);
+      if (!reopen.ok())
+      {
+        std::cerr << reopen.ToString() << std::endl;
+      }
+      assert(reopen.ok());
+
+      inserts_exec_time = 0;
+      updates_exec_time = 0;
+      pq_exec_time = 0;
+      pdelete_exec_time = 0;
+      rq_exec_time = 0;
+      exec_start = std::chrono::high_resolution_clock::now();
     }
-    #endif // RESET
+#endif // RESET
     UpdateProgressBar(env, ith_op, total_operations,
                       (int)total_operations * 0.02);
     if (is_last_line)
@@ -420,7 +493,6 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
 
   // tree->BuildStructure(db); //rebuild structure after each input
   // tree->PrintFluidLSM(db);
-  PrintRocksDBPerfStats(env, buffer, options);
   // close db
   if (!s.ok())
     std::cerr << s.ToString() << std::endl;
@@ -429,8 +501,8 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
   if (!s.ok())
     std::cerr << s.ToString() << std::endl;
   assert(s.ok());
-  
-  // PrintRocksDBPerfStats(env, buffer, options);
+
+  PrintRocksDBPerfStats(env, buffer, options);
   table_options.block_cache.reset();
   options.table_factory.reset();
 
