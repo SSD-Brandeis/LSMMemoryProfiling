@@ -10,8 +10,8 @@
 #include "config_options.h"
 #include "utils.h"
 
-// +++  common prefix exp +++
-//  generate a random key of a given length
+// // +++  common prefix exp +++
+// //  generate a random key of a given length
 // std::string generate_random_key(size_t length)
 // {
 //   static const char charset[] =
@@ -34,7 +34,7 @@
 // void preprocess_workload_inplace(std::unique_ptr<DBEnv> &env)
 // {
 //   // remember to set this in .sh script bro if we are running common preifix config exp
-//   // const char* common_prefix_env = std::getenv("COMMON_PREFIX_C");
+//   const char* common_prefix_env = std::getenv("COMMON_PREFIX_C");
 //   if (common_prefix_env == nullptr) {
 //       return;
 //   }
@@ -50,7 +50,7 @@
 //   if (c < 0) return;
 //   // this is for randomly generate RQ for prefix length exp.
 //   // Use the prefix_length from the command-line argument as the trigger
-//   int c = env->prefix_length;
+//   c = env->prefix_length;
 
 //   // If prefix_length is  negative, skip preprocessing.
 //   //
@@ -127,7 +127,7 @@
 //   }
 //   workload_out.close();
 // }
-// +++ END of common prefix exp +++
+// // +++ END of common prefix exp +++
 
 std::string buffer_file = "workload.log";
 std::string stats_file = "stats.log";
@@ -368,8 +368,11 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
     #ifdef RESET
     if (ith_op == 100000000)
     {
+      auto now = std::chrono::high_resolution_clock::now();
+      auto elapsed_so_far = std::chrono::duration_cast<std::chrono::nanoseconds>(now - exec_start).count();
       (*buffer) << "=====================" << std::endl;
-      (*buffer) << "Workload Execution Time: " << total_exec_time << std::endl;
+      (*buffer) << "Workload Execution Time: " << elapsed_so_far << std::endl;
+      // (*buffer) << "Workload Execution Time: " << total_exec_time << std::endl;
 
       (*buffer) << "Inserts Execution Time: " << inserts_exec_time << std::endl;
       (*buffer) << "Updates Execution Time: " << updates_exec_time << std::endl;
