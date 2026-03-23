@@ -4,7 +4,7 @@ set -e
 
 # ==============================================================================
 # TAG="lsmbuffer-concurrent-write-off-WAL-0-compression-disabled-feb24_unsortedvectest"
-TAG="multiphase_ondisk_setup1_t10"
+TAG="multiphase_ondisk_setup2_t2"
 RUN_PREALLOCATED=1
 
 declare -A BUFFER_IMPLEMENTATIONS=(
@@ -20,6 +20,32 @@ declare -A BUFFER_IMPLEMENTATIONS=(
 
 )
 
+#setup1_t10_32mb
+# ENTRY_SIZE=32
+# LAMBDA=0.25
+# INSERTS=100000000
+# UPDATES=0
+# POINT_QUERIES=10000
+# POINT_DELETES=0
+# RANGE_QUERIES=0
+# SELECTIVITY=0
+# RANGE_DELETES=0
+# RANGE_DELETES_SEL=0
+
+# SIZE_RATIO=10
+# PAGE_SIZE=4096
+# ENTRIES_PER_PAGE=$((PAGE_SIZE / ENTRY_SIZE))
+# #512mb
+# # PAGES_PER_FILE=131072
+# #128MB
+# # PAGES_PER_FILE=32768 
+# #32MB
+# PAGES_PER_FILE=8192
+# LOW_PRI=1
+
+# THRESHOLD_TO_CONVERT_TO_SKIPLIST=${INSERTS}
+
+#setup2_t2_1mb
 ENTRY_SIZE=32
 LAMBDA=0.25
 INSERTS=100000000
@@ -31,15 +57,12 @@ SELECTIVITY=0
 RANGE_DELETES=0
 RANGE_DELETES_SEL=0
 
-SIZE_RATIO=10
+SIZE_RATIO=2
 PAGE_SIZE=4096
 ENTRIES_PER_PAGE=$((PAGE_SIZE / ENTRY_SIZE))
-#512mb
-# PAGES_PER_FILE=131072
-#128MB
-# PAGES_PER_FILE=32768 
-#32MB
-PAGES_PER_FILE=8192
+
+#1MB
+PAGES_PER_FILE=256
 LOW_PRI=1
 
 THRESHOLD_TO_CONVERT_TO_SKIPLIST=${INSERTS}
@@ -63,10 +86,10 @@ mkdir -p "$BASE_EXP_DIR"
 # cd "$BASE_EXP_DIR"
 # --- METHOD A: tectonic ---
 echo "Generating workload using Method A (Python + Tectonic)..."
-# python3 "$GEN_SCRIPT" \
-#     -I ${INSERTS} -U ${UPDATES} -Q ${POINT_QUERIES} -D ${POINT_DELETES} \
-#     -S ${RANGE_QUERIES} -Y ${SELECTIVITY} -R ${RANGE_DELETES} \
-#     -y ${RANGE_DELETES_SEL} -E ${ENTRY_SIZE} -L ${LAMBDA}
+python3 "$GEN_SCRIPT" \
+    -I ${INSERTS} -U ${UPDATES} -Q ${POINT_QUERIES} -D ${POINT_DELETES} \
+    -S ${RANGE_QUERIES} -Y ${SELECTIVITY} -R ${RANGE_DELETES} \
+    -y ${RANGE_DELETES_SEL} -E ${ENTRY_SIZE} -L ${LAMBDA}
 
 # Check for spec file in current dir or results dir to allow toggling Python gen
 if [ -f "workload.specs.json" ]; then
@@ -194,6 +217,6 @@ echo "------------------------------------------------"
 echo "All experiments finished. Cleaning up workload copies..."
 
 
-find . -name "$WORKLOAD_TXT" -delete
+find . -mindepth 2 -name "$WORKLOAD_TXT" -delete
 
 echo "Cleanup complete."
