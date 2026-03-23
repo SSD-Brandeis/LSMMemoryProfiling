@@ -366,7 +366,7 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
 
     ith_op += 1;
     #ifdef RESET
-    if (ith_op == 100000000)
+    if (ith_op == 1000000)
     {
       auto now = std::chrono::high_resolution_clock::now();
       auto elapsed_so_far = std::chrono::duration_cast<std::chrono::nanoseconds>(now - exec_start).count();
@@ -420,6 +420,7 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
 
   // tree->BuildStructure(db); //rebuild structure after each input
   // tree->PrintFluidLSM(db);
+  PrintRocksDBPerfStats(env, buffer, options);
   // close db
   if (!s.ok())
     std::cerr << s.ToString() << std::endl;
@@ -428,8 +429,8 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
   if (!s.ok())
     std::cerr << s.ToString() << std::endl;
   assert(s.ok());
-
-  PrintRocksDBPerfStats(env, buffer, options);
+  
+  // PrintRocksDBPerfStats(env, buffer, options);
   table_options.block_cache.reset();
   options.table_factory.reset();
 

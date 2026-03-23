@@ -4,25 +4,25 @@ set -e
 
 # ==============================================================================
 # TAG="lsmbuffer-concurrent-write-off-WAL-0-compression-disabled-feb24_unsortedvectest"
-TAG="multiphase_rawop"
+TAG="multiphase_rawop_makeuprun_mar22"
 RUN_PREALLOCATED=1
 
 declare -A BUFFER_IMPLEMENTATIONS=(
-  [1]="skiplist"
-  [2]="vector"
-  [3]="hash_skip_list"
-  [4]="hash_linked_list"
+#   [1]="skiplist"
+#   [2]="vector"
+#   [3]="hash_skip_list"
+#   [4]="hash_linked_list"
   [5]="unsortedvector"
-  [6]="alwayssortedVector"
-  [7]="linkedlist"
-  [8]="simple_skiplist"
-  [9]="hash_vector"
-  # [10]="inplaceupdatesortedvector"
+#   [6]="alwayssortedVector"
+#   [7]="linkedlist"
+#   [8]="simple_skiplist"
+#   [9]="hash_vector"
+
 )
 
 ENTRY_SIZE=128
 LAMBDA=0.0625
-INSERTS=100000
+INSERTS=2000000
 UPDATES=0
 POINT_QUERIES=0
 POINT_DELETES=0
