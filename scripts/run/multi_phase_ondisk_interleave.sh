@@ -9,14 +9,14 @@ RUN_PREALLOCATED=1
 
 declare -A BUFFER_IMPLEMENTATIONS=(
   [1]="skiplist"
-  [2]="vector"
-  [3]="hash_skip_list"
-  [4]="hash_linked_list"
-  [5]="unsortedvector"
-  [6]="alwayssortedVector"
-  [7]="linkedlist"
-  [8]="simple_skiplist"
-  [9]="hash_vector"
+#   [2]="vector"
+#   [3]="hash_skip_list"
+#   [4]="hash_linked_list"
+#   [5]="unsortedvector"
+#   [6]="alwayssortedVector"
+#   [7]="linkedlist"
+#   [8]="simple_skiplist"
+#   [9]="hash_vector"
 
 )
 
@@ -24,7 +24,7 @@ ENTRY_SIZE=32
 LAMBDA=0.25
 INSERTS=100000000
 UPDATES=0
-POINT_QUERIES=0
+POINT_QUERIES=10000
 POINT_DELETES=0
 RANGE_QUERIES=0
 SELECTIVITY=0
@@ -78,7 +78,7 @@ else
     exit 1
 fi
 
-"$TECTONIC" generate -w "$SPEC_PATH"
+# "$TECTONIC" generate -w "$SPEC_PATH"
 
 # --- METHOD B: load_gen  ---
 # echo "Generating workload using Method B (load_gen)..."
@@ -87,11 +87,11 @@ fi
 #              -L "${LAMBDA}"
 
 
-# Move files to results dir if they were freshly generated in the root
-[ -f "$WORKLOAD_TXT" ] && mv "$WORKLOAD_TXT" "$BASE_EXP_DIR/"
+# Copy files to results dir (keeps workload.txt in project root)
+[ -f "$WORKLOAD_TXT" ] && cp "$WORKLOAD_TXT" "$BASE_EXP_DIR/"
 [ -f "workload.specs.json" ] && mv "workload.specs.json" "$BASE_EXP_DIR/"
 
-# Source of truth for all buffer runs
+
 MASTER_WORKLOAD="$PROJECT_ROOT/$BASE_EXP_DIR/$WORKLOAD_TXT"
 
 cd "$BASE_EXP_DIR"
@@ -191,11 +191,9 @@ done
 
 
 echo "------------------------------------------------"
-echo "All experiments finished. Cleaning up workload files..."
+echo "All experiments finished. Cleaning up workload copies..."
 
-# Remove the master workload file in the current directory (BASE_EXP_DIR)
-rm -f "$WORKLOAD_TXT"
 
-find . -maxdepth 2 -name "$WORKLOAD_TXT" -delete
+find . -name "$WORKLOAD_TXT" -delete
 
 echo "Cleanup complete."
