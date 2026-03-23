@@ -10,8 +10,8 @@ void UpdateProgressBar(std::unique_ptr<DBEnv> &env, size_t current,
                        size_t bar_width = 50);
 
 #ifdef PROFILE
-void LogTreeState(rocksdb::DB *db, std::shared_ptr<Buffer> &buffer);
-void LogRocksDBStatistics(rocksdb::DB *db, const rocksdb::Options &options,
-                          std::shared_ptr<Buffer> &buffer);
+void LogTreeState(rocksdb::DB *db, std::shared_ptr<Buffer> &buffer, std::unique_ptr<DBEnv> &env);
+// void LogRocksDBStatistics(rocksdb::DB *db, const rocksdb::Options &options,
+//                           std::shared_ptr<Buffer> &buffer);
 #endif // PROFILE
 #endif // UTILS_H_

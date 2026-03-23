@@ -13,14 +13,12 @@
 using namespace rocksdb;
 
 template <typename T>
-void PrintColumn(T value, int width, std::shared_ptr<Buffer> &buffer)
-{
+void PrintColumn(T value, int width, std::shared_ptr<Buffer> &buffer) {
   (*buffer) << std::setfill(' ') << std::setw(width) << value;
 }
 
 void PrintExperimentalSetup(std::unique_ptr<DBEnv> &env,
-                            std::shared_ptr<Buffer> &buffer)
-{
+                            std::shared_ptr<Buffer> &buffer) {
   constexpr int colWidth = 10;
   constexpr int smallColWidth = 4;
 
@@ -52,62 +50,54 @@ void PrintExperimentalSetup(std::unique_ptr<DBEnv> &env,
 }
 
 void PrintRocksDBPerfStats(std::unique_ptr<DBEnv> &env,
-                           std::shared_ptr<Buffer> &buffer, Options options)
-{
-  if (env->IsPerfEnabled())
-  {
-    (*buffer) << "[Perf Context]\n";
-    (*buffer) << rocksdb::get_perf_context()->ToString(true) << "\n";
-  }
-  if (env->IsIoStatEnabled())
-  {
-    (*buffer) << "\n[IO Stats Context]\n";
-    (*buffer) << rocksdb::get_iostats_context()->ToString(true) << "\n";
-  }
-  if (env->IsRocksDBStatsEnabled())
-  {
+                           std::shared_ptr<Buffer> &buffer, Options options) {
+  if (env->IsRocksDBStatEnabled()) {
     rocksdb::SetPerfLevel(rocksdb::PerfLevel::kDisable);
     (*buffer) << "\n[Rocksdb Stats]\n";
 
-    const std::shared_ptr<Statistics> &rdb_stats = options.statistics;
+    const std::shared_ptr<Statistics> &stats = options.statistics;
 
-    for (const auto &entry : TickersNameMap)
-    {
-      uint64_t value = rdb_stats->getTickerCount(entry.first);
-      if (value > 0)
-      {
+    for (const auto &entry : TickersNameMap) {
+      uint64_t value = stats->getTickerCount(entry.first);
+      if (value > 0) {
         (*buffer) << entry.second << " COUNT: " << value << "\n";
       }
     }
 
     HistogramData data;
-    for (const auto &entry : HistogramsNameMap)
-    {
-      rdb_stats->histogramData(entry.first, &data);
+    for (const auto &entry : HistogramsNameMap) {
+      stats->histogramData(entry.first, &data);
 
-      if (data.count > 0)
-      {
+      if (data.count > 0) {
         (*buffer) << entry.second << " P50 : " << data.median
                   << " P95 : " << data.percentile95
                   << " P99 : " << data.percentile99 << " P100 : " << data.max
                   << " COUNT : " << data.count << " SUM : " << data.sum << "\n";
       }
     }
+
+    // (*buffer) << options.statistics->ToString() << "\n";
+    options.statistics.reset();
+  }
+  if (env->IsPerfStatEnabled()) {
+    (*buffer) << "[Perf Context]\n";
+    (*buffer) << rocksdb::get_perf_context()->ToString(true) << "\n";
+  }
+  if (env->IsIOStatEnabled()) {
+    (*buffer) << "\n[IO Stats Context]\n";
+    (*buffer) << rocksdb::get_iostats_context()->ToString(true) << "\n";
   }
 }
 
 void UpdateProgressBar(std::unique_ptr<DBEnv> &env, size_t current,
-                       size_t total, size_t update_interval, size_t bar_width)
-{
+                       size_t total, size_t update_interval, size_t bar_width) {
   if (env->IsShowProgressEnabled() &&
-      (current % update_interval == 0 || current == total))
-  {
+      (current % update_interval == 0 || current == total)) {
     double progress = static_cast<double>(current) / total;
     size_t pos = static_cast<size_t>(bar_width * progress);
 
     std::cerr << "[";
-    for (size_t i = 0; i < bar_width; ++i)
-    {
+    for (size_t i = 0; i < bar_width; ++i) {
       if (i < pos)
         std::cerr << "=";
       else if (i == pos)
@@ -122,65 +112,48 @@ void UpdateProgressBar(std::unique_ptr<DBEnv> &env, size_t current,
 }
 
 #ifdef PROFILE
-void LogTreeState(rocksdb::DB *db, std::shared_ptr<Buffer> &buffer)
-{
+void LogTreeState(rocksdb::DB *db, std::shared_ptr<Buffer> &buffer,
+                  std::unique_ptr<DBEnv> &env) {
   // Wait for compactions and get live files
   {
     std::vector<std::string> live_files;
     uint64_t manifest_size;
     db->GetLiveFiles(live_files, &manifest_size, true /*flush_memtable*/);
-    WaitForCompactions(db);
+    // WaitForCompactions(db);
   }
 
-  ColumnFamilyMetaData metadata;
-  db->GetColumnFamilyMetaData(&metadata);
-  std::stringstream cfd_details;
+  if (env->verbosity > Verbosity::NO_PRINTS) {
+    ColumnFamilyMetaData metadata;
+    db->GetColumnFamilyMetaData(&metadata);
+    std::stringstream cfd_details;
 
-  cfd_details << "Column Family Name: " << metadata.name
-              << ", Size: " << metadata.size
-              << " bytes, Files Count: " << metadata.file_count << std::endl;
+    cfd_details << "Column Family Name: " << metadata.name
+                << ", Size: " << metadata.size
+                << " bytes, Files Count: " << metadata.file_count << std::endl;
 
-  cfd_details << "Level Stats:" << std::endl;
-  for (const auto &level : metadata.levels)
-  {
-    cfd_details << "Level: " << level.level << ", Files: " << level.files.size()
-                << ", Size: " << level.size << " bytes" << std::endl;
+    cfd_details << "Level Stats:" << std::endl;
+    for (const auto &level : metadata.levels) {
+      cfd_details << "Level: " << level.level
+                  << ", Files: " << level.files.size()
+                  << ", Size: " << level.size << " bytes" << std::endl;
+    }
+
+    (*buffer) << cfd_details.str() << std::endl;
   }
-
-  (*buffer) << cfd_details.str() << std::endl;
 }
 
-void LogRocksDBStatistics(rocksdb::DB *db, const rocksdb::Options &options,
-                          std::shared_ptr<Buffer> &buffer)
-{
-  auto printProperty = [&](const std::string &propertyName)
-  {
-    std::string value;
-    bool status = db->GetProperty(propertyName, &value);
-    if (status)
-    {
-      (*buffer) << propertyName << ": " << value << std::endl;
-    }
-    else
-    {
-      (*buffer) << "Error getting property " << propertyName << ": " << status
-                << std::endl;
-    }
-  };
-
-  // Print RocksDB Ticker statistics
-  (*buffer) << "RocksDB Statistics: " << std::endl;
-  (*buffer) << "rocksdb.compact.read.bytes: "
-            << options.statistics->getTickerCount(COMPACT_READ_BYTES)
-            << std::endl;
-  (*buffer) << "rocksdb.compact.write.bytes: "
-            << options.statistics->getTickerCount(COMPACT_WRITE_BYTES)
-            << std::endl;
-  (*buffer) << "rocksdb.flush.write.bytes: "
-            << options.statistics->getTickerCount(FLUSH_WRITE_BYTES)
-            << std::endl;
-  (*buffer) << "rocksdb.compaction.times.micros: "
-            << options.statistics->getTickerCount(COMPACTION_TIME) << std::endl
-            << std::endl;
-}
+// void LogRocksDBStatistics(rocksdb::DB *db, const rocksdb::Options &options,
+//                           std::shared_ptr<Buffer> &buffer) {
+//   auto printProperty = [&](const std::string &propertyName) {
+//     std::string value;
+//     bool status = db->GetProperty(propertyName, &value);
+//     if (status) {
+//       (*buffer) << propertyName << ": " << value << std::endl;
+//     } else {
+//       (*buffer) << "Error getting property " << propertyName << ": " <<
+//       status
+//                 << std::endl;
+//     }
+//   };
+// }
 #endif // PROFILE

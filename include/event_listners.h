@@ -6,7 +6,7 @@
 #include <rocksdb/db.h>
 
 #include "buffer.h"
-
+#include "db_env.h"
 
 using namespace rocksdb;
 
@@ -29,32 +29,20 @@ void WaitForCompactions(DB *db);
  */
 class CompactionsListner : public EventListener {
 public:
-  explicit CompactionsListner() {}
+  explicit CompactionsListner(std::unique_ptr<DBEnv> &env) : db_env(env) {}
 
-  void OnCompactionCompleted(DB *db, const CompactionJobInfo &ci) override {
-    std::lock_guard<std::mutex> lock(mtx);
-    uint64_t num_running_compactions;
-    uint64_t pending_compaction_bytes;
-    uint64_t num_pending_compactions;
-    db->GetIntProperty("rocksdb.num-running-compactions",
-                       &num_running_compactions);
-    db->GetIntProperty("rocksdb.estimate-pending-compaction-bytes",
-                       &pending_compaction_bytes);
-    db->GetIntProperty("rocksdb.compaction-pending", &num_pending_compactions);
-    if (num_running_compactions == 0 && pending_compaction_bytes == 0 &&
-        num_pending_compactions == 0) {
-      compaction_complete = true;
-    }
-    cv.notify_one();
-  }
+  void OnCompactionBegin(DB *db, const CompactionJobInfo &ci) override;
+
+  void OnCompactionCompleted(DB *db, const CompactionJobInfo &ci) override;
+
+private:
+  std::unique_ptr<DBEnv> &db_env;
 };
 
 class FlushListner : public EventListener {
 public:
-  explicit FlushListner(std::shared_ptr<Buffer> &buffer) {
-    buffer_ = buffer;
-  }
-  void OnFlushCompleted(DB* db, const FlushJobInfo& fji) override;
+  explicit FlushListner(std::shared_ptr<Buffer> &buffer) { buffer_ = buffer; }
+  void OnFlushCompleted(DB *db, const FlushJobInfo &fji) override;
 
 private:
   std::shared_ptr<Buffer> buffer_;
