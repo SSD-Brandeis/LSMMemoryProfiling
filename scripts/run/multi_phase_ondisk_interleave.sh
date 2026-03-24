@@ -4,12 +4,8 @@ set -e
 
 # ==============================================================================
 # TAG="lsmbuffer-concurrent-write-off-WAL-0-compression-disabled-feb24_unsortedvectest"
-<<<<<<< Updated upstream
 TAG="multiphase_ondisk_setup2_t2"
-=======
-TAG="multiphase_ondisk_setup2_t10"
->>>>>>> Stashed changes
-RUN_PREALLOCATED=1
+RUN_DYNAMIC=0
 
 declare -A BUFFER_IMPLEMENTATIONS=(
   [1]="skiplist"
@@ -64,19 +60,15 @@ RANGE_DELETES_SEL=0
 SIZE_RATIO=2
 PAGE_SIZE=4096
 ENTRIES_PER_PAGE=$((PAGE_SIZE / ENTRY_SIZE))
-<<<<<<< Updated upstream
-
-=======
 #512mb
 # PAGES_PER_FILE=131072
 #128MB
 # PAGES_PER_FILE=32768 
 # 32MB
 # PAGES_PER_FILE=8192
->>>>>>> Stashed changes
 #1MB
 PAGES_PER_FILE=256
-LOW_PRI=1
+LOW_PRI=0
 
 THRESHOLD_TO_CONVERT_TO_SKIPLIST=${INSERTS}
 
@@ -99,10 +91,10 @@ mkdir -p "$BASE_EXP_DIR"
 # cd "$BASE_EXP_DIR"
 # --- METHOD A: tectonic ---
 echo "Generating workload using Method A (Python + Tectonic)..."
-python3 "$GEN_SCRIPT" \
-    -I ${INSERTS} -U ${UPDATES} -Q ${POINT_QUERIES} -D ${POINT_DELETES} \
-    -S ${RANGE_QUERIES} -Y ${SELECTIVITY} -R ${RANGE_DELETES} \
-    -y ${RANGE_DELETES_SEL} -E ${ENTRY_SIZE} -L ${LAMBDA}
+# python3 "$GEN_SCRIPT" \
+#     -I ${INSERTS} -U ${UPDATES} -Q ${POINT_QUERIES} -D ${POINT_DELETES} \
+#     -S ${RANGE_QUERIES} -Y ${SELECTIVITY} -R ${RANGE_DELETES} \
+#     -y ${RANGE_DELETES_SEL} -E ${ENTRY_SIZE} -L ${LAMBDA}
 
 # Check for spec file in current dir or results dir to allow toggling Python gen
 if [ -f "workload.specs.json" ]; then
@@ -139,7 +131,7 @@ for mem in "${!BUFFER_IMPLEMENTATIONS[@]}"; do
     # --- BRANCH 1: Hash-based (bucket loops) ---
     if [[ "$mem_name" == *"hash"* ]]; then
         
-        HASH_SETTINGS=("2:1000" "6:100000")
+        HASH_SETTINGS=("6:100000")
 
         for setting in "${HASH_SETTINGS[@]}"; do
             PREFIX_X="${setting%%:*}"
@@ -168,25 +160,7 @@ for mem in "${!BUFFER_IMPLEMENTATIONS[@]}"; do
     # --- BRANCH 2: Vector Types (Dynamic & Preallocated) ---
     elif [[ "$mem_name" == "vector" || "$mem_name" == "unsortedvector" || "$mem_name" == "alwayssortedVector" ]]; then
         
-        # 1. DYNAMIC (Uses -A 0)
-        DIR_NAME="buffer-${mem}-${mem_name}-dynamic"
-        mkdir -p "$DIR_NAME"
-        cp "$MASTER_WORKLOAD" "./$DIR_NAME/workload.txt"
-        
-        echo "------------------------------------------------"
-        echo "Running: $mem_name (ID: $mem) - DYNAMIC"
-        cd "$DIR_NAME"
-        
-        "$WORKING_VERSION" --memtable_factory="$mem" \
-            -I "${INSERTS}" -U "${UPDATES}" -S "${RANGE_QUERIES}" -Y "${SELECTIVITY}" \
-            -T "${SIZE_RATIO}" -P "${PAGES_PER_FILE}" -B "${ENTRIES_PER_PAGE}" \
-            -E "${ENTRY_SIZE}" -A 0 --lowpri "${LOW_PRI}" --stat 1 > "rocksdb_stats.log"
-        [ -f "db/LOG" ] && mv db/LOG LOG_rocksdb
-        [ -f "workload.log" ] && mv workload.log workload_run.log
-        rm -rf db
-        cd ..
-
-        # 2. PREALLOCATED
+        # 1. PREALLOCATED (Always Runs)
         DIR_NAME="buffer-${mem}-${mem_name}-preallocated"
         mkdir -p "$DIR_NAME"
         cp "$MASTER_WORKLOAD" "./$DIR_NAME/workload.txt"
@@ -203,6 +177,26 @@ for mem in "${!BUFFER_IMPLEMENTATIONS[@]}"; do
         [ -f "db/LOG" ] && mv db/LOG LOG_rocksdb
         [ -f "workload.log" ] && mv workload.log workload_run.log
         rm -rf db && cd ..
+
+        # 2. DYNAMIC (Uses -A 0) - Only runs if RUN_DYNAMIC=1
+        if [ "$RUN_DYNAMIC" -eq 1 ]; then
+            DIR_NAME="buffer-${mem}-${mem_name}-dynamic"
+            mkdir -p "$DIR_NAME"
+            cp "$MASTER_WORKLOAD" "./$DIR_NAME/workload.txt"
+            
+            echo "------------------------------------------------"
+            echo "Running: $mem_name (ID: $mem) - DYNAMIC"
+            cd "$DIR_NAME"
+            
+            "$WORKING_VERSION" --memtable_factory="$mem" \
+                -I "${INSERTS}" -U "${UPDATES}" -S "${RANGE_QUERIES}" -Y "${SELECTIVITY}" \
+                -T "${SIZE_RATIO}" -P "${PAGES_PER_FILE}" -B "${ENTRIES_PER_PAGE}" \
+                -E "${ENTRY_SIZE}" -A 0 --lowpri "${LOW_PRI}" --stat 1 > "rocksdb_stats.log"
+            [ -f "db/LOG" ] && mv db/LOG LOG_rocksdb
+            [ -f "workload.log" ] && mv workload.log workload_run.log
+            rm -rf db
+            cd ..
+        fi
 
     # --- BRANCH 3: Standard (SkipList, LinkedList, etc.) ---
     else
