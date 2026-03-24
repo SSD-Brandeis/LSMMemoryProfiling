@@ -3,14 +3,14 @@ set -e
 
 # Rebuild before starting
 bash ./scripts/rebuild.sh
-
+RESULTS_DIR=".result"
 # --- Configuration & Paths ---
 # Navigate to the project root relative to this script's location
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(cd "${SCRIPT_DIR}/../../" && pwd)"
 
 # --- Parameters ---
-INSERTS=800000 
+INSERTS=2800000 
 UPDATES=0
 RANGE_QUERIES=0
 SELECTIVITY=0
@@ -26,8 +26,9 @@ ENTRY_SIZES=(128)
 LAMBDA=0.0625
 PAGE_SIZES=(4096)
 
-# BUCKET_COUNTS=(1 200000 400000 600000 800000 1000000)
-BUCKET_COUNTS=(1 400000 1000000)
+# BUCKET_COUNTS=(1000 200000 400000 600000 800000 1000000)
+BUCKET_COUNTS=(1000 200000)
+# BUCKET_COUNTS=(1 400000 1000000)
 PREFIX_LENGTH=6
 THRESHOLD_TO_CONVERT_TO_SKIPLIST=${INSERTS}
 

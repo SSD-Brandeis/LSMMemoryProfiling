@@ -129,7 +129,9 @@ for PAGE_SIZE in "${PAGE_SIZES[@]}"; do
                     rm -rf db workload.txt && cd ..
                 fi
             done
-            rm -f workload.txt && cd ..
+      # REMOVED: rm -f workload.txt 
+            # This allows the master workload.txt to persist in the EXP_DIR
+            cd ..
         done
     done
 done
