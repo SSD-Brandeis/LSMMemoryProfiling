@@ -4,19 +4,19 @@ set -e
 
 # ==============================================================================
 # TAG="lsmbuffer-concurrent-write-off-WAL-0-compression-disabled-feb24_unsortedvectest"
-TAG="multiphase_ondisk_setup2_t2"
+TAG="multiphase_ondisk_setup2_t2_rq"
 RUN_DYNAMIC=0
 
 declare -A BUFFER_IMPLEMENTATIONS=(
-  [1]="skiplist"
-#   [2]="vector"
-#   [3]="hash_skip_list"
-#   [4]="hash_linked_list"
-#   [5]="unsortedvector"
-#   [6]="alwayssortedVector"
+#   [1]="skiplist"
+  [2]="vector"
+  [3]="hash_skip_list"
+  [4]="hash_linked_list"
+  [5]="unsortedvector"
+  [6]="alwayssortedVector"
 #   [7]="linkedlist"
-#   [8]="simple_skiplist"
-#   [9]="hash_vector"
+  [8]="simple_skiplist"
+  [9]="hash_vector"
 
 )
 
@@ -48,12 +48,12 @@ declare -A BUFFER_IMPLEMENTATIONS=(
 #setup2_t2_1mb
 ENTRY_SIZE=32
 LAMBDA=0.25
-INSERTS=100000000
+INSERTS=1000000
 UPDATES=0
-POINT_QUERIES=10000
+POINT_QUERIES=0
 POINT_DELETES=0
-RANGE_QUERIES=0
-SELECTIVITY=0
+RANGE_QUERIES=1000
+SELECTIVITY=0.0001
 RANGE_DELETES=0
 RANGE_DELETES_SEL=0
 
@@ -107,12 +107,10 @@ else
 fi
 
 "$TECTONIC" generate -w "$SPEC_PATH"
-
-# --- METHOD B: load_gen  ---
-# echo "Generating workload using Method B (load_gen)..."
-# "${LOAD_GEN}" -I "${INSERTS}" -U "${UPDATES}" -Q "${POINT_QUERIES}" \
-#              -S "${RANGE_QUERIES}" -Y "${SELECTIVITY}" -E "${ENTRY_SIZE}" \
-#              -L "${LAMBDA}"
+if [ ! -f "$BASE_EXP_DIR/$WORKLOAD_TXT" ]; then
+    echo "Error: No workload.txt found in $BASE_EXP_DIR. Generation failed."
+    exit 1
+fi
 
 
 # Copy files to results dir (keeps workload.txt in project root)
