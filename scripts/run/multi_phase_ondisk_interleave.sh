@@ -8,15 +8,15 @@ TAG="multiphase_ondisk_setup2_t2_rq"
 RUN_DYNAMIC=0
 
 declare -A BUFFER_IMPLEMENTATIONS=(
-#   [1]="skiplist"
-  [2]="vector"
-  [3]="hash_skip_list"
-  [4]="hash_linked_list"
-  [5]="unsortedvector"
-  [6]="alwayssortedVector"
+  [1]="skiplist"
+#   [2]="vector"
+#   [3]="hash_skip_list"
+#   [4]="hash_linked_list"
+#   [5]="unsortedvector"
+#   [6]="alwayssortedVector"
 #   [7]="linkedlist"
-  [8]="simple_skiplist"
-  [9]="hash_vector"
+#   [8]="simple_skiplist"
+#   [9]="hash_vector"
 
 )
 
@@ -97,36 +97,31 @@ echo "Generating workload using Method A (Python + Tectonic)..."
 #     -S ${RANGE_QUERIES} -Y ${SELECTIVITY} -R ${RANGE_DELETES} \
 #     -y ${RANGE_DELETES_SEL} -E ${ENTRY_SIZE} -L ${LAMBDA}
 
-# Check for spec file in current dir or results dir to allow toggling Python gen
-if [ -f "workload.specs.json" ]; then
-    SPEC_PATH="workload.specs.json"
-elif [ -f "$BASE_EXP_DIR/workload.specs.json" ]; then
+# Strict check for spec file in the .results directory only
+if [ -f "$BASE_EXP_DIR/workload.specs.json" ]; then
     SPEC_PATH="$BASE_EXP_DIR/workload.specs.json"
+    echo "Found spec file at: $SPEC_PATH"
 else
-    echo "Error: workload.specs.json not found. Run it again."
+    echo "Error: workload.specs.json not found in $BASE_EXP_DIR."
     exit 1
 fi
 
 # Run tectonic to generate workload.txt in the current directory
-"$TECTONIC" generate -w "$SPEC_PATH"
+# "$TECTONIC" generate -w "$SPEC_PATH"
 
-# Move generated files to results dir immediately to keep project root clean
-if [ -f "$WORKLOAD_TXT" ]; then
-    mv "$WORKLOAD_TXT" "$BASE_EXP_DIR/"
-else
-    echo "Error: Tectonic failed to create $WORKLOAD_TXT in root."
-    exit 1
-fi
-
-[ -f "workload.specs.json" ] && mv "workload.specs.json" "$BASE_EXP_DIR/"
-
-# Verification: Ensure we are now working ONLY from the .results directory
-if [ ! -f "$BASE_EXP_DIR/$WORKLOAD_TXT" ]; then
-    echo "Error: No workload.txt found in $BASE_EXP_DIR. Generation failed."
-    exit 1
-fi
-
+# Logic to handle existing workload.txt in .results
 MASTER_WORKLOAD="$PROJECT_ROOT/$BASE_EXP_DIR/$WORKLOAD_TXT"
+
+if [ -f "$WORKLOAD_TXT" ]; then
+    echo "Moving $WORKLOAD_TXT from root to $BASE_EXP_DIR"
+    mv "$WORKLOAD_TXT" "$BASE_EXP_DIR/"
+    [ -f "workload.specs.json" ] && mv "workload.specs.json" "$BASE_EXP_DIR/"
+elif [ -f "$MASTER_WORKLOAD" ]; then
+    echo "Using existing workload found in $BASE_EXP_DIR"
+else
+    echo "Error: $WORKLOAD_TXT not found in root or $BASE_EXP_DIR."
+    exit 1
+fi
 
 cd "$BASE_EXP_DIR"
 
