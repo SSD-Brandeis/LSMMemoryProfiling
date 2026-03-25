@@ -91,6 +91,7 @@ mkdir -p "$BASE_EXP_DIR"
 # cd "$BASE_EXP_DIR"
 # --- METHOD A: tectonic ---
 echo "Generating workload using Method A (Python + Tectonic)..."
+# Generating the spec file based on the variables defined above
 # python3 "$GEN_SCRIPT" \
 #     -I ${INSERTS} -U ${UPDATES} -Q ${POINT_QUERIES} -D ${POINT_DELETES} \
 #     -S ${RANGE_QUERIES} -Y ${SELECTIVITY} -R ${RANGE_DELETES} \
@@ -106,17 +107,24 @@ else
     exit 1
 fi
 
+# Run tectonic to generate workload.txt in the current directory
 "$TECTONIC" generate -w "$SPEC_PATH"
+
+# Move generated files to results dir immediately to keep project root clean
+if [ -f "$WORKLOAD_TXT" ]; then
+    mv "$WORKLOAD_TXT" "$BASE_EXP_DIR/"
+else
+    echo "Error: Tectonic failed to create $WORKLOAD_TXT in root."
+    exit 1
+fi
+
+[ -f "workload.specs.json" ] && mv "workload.specs.json" "$BASE_EXP_DIR/"
+
+# Verification: Ensure we are now working ONLY from the .results directory
 if [ ! -f "$BASE_EXP_DIR/$WORKLOAD_TXT" ]; then
     echo "Error: No workload.txt found in $BASE_EXP_DIR. Generation failed."
     exit 1
 fi
-
-
-# Copy files to results dir (keeps workload.txt in project root)
-[ -f "$WORKLOAD_TXT" ] && cp "$WORKLOAD_TXT" "$BASE_EXP_DIR/"
-[ -f "workload.specs.json" ] && mv "workload.specs.json" "$BASE_EXP_DIR/"
-
 
 MASTER_WORKLOAD="$PROJECT_ROOT/$BASE_EXP_DIR/$WORKLOAD_TXT"
 
