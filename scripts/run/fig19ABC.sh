@@ -3,7 +3,7 @@ set -e
 RESULTS_DIR=".result"
 
 # TAG="rqcommonprefix_selectivity"
-TAG="fig19ABCrerun"
+TAG="fig19ABCrerun_sequential"
 SETTINGS="lowpri_false"
 LOW_PRI=0
 
@@ -160,8 +160,8 @@ for PAGE_SIZE in "${PAGE_SIZES[@]}"; do
     # rm -f workload.txt
     cd ..
 
-    # Sweep 3: PQ focus, H=1M vary X=1..8 (still I+Q+S)
-    EXP_DIR="insertPQRS_H1M_varX-${SETTINGS}-I${INSERTS}-U${UPDATES}-Q${POINT_QUERIES}-S${RANGE_QUERIES}-Y${SELECTIVITY}-T${SIZE_RATIO}-P${PAGES_PER_FILE}-B${ENTRIES_PER_PAGE}-E${ENTRY_SIZE}"
+    # Sweep 3: PQ focus, H=100k vary X=1..6 (still I+Q+S)
+    EXP_DIR="insertPQRS_H100k_varX-${SETTINGS}-I${INSERTS}-U${UPDATES}-Q${POINT_QUERIES}-S${RANGE_QUERIES}-Y${SELECTIVITY}-T${SIZE_RATIO}-P${PAGES_PER_FILE}-B${ENTRIES_PER_PAGE}-E${ENTRY_SIZE}"
     mkdir -p "$EXP_DIR"; cd "$EXP_DIR"
 
     "${LOAD_GEN}" -I "${INSERTS}" -U 0 -Q "${POINT_QUERIES}" -S "${RANGE_QUERIES}" -Y "${SELECTIVITY}" -E "${ENTRY_SIZE}" -L "${LAMBDA}"
@@ -174,26 +174,26 @@ for PAGE_SIZE in "${PAGE_SIZES[@]}"; do
       rm -f "$IFILE" "$QFILE" "$SFILE"
     fi
 
-    for X in 1 2 3 4 5 6 7 8; do
+    for X in 1 2 3 4 5 6; do
       for impl in "${!BUFFER_IMPLEMENTATIONS[@]}"; do
         NAME="${BUFFER_IMPLEMENTATIONS[$impl]}"
-        mkdir -p "${NAME}-X${X}-H1000000"; cd "${NAME}-X${X}-H1000000"
+        mkdir -p "${NAME}-X${X}-H100000"; cd "${NAME}-X${X}-H100000"
         cp ../workload.txt ./workload.txt
         for run in 1; do
-          echo "Run ${NAME} #${run} I+Q+S X=${X} H=1000000"
+          echo "Run ${NAME} #${run} I+Q+S X=${X} H=100000"
           if [[ "$NAME" == "hash_linked_list" || "$NAME" == "hash_skip_list" || "$NAME" == "hash_vector" ]]; then
             if [[ "$NAME" == "hash_linked_list" ]]; then
               "${WORKING_VERSION}" --memtable_factory="${impl}" \
                 -I "${INSERTS}" -U 0 -S "${RANGE_QUERIES}" -Y "${SELECTIVITY}" \
                 -T "${SIZE_RATIO}" -P "${PAGES_PER_FILE}" -B "${ENTRIES_PER_PAGE}" -E "${ENTRY_SIZE}" \
-                --bucket_count=1000000 --prefix_length="${X}" \
+                --bucket_count=100000 --prefix_length="${X}" \
                 --threshold_use_skiplist="${THRESHOLD_TO_CONVERT_TO_SKIPLIST}" \
                 --lowpri "${LOW_PRI}" --stat 1 > "run${run}.log"
             else
               "${WORKING_VERSION}" --memtable_factory="${impl}" \
                 -I "${INSERTS}" -U 0 -S "${RANGE_QUERIES}" -Y "${SELECTIVITY}" \
                 -T "${SIZE_RATIO}" -P "${PAGES_PER_FILE}" -B "${ENTRIES_PER_PAGE}" -E "${ENTRY_SIZE}" \
-                --bucket_count=1000000 --prefix_length="${X}" \
+                --bucket_count=100000 --prefix_length="${X}" \
                 --lowpri "${LOW_PRI}" --stat 1 > "run${run}.log"
             fi
           else
