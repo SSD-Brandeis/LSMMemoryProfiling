@@ -387,7 +387,7 @@ int runWorkload(std::unique_ptr<DBEnv> &env)
     ith_op += 1;
 #ifdef RESET
 
-    if (ith_op == 90000000)
+    if (ith_op == 90000000 || ith_op == 100010000)
     {
       auto now = std::chrono::high_resolution_clock::now();
       auto elapsed_so_far = std::chrono::duration_cast<std::chrono::nanoseconds>(now - exec_start).count();
