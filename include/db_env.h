@@ -46,11 +46,11 @@ private:
   static std::mutex mutex_;
 
   // buffer size in bytes
-  size_t buffer_size_ = 0;         // [M]
+  size_t buffer_size_ = 0;        // [M]
   bool rocksdb_stats_ = true;     // [stat]
   bool perf_stats_ = true;        // [perf]
   bool iostat_stats_ = true;      // [iostat]
-  bool destroy_database_ = true;   // [d]
+  bool destroy_database_ = true;  // [d]
   bool show_progress_bar_ = true; // [progress]
 
 public:
@@ -88,7 +88,7 @@ public:
   long GetTargetFileSizeBase() const { return GetBufferSize(); }
 
   // control maximum total data size for level base (i.e. level 1)
-  uint64_t GetMaxBytesForLevelBase() const { return GetTargetFileSizeBase(); }
+  uint64_t GetMaxBytesForLevelBase() const { return GetTargetFileSizeBase() * size_ratio * size_ratio; }
 
 #pragma region[DBOptions]
   bool create_if_missing = true;
@@ -432,7 +432,8 @@ public:
   uint32_t linklist_threshold_use_skiplist = 256;
 
   // refer memtable.h (VectorRepFactory)
-  // This size is computed in number of entries that can fit in buffer theoretically
+  // This size is computed in number of entries that can fit in buffer
+  // theoretically
   size_t vector_preallocation_size_in_bytes = 0;
 #pragma endregion // LSMMemoryBuffer
 };

@@ -142,6 +142,7 @@ int parse_arguments(int argc, char *argv[], std::unique_ptr<DBEnv> &env) {
                                 : env->clear_system_cache;
   env->size_ratio =
       size_ratio_cmd ? args::get(size_ratio_cmd) : env->size_ratio;
+  env->level0_file_num_compaction_trigger = env->size_ratio;
   env->buffer_size_in_pages = buffer_size_in_pages_cmd
                                   ? args::get(buffer_size_in_pages_cmd)
                                   : env->buffer_size_in_pages;
