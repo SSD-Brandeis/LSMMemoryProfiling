@@ -77,6 +77,8 @@ def build_specs(args):
             "key": {"uniform": {"len": key_size}},
             "val": {"uniform": {"len": val_size}},
         },
+    }
+    group2 = {
         "point_queries": {
             "op_count": numexpr(args.point_queries),
         },
@@ -101,6 +103,12 @@ def build_specs(args):
     interleaved_group = {
         k: v for k, v in combined_ops.items() 
         if args.__dict__.get(k.replace("-", "_"), 0) > 0
+    }
+    group2 = {
+        k: v for k, v in group2.items() if v and args.__dict__[k.replace("-", "_")] > 0
+    }
+    group3 = {
+        k: v for k, v in group3.items() if v and args.__dict__[k.replace("-", "_")] > 0
     }
 
     # Return a single section with a single group to force interleaving

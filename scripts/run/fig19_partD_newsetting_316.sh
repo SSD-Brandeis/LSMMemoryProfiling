@@ -3,7 +3,7 @@ set -e
 
 RESULTS_DIR=".result"
 # Prefix length updated to 6
-TAG="common_prefix_keysize_6_value_1016"
+TAG="common_prefix_"
 SETTINGS="lowpri_false"
 LOW_PRI=0
 
@@ -41,7 +41,9 @@ mkdir -p "$RESULTS_DIR"
 cd "$RESULTS_DIR"
 
 for PAGE_SIZE in "${PAGE_SIZES[@]}"; do
-  if   [ "$PAGE_SIZE" -eq 4096 ];  then PAGES_PER_FILE=131072
+  # if   [ "$PAGE_SIZE" -eq 4096 ];  then PAGES_PER_FILE=131072
+  #128mb
+  if   [ "$PAGE_SIZE" -eq 4096 ];  then PAGES_PER_FILE=32768 
   elif [ "$PAGE_SIZE" -eq 2048 ];  then PAGES_PER_FILE=4096
   else PAGES_PER_FILE=1024; fi
 
@@ -73,8 +75,8 @@ for PAGE_SIZE in "${PAGE_SIZES[@]}"; do
 
         echo "Running ${NAME} | C=${C}"
         
-        # prefix_length set to 6
-        EXTRA_FLAGS="--bucket_count=1000000 --prefix_length=6"
+        # prefix_length set to 6, 100k bucket count
+        EXTRA_FLAGS="--bucket_count=100000 --prefix_length=6"
         if [[ "$NAME" == "hash_linked_list" ]]; then
           EXTRA_FLAGS="$EXTRA_FLAGS --threshold_use_skiplist=${THRESHOLD_TO_CONVERT_TO_SKIPLIST}"
         fi
@@ -91,7 +93,7 @@ for PAGE_SIZE in "${PAGE_SIZES[@]}"; do
       done
     done
     
-    rm -f workload.txt
+    # rm -f workload.txt  
     cd ..
   done
 done
