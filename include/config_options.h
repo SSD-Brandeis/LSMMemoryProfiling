@@ -106,9 +106,8 @@ void configOptions(std::unique_ptr<DBEnv> &env, Options *options,
     options->memtable_factory.reset(
         new SortedVectorRepFactory(env->vector_preallocation_size_in_bytes));
     break;
-  //         // add linklist buffer
   case 7:
-    options->memtable_factory.reset(NewLinkListRepFactory());
+    options->memtable_factory.reset(new LinkListRepFactory());
     break;
   // Add SimpleSkipList
   case 8:
@@ -160,10 +159,10 @@ void configOptions(std::unique_ptr<DBEnv> &env, Options *options,
 
   options->target_file_size_multiplier = env->target_file_size_multiplier;
   options->max_background_jobs = env->max_background_jobs;
-  options->soft_pending_compaction_bytes_limit =
-      env->soft_pending_compaction_bytes_limit;
-  options->hard_pending_compaction_bytes_limit =
-      env->hard_pending_compaction_bytes_limit;
+  // options->soft_pending_compaction_bytes_limit =
+  //     env->soft_pending_compaction_bytes_limit;
+  // options->hard_pending_compaction_bytes_limit =
+  //     env->hard_pending_compaction_bytes_limit;
   options->periodic_compaction_seconds = env->periodic_compaction_seconds;
   options->use_direct_io_for_flush_and_compaction =
       env->use_direct_io_for_flush_and_compaction;

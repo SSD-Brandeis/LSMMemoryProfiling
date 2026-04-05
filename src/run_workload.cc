@@ -5,7 +5,6 @@
 #include <iomanip>
 #include <iostream>
 #include <tuple>
-#include <random>
 
 #include "config_options.h"
 #include "utils.h"
@@ -133,9 +132,7 @@ std::string buffer_file = "workload.log";
 std::string stats_file = "stats.log";
 // std::string selectvity_file = "selectivity.log";
 
-int runWorkload(std::unique_ptr<DBEnv> &env)
-{
-  // preprocess_workload_inplace(env);
+int runWorkload(std::unique_ptr<DBEnv> &env) {
   DB *db;
   Options options;
   WriteOptions write_options;
@@ -153,15 +150,16 @@ int runWorkload(std::unique_ptr<DBEnv> &env)
   // Add custom listners
   std::shared_ptr<CompactionsListner> compaction_listener =
       std::make_shared<CompactionsListner>(env);
+      std::make_shared<CompactionsListner>(env);
   options.listeners.emplace_back(compaction_listener);
 
   std::shared_ptr<FlushListner> flush_listener =
       std::make_shared<FlushListner>(buffer);
   options.listeners.emplace_back(flush_listener);
 
-  if (env->IsDestroyDatabaseEnabled())
-  {
+  if (env->IsDestroyDatabaseEnabled()) {
     DestroyDB(env->kDBPath, options);
+    std::cerr << "Destroying database ... done" << std::endl;
     std::cerr << "Destroying database ... done" << std::endl;
   }
 
@@ -173,11 +171,12 @@ int runWorkload(std::unique_ptr<DBEnv> &env)
   assert(s.ok());
 
   // Clearing the system cache
-  if (env->clear_system_cache)
-  {
+  if (env->clear_system_cache) {
 #ifdef __linux__
     std::cerr << "Clearing system cache ...";
+    std::cerr << "Clearing system cache ...";
     std::cerr << system("sudo sh -c 'echo 3 >/proc/sys/vm/drop_caches'")
+              << " done" << std::endl;
               << " done" << std::endl;
 #endif
   }
@@ -187,11 +186,9 @@ int runWorkload(std::unique_ptr<DBEnv> &env)
   assert(workload_file);
 
   size_t total_operations = 0;
-  if (env->IsShowProgressEnabled())
-  {
+  if (env->IsShowProgressEnabled()) {
     std::string line;
-    while (std::getline(workload_file, line))
-    {
+    while (std::getline(workload_file, line)) {
       ++total_operations;
     }
   }
@@ -200,14 +197,23 @@ int runWorkload(std::unique_ptr<DBEnv> &env)
   workload_file.seekg(0, std::ios::beg);
 
 #ifdef PER_OP_TIMER
+#ifdef PER_OP_TIMER
   unsigned long inserts_exec_time = 0, updates_exec_time = 0, pq_exec_time = 0,
                 pdelete_exec_time = 0, rq_exec_time = 0;
+#endif // PER_OP_TIMER
 #endif // PER_OP_TIMER
 
 #ifdef TOTAL_TIMER
   auto exec_start = std::chrono::high_resolution_clock::now();
 #endif // TOTAL_TIMER
+#ifdef TOTAL_TIMER
+  auto exec_start = std::chrono::high_resolution_clock::now();
+#endif // TOTAL_TIMER
 
+  if (env->IsPerfStatEnabled())
+    rocksdb::get_perf_context()->Reset();
+  if (env->IsIOStatEnabled())
+    rocksdb::get_iostats_context()->Reset();
   if (env->IsPerfStatEnabled())
     rocksdb::get_perf_context()->Reset();
   if (env->IsIOStatEnabled())
@@ -228,71 +234,90 @@ int runWorkload(std::unique_ptr<DBEnv> &env)
     switch (operation)
     {
       // [Insert]
-    case 'I':
-    {
+    case 'I': {
       std::string key, value;
       stream >> key >> value;
 
 #ifdef PER_OP_TIMER
+#ifdef PER_OP_TIMER
       auto start = std::chrono::high_resolution_clock::now();
 #endif // PER_OP_TIMER
+#endif // PER_OP_TIMER
       s = db->Put(write_options, key, value);
+#ifdef PER_OP_TIMER
 #ifdef PER_OP_TIMER
       auto stop = std::chrono::high_resolution_clock::now();
       auto duration =
           std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
       (*stats) << "I: " << duration.count() << std::endl;
+      auto duration =
+          std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+      (*stats) << "I: " << duration.count() << std::endl;
       inserts_exec_time += duration.count();
+#endif // PER_OP_TIMER
 #endif // PER_OP_TIMER
       break;
     }
       // [Update]
-    case 'U':
-    {
+    case 'U': {
       std::string key, value;
       stream >> key >> value;
 
 #ifdef PER_OP_TIMER
+#ifdef PER_OP_TIMER
       auto start = std::chrono::high_resolution_clock::now();
 #endif // PER_OP_TIMER
+#endif // PER_OP_TIMER
       s = db->Put(write_options, key, value);
+#ifdef PER_OP_TIMER
 #ifdef PER_OP_TIMER
       auto stop = std::chrono::high_resolution_clock::now();
       auto duration =
           std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
       (*stats) << "U: " << duration.count() << std::endl;
+      auto duration =
+          std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+      (*stats) << "U: " << duration.count() << std::endl;
       updates_exec_time += duration.count();
+#endif // PER_OP_TIMER
 #endif // PER_OP_TIMER
       break;
     }
       // [PointDelete]
-    case 'D':
-    {
+    case 'D': {
       std::string key;
       stream >> key;
 
 #ifdef PER_OP_TIMER
+#ifdef PER_OP_TIMER
       auto start = std::chrono::high_resolution_clock::now();
 #endif // PER_OP_TIMER
+#endif // PER_OP_TIMER
       s = db->Delete(write_options, key);
+#ifdef PER_OP_TIMER
 #ifdef PER_OP_TIMER
       auto stop = std::chrono::high_resolution_clock::now();
       auto duration =
           std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
       (*stats) << "D: " << duration.count() << std::endl;
+      auto duration =
+          std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+      (*stats) << "D: " << duration.count() << std::endl;
       pdelete_exec_time += duration.count();
+#endif // PER_OP_TIMER
 #endif // PER_OP_TIMER
       break;
     }
       // [ProbePointQuery]
     case 'P':
-    case 'Q':
-    {
+    case 'Q': {
       std::string key, value;
       stream >> key;
 
 #ifdef PER_OP_TIMER
+#ifdef PER_OP_TIMER
       auto start = std::chrono::high_resolution_clock::now();
+#endif // PER_OP_TIMER
 #endif // PER_OP_TIMER
       s = db->Get(read_options, key, &value);
       // if (s.IsNotFound()) {
@@ -303,19 +328,31 @@ int runWorkload(std::unique_ptr<DBEnv> &env)
       //   std::cout << "Error reading key " << key << ": " << s.ToString()
       //             << std::endl;
       // }
+      // if (s.IsNotFound()) {
+      //   std::cout << key << ", Not Found" << std::endl;
+      // } else if (s.ok()) {
+      //   std::cout << key << ", " << value << std::endl;
+      // } else {
+      //   std::cout << "Error reading key " << key << ": " << s.ToString()
+      //             << std::endl;
+      // }
 
+#ifdef PER_OP_TIMER
 #ifdef PER_OP_TIMER
       auto stop = std::chrono::high_resolution_clock::now();
       auto duration =
           std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
       (*stats) << "Q: " << duration.count() << std::endl;
+      auto duration =
+          std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+      (*stats) << "Q: " << duration.count() << std::endl;
       pq_exec_time += duration.count();
+#endif // PER_OP_TIMER
 #endif // PER_OP_TIMER
       break;
     }
       // [ScanRangeQuery]
-    case 'S':
-    {
+    case 'S': {
       std::string start_key, end_key;
       stream >> start_key >> end_key;
 
@@ -341,6 +378,7 @@ int runWorkload(std::unique_ptr<DBEnv> &env)
       assert(it->status().ok());
 
 #ifdef PER_OP_TIMER
+#ifdef PER_OP_TIMER
       auto start = std::chrono::high_resolution_clock::now();
 #endif // PER_OP_TIMER
 
@@ -350,6 +388,9 @@ int runWorkload(std::unique_ptr<DBEnv> &env)
         {
           break;
         }
+        // std::cout << "Key: " << it->key().ToString()
+        //           << " Value: " << it->value().ToString() << std::endl;
+        // keys_returned++;
         // std::cout << "Key: " << it->key().ToString()
         //           << " Value: " << it->value().ToString() << std::endl;
         // keys_returned++;
@@ -366,7 +407,11 @@ int runWorkload(std::unique_ptr<DBEnv> &env)
       auto duration =
           std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
       (*stats) << "S: " << duration.count() << std::endl;
+      auto duration =
+          std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+      (*stats) << "S: " << duration.count() << std::endl;
       rq_exec_time += duration.count();
+#endif // PER_OP_TIMER
 #endif // PER_OP_TIMER
       delete it;
       break;
@@ -467,6 +512,7 @@ int runWorkload(std::unique_ptr<DBEnv> &env)
 #ifdef PROFILE
   (*buffer) << "=====================" << std::endl;
   LogTreeState(db, buffer, env);
+  LogTreeState(db, buffer, env);
   // LogRocksDBStatistics(db, options, buffer);
 #endif // PROFILE
 
@@ -478,10 +524,22 @@ int runWorkload(std::unique_ptr<DBEnv> &env)
 #endif // TOTAL_TIMER
 
 #ifdef PER_OP_TIMER
+#ifdef TOTAL_TIMER
+  auto total_exec_time =
+      std::chrono::duration_cast<std::chrono::nanoseconds>(
+          std::chrono::high_resolution_clock::now() - exec_start)
+          .count();
+#endif // TOTAL_TIMER
+
+#ifdef PER_OP_TIMER
   (*buffer) << "=====================" << std::endl;
 #endif // PER_OP_TIMER
 #ifdef TOTAL_TIMER
+#endif // PER_OP_TIMER
+#ifdef TOTAL_TIMER
   (*buffer) << "Workload Execution Time: " << total_exec_time << std::endl;
+#endif // TOTAL_TIMER
+#ifdef PER_OP_TIMER
 #endif // TOTAL_TIMER
 #ifdef PER_OP_TIMER
   (*buffer) << "Inserts Execution Time: " << inserts_exec_time << std::endl;
@@ -489,6 +547,10 @@ int runWorkload(std::unique_ptr<DBEnv> &env)
   (*buffer) << "PointQuery Execution Time: " << pq_exec_time << std::endl;
   (*buffer) << "PointDelete Execution Time: " << pdelete_exec_time << std::endl;
   (*buffer) << "RangeQuery Execution Time: " << rq_exec_time << std::endl;
+#endif // PER_OP_TIMER
+
+  // tree->BuildStructure(db); //rebuild structure after each input
+  // tree->PrintFluidLSM(db);
 #endif // PER_OP_TIMER
 
   // tree->BuildStructure(db); //rebuild structure after each input
@@ -510,10 +572,13 @@ int runWorkload(std::unique_ptr<DBEnv> &env)
   buffer->flush();
   stats->flush();
 #ifdef TOTAL_TIMER
+#ifdef TOTAL_TIMER
   long long total_seconds = total_exec_time / 1e9;
+  std::cerr << "\nExperiment completed in " << total_seconds / 3600 << "h "
   std::cerr << "\nExperiment completed in " << total_seconds / 3600 << "h "
             << (total_seconds % 3600) / 60 << "m " << total_seconds % 60 << "s "
             << std::endl;
+#endif // TOTAL_TIMER
 #endif // TOTAL_TIMER
   return 0;
 }

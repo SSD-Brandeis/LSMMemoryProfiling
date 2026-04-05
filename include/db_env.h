@@ -46,12 +46,12 @@ private:
   static std::mutex mutex_;
 
   // buffer size in bytes
-  size_t buffer_size_ = 0;        // [M]
-  bool rocksdb_stats_ = true;     // [stat]
-  bool perf_stats_ = true;        // [perf]
-  bool iostat_stats_ = true;      // [iostat]
-  bool destroy_database_ = true;  // [d]
-  bool show_progress_bar_ = true; // [progress]
+  size_t buffer_size_ = 0;         // [M]
+  bool rocksdb_stats_ = false;     // [stat]
+  bool perf_stats_ = false;        // [perf]
+  bool iostat_stats_ = false;      // [iostat]
+  bool destroy_database_ = true;   // [d]
+  bool show_progress_bar_ = false; // [progress]
 
 public:
   static std::string kDBPath;
@@ -88,7 +88,9 @@ public:
   long GetTargetFileSizeBase() const { return GetBufferSize(); }
 
   // control maximum total data size for level base (i.e. level 1)
-  uint64_t GetMaxBytesForLevelBase() const { return GetTargetFileSizeBase() * size_ratio * size_ratio; }
+  uint64_t GetMaxBytesForLevelBase() const {
+    return GetTargetFileSizeBase() * size_ratio * size_ratio;
+  }
 
 #pragma region[DBOptions]
   bool create_if_missing = true;
@@ -369,10 +371,10 @@ public:
 
   // Soft limit on number of level-0 files.
   // We start slowing down writes at this point.
-  int level0_slowdown_writes_trigger = 1;
+  int level0_slowdown_writes_trigger = 20; // [CHANDED]
 
   // maximum number of level-0 files. RocksDB stop writes at this point
-  int level0_stop_writes_trigger = 1;
+  int level0_stop_writes_trigger = 36; // [CHANDED]
 
   // After writing every SST file, reopen it and read all the keys.
   // Checks the hash of all of the keys and values written versus the

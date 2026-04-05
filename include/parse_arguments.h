@@ -142,6 +142,8 @@ int parse_arguments(int argc, char *argv[], std::unique_ptr<DBEnv> &env) {
                                 : env->clear_system_cache;
   env->size_ratio =
       size_ratio_cmd ? args::get(size_ratio_cmd) : env->size_ratio;
+//   env->level0_slowdown_writes_trigger = env->size_ratio - 1;
+//   env->level0_stop_writes_trigger = env->size_ratio;
   env->level0_file_num_compaction_trigger = env->size_ratio;
   env->buffer_size_in_pages = buffer_size_in_pages_cmd
                                   ? args::get(buffer_size_in_pages_cmd)
@@ -191,7 +193,8 @@ int parse_arguments(int argc, char *argv[], std::unique_ptr<DBEnv> &env) {
   env->linklist_threshold_use_skiplist =
       threshold_use_skiplist_cmd ? args::get(threshold_use_skiplist_cmd)
                                  : env->linklist_threshold_use_skiplist;
-  // This size is computed in number of entries that can fit in buffer theoretically
+  // This size is computed in number of entries that can fit in buffer
+  // theoretically
   env->vector_preallocation_size_in_bytes =
       vector_pre_allocation_size_cmd
           ? args::get(vector_pre_allocation_size_cmd)

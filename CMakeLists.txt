@@ -1,11 +1,8 @@
 cmake_minimum_required(VERSION 3.10)
 project(LSMBufferAnalysis)
 
+set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
 set(CMAKE_CXX_STANDARD 20)
-
-# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2" )
-
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -DPER_OP_TIMER -DTOTAL_TIMER -DRESET")
 
 find_package(Threads REQUIRED)
 
@@ -16,16 +13,10 @@ option(WITH_BENCHMARK_TOOLS "Build with benchmark tools" OFF)
 option(WITH_CORE_TOOLS "Build with core tools" OFF)
 option(WITH_TRACE_TOOLS "Build with trace tools" OFF)
 
-if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
-  set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
-endif()
-
-set(USE_RTTI 1 CACHE BOOL "" FORCE)
-
+set(USE_RTTI 1 CACHE BOOL "Force RTTI on" FORCE)
 add_subdirectory(lib/rocksdb)
-add_subdirectory(lib/KV-WorkloadGenerator)
 
-# ---- Tectonic build (Rust project) ----
+# Build tectonic
 add_custom_target(tectonic-cli ALL
     COMMAND cargo build --release
     COMMAND ${CMAKE_COMMAND} -E copy
@@ -35,30 +26,29 @@ add_custom_target(tectonic-cli ALL
     COMMENT "Building tectonic in release mode"
 )
 
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/bin)
+set(SOURCES
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/buffer.cc
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/db_env.cc
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/event_listners.cc
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/utils.cc
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/run_workload.cc
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/working_version.cc 
+)
 
-add_executable(working_version    
-    src/aux_time.cc 
-    src/buffer.cc
-    src/db_env.cc
-    src/event_listners.cc
-    src/fluid_lsm.cc
-    src/utils.cc
-    src/run_workload.cc
-    src/working_version.cc )
+add_executable(working_version ${SOURCES})
+
 target_include_directories(working_version PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/lib/rocksdb/include
     ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
-target_link_libraries(working_version PRIVATE -DPER_OP_TIMER -DTOTAL_TIMER -DRESET
+target_compile_definitions(working_version PRIVATE -DPER_OP_TIMER -DTOTAL_TIMER -DPROFILE)
+
+target_link_libraries(working_version PRIVATE
     rocksdb
     Threads::Threads
 )
 
-
-
-# target_link_libraries(working_version PRIVATE 
-#     rocksdb
-#     Threads::Threads
-# )
+set_target_properties(working_version PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/bin
+)
