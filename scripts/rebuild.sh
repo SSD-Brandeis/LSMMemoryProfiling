@@ -1,20 +1,35 @@
 #!/bin/bash
 set -e
 
-PROJECT_ROOT="/home/cc/LSMMemoryProfiling"
-
+PROJECT_ROOT="../LSMMemoryProfiling"
 cd "$PROJECT_ROOT"
 
-git submodule update --init --recursive --remote
+OS="$(uname)"
 
-mkdir -p build
+if [[ "$OS" == "Linux" ]]; then
+  sudo apt-get update -y
+  sudo apt-get install -y build-essential cmake libgflags-dev
+  NPROC="$(nproc)"
+elif [[ "$OS" == "Darwin" ]]; then
+  if ! command -v brew >/dev/null 2>&1; then
+    echo "Homebrew not found. Installing Homebrew..."
+    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+  fi
+  brew update
+  brew install cmake gflags
+  NPROC="$(sysctl -n hw.ncpu)"
+else
+  echo "Unsupported OS: $OS"
+  exit 1
+fi
+
+git submodule update --init --recursive
 
 mkdir -p build
 cd build
 cmake ..
-make -j"$(nproc)"
-cd ..
+make -j"$NPROC"
 
-# clear
+clear
 
 echo "build complete!"
