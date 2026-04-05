@@ -3,7 +3,7 @@ bar_styles = {
     "hash_linked_list-X6-H100000":    {"label": "Hash linked list X6 H100k",      "color": "None", "edgecolor": "black", "hatch": "////"},
     "hash_skip_list":                 {"label": "Hash skip list",                 "color": "None", "edgecolor": "black", "hatch": "\\\\"},
     "hash_skip_list-X6-H100000":      {"label": "Hash skip list X6 H100k",        "color": "None", "edgecolor": "black", "hatch": "\\\\"},
-    "skiplist":                       {"label": "Skip-list",                      "color": "None", "edgecolor": "black", "hatch": "++++"},
+    "skiplist":                       {"label": "inline Skip-list",                      "color": "None", "edgecolor": "black", "hatch": "++++"},
     "AlwaysSortedVector":             {"label": "Always-sorted vector",           "color": "None", "edgecolor": "black", "hatch": "...."},
     "AlwaysSortedVector-dynamic":     {"label": "Always-sorted vector dynamic",       "color": "None", "edgecolor": "black", "hatch": "...."},
     "UnsortedVector":                 {"label": "Unsorted vector",                "color": "None", "edgecolor": "black", "hatch": "xxxx"},
@@ -42,7 +42,7 @@ line_styles = {
         "linewidth": 2,
     },
     "skiplist": {
-        "label": "skip-list",
+        "label": "inline skip-list",
         "color": "#6a3d9a",  # Deep purple
         "linestyle": "-",
         "marker": "o",
@@ -51,7 +51,7 @@ line_styles = {
         "linewidth": 2,
     },
     "simpleskiplist": {
-        "label": "simple skip-list",
+        "label": "skip-list",
         "color": "#cf17a7",  # Teal (distinct from purple & blue)
         "linestyle": ":",    # Dotted (different from skiplist solid)
         "marker": "P",       # Plus-filled marker (distinct)

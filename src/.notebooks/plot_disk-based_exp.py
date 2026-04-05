@@ -518,7 +518,7 @@ def plot_flush_and_compaction_counts():
 
     ax.set_yticks([0, 50_000, 100_000], ["0", "5", "10"])
 
-    ax.set_ylabel("count", labelpad=-1)
+    ax.set_ylabel("count", labelpad=-6)
 
     output_file = CURR_DIR / "disk-based-flush-and-compaction-counts.pdf"
     plt.savefig(output_file, bbox_inches="tight", pad_inches=0.02)
@@ -623,7 +623,7 @@ if __name__ == "__main__":
     )
     # plot_insert_latencies_violin()
     # plot_insert_latencies()
-    plot_PQ_latencies()
-    plot_RQ_latencies()
-    plot_throughput()
+    # plot_PQ_latencies()
+    # plot_RQ_latencies()
+    # plot_throughput()
     plot_flush_and_compaction_counts()
