@@ -88,7 +88,9 @@ public:
   long GetTargetFileSizeBase() const { return GetBufferSize(); }
 
   // control maximum total data size for level base (i.e. level 1)
-  uint64_t GetMaxBytesForLevelBase() const { return GetTargetFileSizeBase(); }
+  uint64_t GetMaxBytesForLevelBase() const {
+    return GetTargetFileSizeBase() * size_ratio * size_ratio;
+  }
 
 #pragma region[DBOptions]
   bool create_if_missing = true;
@@ -369,10 +371,10 @@ public:
 
   // Soft limit on number of level-0 files.
   // We start slowing down writes at this point.
-  int level0_slowdown_writes_trigger = 1;
+  int level0_slowdown_writes_trigger = 20; // [CHANDED]
 
   // maximum number of level-0 files. RocksDB stop writes at this point
-  int level0_stop_writes_trigger = 1;
+  int level0_stop_writes_trigger = 36; // [CHANDED]
 
   // After writing every SST file, reopen it and read all the keys.
   // Checks the hash of all of the keys and values written versus the
@@ -432,7 +434,8 @@ public:
   uint32_t linklist_threshold_use_skiplist = 256;
 
   // refer memtable.h (VectorRepFactory)
-  // This size is computed in number of entries that can fit in buffer theoretically
+  // This size is computed in number of entries that can fit in buffer
+  // theoretically
   size_t vector_preallocation_size_in_bytes = 0;
 #pragma endregion // LSMMemoryBuffer
 };

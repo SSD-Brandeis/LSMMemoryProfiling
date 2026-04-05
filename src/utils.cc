@@ -122,24 +122,21 @@ void LogTreeState(rocksdb::DB *db, std::shared_ptr<Buffer> &buffer,
     // WaitForCompactions(db);
   }
 
-  if (env->verbosity > Verbosity::NO_PRINTS) {
-    ColumnFamilyMetaData metadata;
-    db->GetColumnFamilyMetaData(&metadata);
-    std::stringstream cfd_details;
+  ColumnFamilyMetaData metadata;
+  db->GetColumnFamilyMetaData(&metadata);
+  std::stringstream cfd_details;
 
-    cfd_details << "Column Family Name: " << metadata.name
-                << ", Size: " << metadata.size
-                << " bytes, Files Count: " << metadata.file_count << std::endl;
+  cfd_details << "Column Family Name: " << metadata.name
+              << ", Size: " << metadata.size
+              << " bytes, Files Count: " << metadata.file_count << std::endl;
 
-    cfd_details << "Level Stats:" << std::endl;
-    for (const auto &level : metadata.levels) {
-      cfd_details << "Level: " << level.level
-                  << ", Files: " << level.files.size()
-                  << ", Size: " << level.size << " bytes" << std::endl;
-    }
-
-    (*buffer) << cfd_details.str() << std::endl;
+  cfd_details << "Level Stats:" << std::endl;
+  for (const auto &level : metadata.levels) {
+    cfd_details << "Level: " << level.level << ", Files: " << level.files.size()
+                << ", Size: " << level.size << " bytes" << std::endl;
   }
+
+  (*buffer) << cfd_details.str() << std::endl;
 }
 
 // void LogRocksDBStatistics(rocksdb::DB *db, const rocksdb::Options &options,

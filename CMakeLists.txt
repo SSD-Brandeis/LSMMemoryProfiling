@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
-project(FluidLSM VERSION 1.0)
+project(LSMBufferAnalysis)
 
 set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
 set(CMAKE_CXX_STANDARD 20)
@@ -42,7 +42,7 @@ target_include_directories(working_version PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
-target_compile_definitions(working_version PRIVATE -DPER_OP_TIMER -DTOTAL_TIMER)
+target_compile_definitions(working_version PRIVATE -DPER_OP_TIMER -DTOTAL_TIMER -DPROFILE)
 
 target_link_libraries(working_version PRIVATE
     rocksdb
