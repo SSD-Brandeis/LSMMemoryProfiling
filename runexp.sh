@@ -5,7 +5,7 @@ set -e
 bash ./scripts/rebuild.sh
 
 
-TAG=diskbased-1mb-buffer-t6
+TAG=testing2-diskbased-1mb-buffer-t6
 ENTRY_SIZE=32
 LAMBDA=0.25
 
@@ -41,7 +41,7 @@ SPECS_FILE="workload.specs.json"
 if [ ! -f "$WORKLOAD_FILE" ]; then
     if [ -f "$SPECS_FILE" ]; then
         echo "Generating workload..."
-        # ../../bin/tectonic-cli generate -w "$SPECS_FILE"
+        ../../bin/tectonic-cli generate -w "$SPECS_FILE"
     else
         echo "Error: workload not found"
         exit 1
@@ -51,14 +51,14 @@ fi
 
 mkdir -p \
 vector-preallocated \
-skiplist \
-simpleskiplist \
-unsortedvector-preallocated \
-sortedvector-preallocated \
-hashskiplist-H100000-X6 \
-hashvector-H100000-X6 \
-hashlinkedlist-H100000-X6 \
-linkedlist
+# skiplist \
+# simpleskiplist \
+# unsortedvector-preallocated \
+# sortedvector-preallocated \
+# hashskiplist-H100000-X6 \
+# hashvector-H100000-X6 \
+# hashlinkedlist-H100000-X6 \
+# linkedlist
 # vector-dynamic \
 # unsortedvector-dynamic \
 # sortedvector-dynamic \
@@ -119,17 +119,17 @@ linkedlist
 # cd ..
 # echo -e "\n"
 
-# echo "Running vector-preallocated ... "
-# cd vector-preallocated
-# cp ../workload.txt .
-# ../../../bin/working_version \
-#     --memtable_factory=2 \
-#     -E "$ENTRY_SIZE" -B "$ENTRIES_PER_PAGE" -P "$PAGES_PER_FILE" -T "$SIZE_RATIO" \
-#     --lowpri "$LOW_PRI" --stat "$ROCKSDB_STATS" --progress "$SHOW_PROGRESS" > rocksdb_stats.log
-# mv db/LOG LOG
-# rm -rf db workload.txt
-# cd ..
-# echo -e "\n"
+echo "Running vector-preallocated ... "
+cd vector-preallocated
+cp ../workload.txt .
+../../../bin/working_version \
+    --memtable_factory=2 \
+    -E "$ENTRY_SIZE" -B "$ENTRIES_PER_PAGE" -P "$PAGES_PER_FILE" -T "$SIZE_RATIO" \
+    --lowpri "$LOW_PRI" --stat "$ROCKSDB_STATS" --progress "$SHOW_PROGRESS" > rocksdb_stats.log
+mv db/LOG LOG
+rm -rf db workload.txt
+cd ..
+echo -e "\n"
 # sleep 5
 
 # ########################################
@@ -186,19 +186,19 @@ linkedlist
 # echo -e "\n"
 # sleep 5
 
-########################################
-echo "Running linkedlist ... "
-cd linkedlist
-cp ../workload.txt .
-../../../bin/working_version \
-    --memtable_factory=7 \
-    -E "$ENTRY_SIZE" -B "$ENTRIES_PER_PAGE" -P "$PAGES_PER_FILE" -T "$SIZE_RATIO" \
-    --lowpri "$LOW_PRI" --stat "$ROCKSDB_STATS" --progress "$SHOW_PROGRESS" > rocksdb_stats.log
-mv db/LOG LOG
-rm -rf db workload.txt
-cd ..
-echo -e "\n"
-sleep 5
+# ########################################
+# echo "Running linkedlist ... "
+# cd linkedlist
+# cp ../workload.txt .
+# ../../../bin/working_version \
+#     --memtable_factory=7 \
+#     -E "$ENTRY_SIZE" -B "$ENTRIES_PER_PAGE" -P "$PAGES_PER_FILE" -T "$SIZE_RATIO" \
+#     --lowpri "$LOW_PRI" --stat "$ROCKSDB_STATS" --progress "$SHOW_PROGRESS" > rocksdb_stats.log
+# mv db/LOG LOG
+# rm -rf db workload.txt
+# cd ..
+# echo -e "\n"
+# sleep 5
 
 # ########################################
 # echo "Running hashskiplist-H100000-X6 ... "
