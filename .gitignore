@@ -67,6 +67,10 @@ workload.txt
 .DS_Store
 **/__pycache__/**
 **.pdf
+#
+data_new/
+
+**.zip
 
 # RocksDB Logs and Specs
 **/LOG_rocksdb
