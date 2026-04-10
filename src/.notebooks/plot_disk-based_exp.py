@@ -18,6 +18,7 @@ implementations = [
     "sortedvector-preallocated",
     "skiplist",
     "simpleskiplist",
+    # "linkedlist",
     "hashlinkedlist-H100000-X6",
     "hashskiplist-H100000-X6",
     "hashvector-H100000-X6",
@@ -36,6 +37,8 @@ def normalize_name(name):
         return "simpleskiplist"
     if name == "skiplist":
         return "skiplist"
+    if "linkedlist" in name:
+        return "linkedlist"
     if "unsortedvector" in name:
         return "unsortedvector"
     if "sortedvector" in name:
@@ -245,7 +248,7 @@ def plot_PQ_latencies():
 
     clipped_data = []
     for d in data:
-        p0, p98 = np.percentile(d, [0, 98])
+        p0, p98 = np.percentile(d, [0, 99])
         clipped_data.append(d[(d >= p0) & (d <= p98)])
 
     _, ax = plt.subplots(figsize=(4, 3))
@@ -305,7 +308,7 @@ def plot_RQ_latencies():
 
     clipped_data = []
     for d in data:
-        p0, p98 = np.percentile(d, [0, 98])
+        p0, p98 = np.percentile(d, [0, 99])
         clipped_data.append(d[(d >= p0) & (d <= p98)])
 
     _, ax = plt.subplots(figsize=(4, 3))
@@ -505,7 +508,7 @@ def plot_flush_and_compaction_counts():
         ax.bar(
             xpos,
             heights,
-            bar_width,
+            bar_width-0.008,
             facecolor="none" if impl != "vector-preallocated" else color,
             edgecolor=color,
             hatch=hatch_map.get(key, None),
@@ -582,7 +585,7 @@ def plot_throughput():
     _, ax = plt.subplots(figsize=(4, 3))
 
     x = np.arange(num_phases)  # <-- phases on x-axis
-    bar_width = 0.8 / num_impls
+    bar_width = 0.9 / num_impls
 
     for j, impl in enumerate(labels):
         key = normalize_name(impl)
@@ -595,7 +598,7 @@ def plot_throughput():
         ax.bar(
             xpos,
             heights,
-            bar_width,
+            bar_width-0.008,
             facecolor="none" if impl != "vector-preallocated" else color,
             edgecolor=color,
             hatch=hatch_map.get(key, None),
@@ -623,7 +626,7 @@ if __name__ == "__main__":
     )
     # plot_insert_latencies_violin()
     # plot_insert_latencies()
-    # plot_PQ_latencies()
-    # plot_RQ_latencies()
-    # plot_throughput()
+    plot_PQ_latencies()
+    plot_RQ_latencies()
+    plot_throughput()
     plot_flush_and_compaction_counts()

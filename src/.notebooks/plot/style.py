@@ -59,6 +59,15 @@ line_styles = {
         "markerfacecolor": "none",
         "linewidth": 2,
     },
+    # "linkedlist": {
+    #     "label": "linked-list",
+    #     "color": "#222d8b",  # ForestGreen (distinct and vibrant)
+    #     "linestyle": "--",
+    #     "marker": "D",       # Diamond marker (distinct)
+    #     "markersize": 12,
+    #     "markerfacecolor": "none",
+    #     "linewidth": 2,
+    # },
     "hashlinkedlist": {
         "label": "hash linked-list",
         "color": "#b22222",  # Firebrick (dark red)
@@ -95,7 +104,8 @@ hatch_map = {
     "alwayssortedvector": "/",
     "skiplist": "-",
     "simpleskiplist": "---",
-    "hashlinkedlist": "///",
-    "hashskiplist": "\\\\\\",
-    "hashvector": "....",
+    "linkedlist": "\\.",
+    "hashlinkedlist": "////",
+    "hashskiplist": "\\\\\\\\",
+    "hashvector": "/.",
 }
