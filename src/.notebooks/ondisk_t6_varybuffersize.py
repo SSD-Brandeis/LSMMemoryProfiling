@@ -30,7 +30,8 @@ LOG_SCALE = True # Set to True for log scale, False for linear scale (global)
 # ==============================================================================
 
 # --- Path Injection and Style Enforcement ---
-STYLE_PATH = Path("/Users/cba/Desktop/LSMMemoryBuffer/notebooks/plot")
+STYLE_PATH = Path("/Users/cba/Desktop/LSM/LSMMemoryProfiling/src/.notebooks/plot")
+
 if str(STYLE_PATH) not in sys.path:
     sys.path.insert(0, str(STYLE_PATH))
 
@@ -48,11 +49,18 @@ except ImportError:
 
 NS_TO_S = 1e-9
 
-PHASE1_INSERTS = 90000000
+# PHASE1_INSERTS = 90000000
+# PHASE2_INSERTS = 10000000
+# PHASE2_PQ = 10000
+# PHASE3_INSERTS = 1000000
+# PHASE3_RQ = 100
+
+PHASE1_INSERTS = 80000000
 PHASE2_INSERTS = 10000000
 PHASE2_PQ = 10000
-PHASE3_INSERTS = 1000000
+PHASE3_INSERTS = 10000000
 PHASE3_RQ = 1000
+
 
 DATA_BASE_DIR = Path("/Users/cba/Desktop/LSMMemoryBuffer/data/filter_result_multiphase_ondisk_3phase_t6_varybuffer")
 PLOTS_DIR = Path("/Users/cba/Desktop/LSMMemoryBuffer/notebooks/paper_plot/vary_buffer_size_line")
@@ -143,9 +151,11 @@ def generate_separate_legend():
     handles, labels = ax_leg.get_legend_handles_labels()
     fig_leg.legend(handles, labels, loc='center', frameon=False, ncol=4)
     ax_leg.axis('off')
-    fig_leg.savefig(PLOTS_DIR / "standalone_legend.pdf", bbox_inches='tight')
+    
+    save_path = PLOTS_DIR / "standalone_legend.pdf"
+    fig_leg.savefig(save_path, bbox_inches='tight')
     plt.close(fig_leg)
-    print("  Standalone legend saved.")
+    print(f"  Standalone legend saved: {save_path.resolve()}")
 
 def plot_lines(df, metric_col, y_label, filename_base, use_log, num_ticks, ylim, yticks):
     df_grouped = df.groupby(["buffer_size", "buffer_type"])[metric_col].mean().reset_index()
@@ -153,7 +163,7 @@ def plot_lines(df, metric_col, y_label, filename_base, use_log, num_ticks, ylim,
     all_sizes = sorted(df_grouped["buffer_size"].unique())
     size_to_idx = {size: i for i, size in enumerate(all_sizes)}
 
-    fig, ax = plt.subplots(figsize=(6, 4))
+    fig, ax = plt.subplots(figsize=(6, 5))
     for buf in df_grouped["buffer_type"].unique():
         buf_df = df_grouped[df_grouped["buffer_type"] == buf]
         style = line_styles.get(buf, {})
@@ -172,12 +182,12 @@ def plot_lines(df, metric_col, y_label, filename_base, use_log, num_ticks, ylim,
         
         if ylim is not None:
             # Handle user-defined ylim, allowing for partial None
-            bottom = ylim[0] if ylim[0] is not None else 1
+            bottom = ylim[0] if ylim[0] is not None else 10
             top = ylim[1] if ylim[1] is not None else data_max * 10
             ax.set_ylim(bottom=bottom, top=top)
         else:
-            # Enforce start at 10^0 (1) and add 10x top padding for autoscale
-            ax.set_ylim(bottom=1, top=data_max * 10) 
+            # Enforce start at 10^1 (10) as per preference
+            ax.set_ylim(bottom=10, top=data_max * 10) 
             
         ax.yaxis.set_major_locator(mticker.LogLocator(base=10.0, numticks=num_ticks))
         ax.yaxis.set_major_formatter(mticker.LogFormatterSciNotation())
@@ -194,14 +204,15 @@ def plot_lines(df, metric_col, y_label, filename_base, use_log, num_ticks, ylim,
             y_ticks_auto = ax.get_yticks()
             ax.set_yticks([t for t in y_ticks_auto if t >= (ylim[0] if (ylim and ylim[0] is not None) else 0)])
 
-    ax.set_xlabel("Buffer Size (MB)")
-    ax.set_ylabel(y_label)
+    ax.set_xlabel("buffer size (mb)")
+    ax.set_ylabel(y_label.lower())
     ax.grid(False) 
 
     fig.tight_layout()
-    fig.savefig(PLOTS_DIR / f"{filename_base}.pdf", bbox_inches="tight")
+    save_path = PLOTS_DIR / f"{filename_base}.pdf"
+    fig.savefig(save_path, bbox_inches="tight")
     plt.close(fig)
-    print(f"  Saved plot: {filename_base}")
+    print(f"  Saved plot: {save_path.resolve()}")
 
 def main():
     df = collect_records()
@@ -211,11 +222,11 @@ def main():
     generate_separate_legend()
 
     configs = [
-        ("ph1_ins_lat", "Phase 1 Mean Insert Latency (ns)", "ph1_ins"),
-        ("ph2_ins_lat", "Phase 2 Mean Insert Latency (ns)", "ph2_ins"),
-        ("ph3_ins_lat", "Phase 3 Mean Insert Latency (ns)", "ph3_ins"),
-        ("ph2_pq_lat",  "Phase 2 Mean PQ Latency (ns)", "ph2_pq"),
-        ("ph3_rq_lat",  "Phase 3 Mean RQ Latency (ns)", "ph3_rq"),
+        ("ph1_ins_lat", "P1 Mean Insert Latency (ns)", "ph1_ins"),
+        ("ph2_ins_lat", "P2 Mean Insert Latency (ns)", "ph2_ins"),
+        ("ph3_ins_lat", "P3 Mean Insert Latency (ns)", "ph3_ins"),
+        ("ph2_pq_lat",  "P2 Mean PQ Latency (ns)", "ph2_pq"),
+        ("ph3_rq_lat",  "P3 Mean RQ Latency (ns)", "ph3_rq"),
         ("total_time",  "Total Execution Time (s)", "total_time")
     ]
 

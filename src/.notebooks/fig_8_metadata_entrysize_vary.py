@@ -8,7 +8,8 @@ from plot.utils import process_LOG_file
 
 # --- CONFIGURATION ---
 CURR_DIR = Path(__file__).parent
-DATA_DIR = EXP_DIR / "fig8_vary_entrysize"
+# DATA_DIR = EXP_DIR / "fig8_vary_entrysize"
+DATA_DIR = Path("/Users/cba/Desktop/LSM/LSMMemoryProfiling/data_new/fig8_vary_entrysize")
 BUFFER_SIZE_IN_MB = 128
 PREFIX_LEN = 6
 BUCKET_COUNT = 100000
@@ -16,35 +17,48 @@ FIGSIZE = (4, 3.2) # Matched exactly
 
 USE_LOG_Y = False # Consistent with other plot
 
+BUFFERS_TO_PLOT = [
+    "vector-dynamic", "unsortedvector-dynamic", "alwayssortedVector-dynamic",
+    "skiplist", "linkedlist", "hash_skip_list", "hash_linked_list", "hash_vector",
+    "simple_skiplist",
+]
+
 # BUFFERS_TO_PLOT = [
-#     "vector-dynamic", "unsortedvector-dynamic", "alwayssortedVector-dynamic",
+#     "vector-dynamic", 
 #     "skiplist", "linkedlist", "hash_skip_list", "hash_linked_list", "hash_vector",
 # ]
-
-BUFFERS_TO_PLOT = [
-    "vector-dynamic", 
-    "skiplist", "linkedlist", "hash_skip_list", "hash_linked_list", "hash_vector",
-]
 
 def get_experiment_data() -> pd.DataFrame:
     records = []
     buf_bytes = BUFFER_SIZE_IN_MB * 1024 * 1024
     if not DATA_DIR.exists(): return pd.DataFrame()
 
-    for exp_path in DATA_DIR.rglob("*sanitycheck-fig_8_metadata_varyentry*"):
-        for buffer_path in exp_path.glob("buffer-*"):
-            match = re.match(r"buffer-\d+-(.*?)(?:-H\d+)?-E(\d+)", buffer_path.name)
-            if not match: continue
-            name, entry_size = match.group(1), int(match.group(2))
-            log_file = buffer_path / "LOG_rocksdb" if (buffer_path / "LOG_rocksdb").exists() else buffer_path / "LOG1"
-            if not log_file.exists(): continue
+    for buffer_path in DATA_DIR.rglob("buffer-*"):
+        if not buffer_path.is_dir(): continue
+        
+        match = re.match(r"buffer-\d+-(.*?)(?:-X\d+)?(?:-H\d+)?(?:-E(\d+))?$", buffer_path.name)
+        if not match: continue
+        
+        name = match.group(1)
+        entry_size_str = match.group(2)
+        
+        if entry_size_str is None:
+            parent_match = re.search(r"-E-(\d+)-", buffer_path.parent.name)
+            if parent_match:
+                entry_size_str = parent_match.group(1)
+        
+        if entry_size_str is None: continue
+        entry_size = int(entry_size_str)
+        
+        log_file = buffer_path / "LOG_rocksdb" if (buffer_path / "LOG_rocksdb").exists() else buffer_path / "LOG1"
+        if not log_file.exists(): continue
 
-            actual_bytes = process_LOG_file(str(log_file))
-            if actual_bytes <= 0: continue
-            
-            # Changed to MB for consistency with the buffer script
-            overhead_mb = (buf_bytes - actual_bytes) / (1024 * 1024)
-            records.append({"buffer": name, "entry_size": entry_size, "overhead_mb": overhead_mb})
+        actual_bytes = process_LOG_file(str(log_file))
+        if actual_bytes <= 0: continue
+        
+        # Changed to MB for consistency with the buffer script
+        overhead_mb = (buf_bytes - actual_bytes) / (1024 * 1024)
+        records.append({"buffer": name, "entry_size": entry_size, "overhead_mb": overhead_mb})
     return pd.DataFrame(records)
 
 def main():

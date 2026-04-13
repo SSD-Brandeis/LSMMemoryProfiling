@@ -8,25 +8,26 @@ from pathlib import Path
 import re
 import sys
 import numpy as np
+import os
 from math import ceil
 
-# --- Font and Style Integrity ---
 try:
     from plot import *
+    from plot.style import bar_styles, line_styles, hatch_map
 except ImportError:
-    print("Error: 'plot.py' not found. Specified font and styles are missing.")
+    print("Error: 'plot' package or 'style.py' not found. Specified font and styles are missing.")
     sys.exit(1)
 
-# Abort if the academic font doesn't load
 if plt.rcParams["font.family"][0] == "sans-serif":
     print("Error: Specified academic font not found. Aborting program.")
     sys.exit(1)
 
-# --- Configuration ---
-DATA_ROOT = Path("/Users/cba/Desktop/LSMMemoryBuffer/data/results_ycsb")
-OUTPUT_DIR = Path("/Users/cba/Desktop/LSMMemoryBuffer/notebooks/output_plots/ycsb_execution_time")
+SCRIPT_DIR = Path(__file__).resolve().parent
+SCRIPT_NAME = Path(__file__).stem
+OUTPUT_DIR = SCRIPT_DIR / "paperplot" / SCRIPT_NAME
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
+DATA_ROOT = Path("/Users/cba/Desktop/LSMMemoryBuffer/data/results_ycsb")
 USE_LOG_SCALE = False
 NS_TO_S = 1e-9
 YLIM_EXEC = (1e0, 1e3) 
@@ -44,10 +45,20 @@ FILTER_BUFFERS = [
 WORKLOAD_TIME_RE = re.compile(r"^Workload Execution Time:\s*(\d+)")
 BUF_PATTERN = re.compile(r"^buffer-\d+MB-\d+-(.*)", re.IGNORECASE)
 
-def bar_style(buf_name):
-    if "bar_styles" in globals():
-        return bar_styles.get(buf_name, {"color": "white", "edgecolor": "black"}).copy()
-    return {"color": "white", "edgecolor": "black"}
+def get_mapped_style(buf_name):
+    clean = buf_name.lower().replace("-preallocated", "").replace("-x6-h100000", "").replace("_", "").replace("-", "")
+    
+    plot_style = {"edgecolor": "black", "facecolor": "white", "hatch": ""}
+    
+    if clean in line_styles:
+        plot_style["facecolor"] = line_styles[clean]["color"]
+    
+    if buf_name in bar_styles:
+        plot_style["hatch"] = bar_styles[buf_name].get("hatch", "")
+    elif clean in hatch_map:
+        plot_style["hatch"] = hatch_map[clean]
+        
+    return plot_style
 
 def parse_workload_time(file_path):
     if not file_path.exists():
@@ -77,10 +88,10 @@ def save_separate_legend(buffers, output_path):
     handles = []
     labels = []
     for b in buffers:
-        style = bar_style(b)
-        style.pop('label', None)
-        handles.append(plt.Rectangle((0, 0), 1, 1, **style))
-        clean_label = b.replace("-preallocated", "").replace("hash_", "h_")
+        style = get_mapped_style(b)
+        handles.append(plt.Rectangle((0, 0), 1, 1, facecolor=style["facecolor"], edgecolor=style["edgecolor"], hatch=style["hatch"]))
+        
+        clean_label = b.replace("-preallocated", "").replace("hash_", "h_").replace("-X6-H100000", "")
         labels.append(clean_label)
     
     ncol = ceil(len(buffers) / 2)
@@ -98,7 +109,7 @@ def save_separate_legend(buffers, output_path):
     plt.axis("off")
     legend_fig.savefig(output_path, bbox_inches="tight", pad_inches=0.01)
     plt.close(legend_fig)
-    print(f"[saved] {output_path.name}")
+    print(f"[saved] {output_path.resolve()}")
 
 def plot_workload(workload_id, df):
     df = df[df["buffer"].isin(FILTER_BUFFERS)].copy()
@@ -108,37 +119,32 @@ def plot_workload(workload_id, df):
     df["buffer"] = pd.Categorical(df["buffer"], categories=FILTER_BUFFERS, ordered=True)
     df = df.sort_values("buffer")
 
-    fig, ax = plt.subplots(figsize=(5, 3.2)) # Adjusted height slightly for label clarity
+    fig, ax = plt.subplots(figsize=(5, 3.2))
 
     if USE_LOG_SCALE:
         ax.set_yscale("log", base=10)
         ax.set_ylim(*YLIM_EXEC)
         ax.yaxis.set_major_formatter(LogFormatterMathtext(base=10))
 
-    # Strict Tick Control - Removing x-tick labels as they are in the separate legend
     x_pos = np.arange(len(df))
     ax.set_xticks(x_pos)
     ax.set_xticklabels([]) 
-    
-    # Ensure individual buffer names don't appear on the axis
     ax.tick_params(axis='x', which='both', bottom=True, top=False, labelbottom=False)
     
     for i, row in enumerate(df.itertuples()):
-        style = bar_style(row.buffer)
-        ax.bar(i, row.exec_time, width=0.7, **style)
+        style = get_mapped_style(row.buffer)
+        ax.bar(i, row.exec_time, width=0.7, facecolor=style["facecolor"], edgecolor=style["edgecolor"], hatch=style["hatch"])
 
-    # Label Control
     ax.set_xlabel("buffer")
     ax.set_ylabel("Total Execution Time (s)")
     ax.set_title(f"YCSB Workload {workload_id.upper()}")
 
     fig.tight_layout()
     
-    # PDF only
     output_path = OUTPUT_DIR / f"ycsb_workload_{workload_id}.pdf"
     fig.savefig(output_path, bbox_inches="tight")
     plt.close(fig)
-    print(f"[saved] {output_path.name}")
+    print(f"[saved] {output_path.resolve()}")
 
 def main():
     for wl in ['a', 'b', 'c', 'd', 'e', 'f']:
@@ -148,7 +154,6 @@ def main():
         df = collect_workload_data(wl_path)
         plot_workload(wl, df)
 
-    # Separate legend remains the only place where buffer names appear
     legend_output = OUTPUT_DIR / "ycsb_workload_legend.pdf"
     save_separate_legend(FILTER_BUFFERS, legend_output)
 
