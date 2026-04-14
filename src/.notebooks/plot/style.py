@@ -17,7 +17,7 @@ line_styles = {
     "vector": {
         "label": "vector",
         "color": "#006d2c",  # Dark green (distinct and rich)
-        "linestyle": (0, (1, 1)),  # Dotted
+        "linestyle": 'solid', # (0, (1, 1)),  # Dotted
         "marker": "x",
         "markersize": 12,
         "markerfacecolor": "none",
@@ -26,7 +26,7 @@ line_styles = {
     "unsortedvector": {
         "label": "unsorted vector",
         "color": "#4d4d4d",  # Dark gray (visible and clean)
-        "linestyle": (0, (5, 2)),  # Long dashes
+        "linestyle": 'dotted',  # Long dashes
         "marker": "v",
         "markersize": 12,
         "markerfacecolor": "none",
@@ -35,7 +35,7 @@ line_styles = {
     "alwayssortedvector": {
         "label": "sorted vector",
         "color": "#8b4513",  # SaddleBrown (dark reddish-brown)
-        "linestyle": (0, (3, 1, 1, 1)),  # Dash-dot-dot
+        "linestyle": 'dashed',  # Dash-dot-dot
         "marker": "s",
         "markersize": 12,
         "markerfacecolor": "none",
@@ -44,7 +44,7 @@ line_styles = {
     "skiplist": {
         "label": "inline skip-list",
         "color": "#6a3d9a",  # Deep purple
-        "linestyle": "-",
+        "linestyle": (0, (3, 5, 1, 5, 1, 5)),  # Dotted (long gaps)
         "marker": "o",
         "markersize": 12,
         "markerfacecolor": "none",
@@ -53,21 +53,21 @@ line_styles = {
     "simpleskiplist": {
         "label": "skip-list",
         "color": "#cf17a7",  # Teal (distinct from purple & blue)
-        "linestyle": ":",    # Dotted (different from skiplist solid)
+        "linestyle": (0, (1, 1)),    # Dotted (different from skiplist solid)
         "marker": "P",       # Plus-filled marker (distinct)
         "markersize": 12,
         "markerfacecolor": "none",
         "linewidth": 2,
     },
-    # "linkedlist": {
-    #     "label": "linked-list",
-    #     "color": "#222d8b",  # ForestGreen (distinct and vibrant)
-    #     "linestyle": "--",
-    #     "marker": "D",       # Diamond marker (distinct)
-    #     "markersize": 12,
-    #     "markerfacecolor": "none",
-    #     "linewidth": 2,
-    # },
+    "linkedlist": {
+        "label": "linked-list",
+        "color": "#222d8b",  # ForestGreen (distinct and vibrant)
+        "linestyle": (5, (10, 3)),
+        "marker": "D",       # Diamond marker (distinct)
+        "markersize": 12,
+        "markerfacecolor": "none",
+        "linewidth": 2,
+    },
     "hashlinkedlist": {
         "label": "hash linked-list",
         "color": "#b22222",  # Firebrick (dark red)
@@ -89,7 +89,7 @@ line_styles = {
     "hashvector": {
         "label": "hash vector",
         "color": "#ff7f0e",  # Orange (distinct from others)
-        "linestyle": "-",
+        "linestyle": (0, (3, 1, 1, 1, 1, 1)),
         "marker": "H",       # Hexagon marker (distinct)
         "markersize": 12,
         "markerfacecolor": "none",
