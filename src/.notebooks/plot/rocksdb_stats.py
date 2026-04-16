@@ -302,7 +302,7 @@ def parse_rocksdb_log(file_path: str) -> List[Dict[str, Any]]:
 
     phases = []
     current_phase = None
-    in_stats = False
+    section = None  # "stats" | "perf" | "io" | None
 
     for line in lines:
         line = line.strip()
@@ -314,7 +314,7 @@ def parse_rocksdb_log(file_path: str) -> List[Dict[str, Any]]:
 
             current_phase = _new_phase()
             _parse_cf_header(line, current_phase)
-            in_stats = False
+            section = None
             continue
 
         if current_phase is None:
@@ -328,22 +328,29 @@ def parse_rocksdb_log(file_path: str) -> List[Dict[str, Any]]:
 
         # --- Section switches ---
         if line.startswith("[Rocksdb Stats]"):
-            in_stats = True
+            section = "stats"
             continue
 
         if line.startswith("[Perf Context]"):
-            in_stats = False
+            section = "perf"
             continue
 
-        if not in_stats:
+        if line.startswith("[IO Stats Context]"):
+            section = "io"
             continue
 
-        # --- Stats parsing ---
-        if _parse_ticker(line, current_phase):
-            continue
+        # --- Section-specific parsing ---
+        if section == "stats":
+            if _parse_ticker(line, current_phase):
+                continue
+            if _parse_histogram(line, current_phase):
+                continue
 
-        if _parse_histogram(line, current_phase):
-            continue
+        elif section == "perf":
+            _parse_perf_context(line, current_phase)
+
+        elif section == "io":
+            _parse_io_stats(line, current_phase)
 
     # finalize last phase
     if current_phase:
@@ -359,7 +366,9 @@ def _new_phase():
             "levels": {}
         },
         "tickers": {},
-        "histograms": {}
+        "histograms": {},
+        "perf": {},
+        "io": {},
     }
 
 
@@ -441,6 +450,39 @@ def _parse_histogram(line: str, phase: Dict) -> bool:
     return True
 
 
+def _parse_perf_context(line: str, phase: Dict):
+    # Format: key = value, key = value, ...
+    # Values may be empty (e.g. "bloom_filter_useful =")
+    for token in line.split(","):
+        token = token.strip()
+        if "=" not in token:
+            continue
+        key, _, raw_val = token.partition("=")
+        key = key.strip()
+        raw_val = raw_val.strip()
+        if key and raw_val:
+            try:
+                phase["perf"][key] = int(raw_val)
+            except ValueError:
+                phase["perf"][key] = raw_val
+
+
+def _parse_io_stats(line: str, phase: Dict):
+    # Format: key = value, key = value, ...
+    for token in line.split(","):
+        token = token.strip()
+        if "=" not in token:
+            continue
+        key, _, raw_val = token.partition("=")
+        key = key.strip()
+        raw_val = raw_val.strip()
+        if key and raw_val:
+            try:
+                phase["io"][key] = int(raw_val)
+            except ValueError:
+                phase["io"][key] = raw_val
+
+
 def _finalize_phase(phase: Dict):
     # Fill missing tickers
     for metric in ALL_TICKERS:
@@ -483,6 +525,14 @@ def to_dataframe(phases):
         for metric, stats in p["histograms"].items():
             for stat_name, val in stats.items():
                 row[f"{metric}.{stat_name}"] = val
+
+        # perf context (prefix to avoid collisions)
+        for key, val in p["perf"].items():
+            row[f"perf.{key}"] = val
+
+        # io stats context
+        for key, val in p["io"].items():
+            row[f"io.{key}"] = val
 
         rows.append(row)
 

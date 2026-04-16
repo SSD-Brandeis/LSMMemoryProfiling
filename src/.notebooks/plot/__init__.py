@@ -14,6 +14,6 @@ prop = font_manager.FontProperties(fname=CURR_DIR / "LinLibertine_Mah.ttf")
 plt.rcParams["font.family"] = prop.get_name()
 plt.rcParams["text.usetex"] = True
 plt.rcParams["font.weight"] = "bold"
-plt.rcParams["font.size"] = 24
+plt.rcParams["font.size"] = 22
 
 EXP_DIR = Path(__file__).parent.parent.parent.parent / ".vstats"

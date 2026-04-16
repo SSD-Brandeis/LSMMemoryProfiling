@@ -7,6 +7,9 @@ from concurrent.futures import ProcessPoolExecutor
 from plot.rocksdb_stats import parse_rocksdb_log
 from plot.style import hatch_map, line_styles  # , hatch_map
 
+TAG = "diskbased-full-exp"
+os.makedirs(TAG, exist_ok=True)
+
 CURR_DIR = Path.cwd()
 PROJECT_ROOT = CURR_DIR.parent.parent
 ROOT_DIR = PROJECT_ROOT / ".vstats"
@@ -251,7 +254,7 @@ def plot_PQ_latencies():
         p0, p98 = np.percentile(d, [0, 99])
         clipped_data.append(d[(d >= p0) & (d <= p98)])
 
-    _, ax = plt.subplots(figsize=(4, 3))
+    _, ax = plt.subplots(figsize=(3.5, 2.5))
 
     # --- Create violin plot ---
     vp = ax.violinplot(
@@ -277,13 +280,13 @@ def plot_PQ_latencies():
         vp["cmeans"].set_colors(colors)
         vp["cmeans"].set_linewidth(1.5)
 
-    ax.set_xticks([1, 2, 3, 4, 5, 6, 7, 8], ["", "", "", "", "", "", "", ""])
+    ax.set_xticks([1, 2, 3, 4, 5, 6, 7, 8], ["vec", "uvec", "svec", "skip", "iskip", "hlink", "hskip", "hvec"], rotation=90)
     ax.set_yticks([0, 10, 20], ["0", "10", "20"])
     ax.set_ylabel("PQ latency (ms)", labelpad=-1)  # $\\mu$      , labelpad=-1
-    ax.set_xlabel("buffer", labelpad=-1)
+    # ax.set_xlabel("buffer", labelpad=-1)
     ax.set_ylim(0, None)
 
-    output_file = CURR_DIR / "disk-based-insert-latency-pq.pdf"
+    output_file = CURR_DIR / TAG / "disk-based-insert-latency-pq.pdf"
     plt.savefig(output_file, bbox_inches="tight", pad_inches=0.02)
     print(f"Saved plot to {output_file}")
 
@@ -311,7 +314,7 @@ def plot_RQ_latencies():
         p0, p98 = np.percentile(d, [0, 99])
         clipped_data.append(d[(d >= p0) & (d <= p98)])
 
-    _, ax = plt.subplots(figsize=(4, 3))
+    _, ax = plt.subplots(figsize=(3.5, 2.5))
 
     # --- Create violin plot ---
     vp = ax.violinplot(
@@ -337,13 +340,13 @@ def plot_RQ_latencies():
         vp["cmeans"].set_colors(colors)
         vp["cmeans"].set_linewidth(1.5)
 
-    ax.set_xticks([1, 2, 3, 4, 5, 6, 7, 8], ["", "", "", "", "", "", "", ""])
+    ax.set_xticks([1, 2, 3, 4, 5, 6, 7, 8], ["vec", "uvec", "svec", "skip", "iskip", "hlink", "hskip", "hvec"], rotation=90)
     ax.set_yticks([0, 10, 20], ["0", "10", "20"])
     ax.set_ylabel("RQ latency (ms)", labelpad=-1)  # $\\mu$      , labelpad=-1
-    ax.set_xlabel("buffer", labelpad=-1)
+    # ax.set_xlabel("buffer", labelpad=-1)
     ax.set_ylim(0, None)
 
-    output_file = CURR_DIR / "disk-based-insert-latency-rq.pdf"
+    output_file = CURR_DIR / TAG / "disk-based-insert-latency-rq.pdf"
     plt.savefig(output_file, bbox_inches="tight", pad_inches=0.02)
     print(f"Saved plot to {output_file}")
 
@@ -352,6 +355,7 @@ def plot_RQ_latencies():
 
     legend_elements = []
     for key, style in line_styles.items():
+        if key == "linkedlist": continue
         color = style["color"]
         label = style["label"]
         legend_elements.append(
@@ -369,12 +373,14 @@ def plot_RQ_latencies():
         loc="center",
         frameon=False,
         ncol=4,
-        labelspacing=0.2,
         borderaxespad=0,
+        labelspacing=0.2,
         borderpad=0,
+        columnspacing=0.5,
+        handletextpad=0.2,
     )
 
-    legend_file = CURR_DIR / "disk-based-latency-legend-violin.pdf"
+    legend_file = CURR_DIR / TAG / "disk-based-latency-legend-violin.pdf"
     fig_legend.savefig(legend_file, bbox_inches="tight", pad_inches=0.02)
     plt.close(fig_legend)
     print(f"Saved legend to {legend_file}")
@@ -403,7 +409,7 @@ def plot_insert_latencies_violin():
         p98 = np.percentile(d, 98)
         clipped_data.append(d[d <= p98])
 
-    _, ax = plt.subplots(figsize=(4, 3))
+    _, ax = plt.subplots(figsize=(3.5, 2.5))
 
     # --- Create Violin Plot ---
     vp = ax.violinplot(
@@ -430,17 +436,16 @@ def plot_insert_latencies_violin():
         vp["cmeans"].set_linewidth(1.5)
 
     # --- Formatting ---
-    ax.set_xticks(range(1, len(labels) + 1))
-    ax.set_xticklabels([""] * len(labels))
+    ax.set_xticks([1, 2, 3, 4, 5, 6, 7, 8], ["vec", "uvec", "svec", "skip", "iskip", "hlink", "hskip", "hvec"], rotation=90)
     ax.set_yticks([0, 5, 10, 15])
     ax.set_yticklabels(["0", "5", "10", "15"])
 
     ax.set_ylabel("insert latency ($\\mu$s)", labelpad=-1)
-    ax.set_xlabel("buffer", labelpad=-1)
+    # ax.set_xlabel("buffer", labelpad=-1)
     ax.set_ylim(0, None)
 
     # --- Save Plot ---
-    output_file = CURR_DIR / "disk-based-insert-latency-violin.pdf"
+    output_file = CURR_DIR / TAG / "disk-based-insert-latency-violin.pdf"
     plt.savefig(output_file, bbox_inches="tight", pad_inches=0.02)
     print(f"Saved violin plot to {output_file}")
 
@@ -476,6 +481,44 @@ def process_impl(impl):
     )
 
 
+def process_data_movement(impl):
+    path = os.path.join(EXP_DIR, impl)
+    log_file = os.path.join(path, "workload.log")
+
+    phases = parse_rocksdb_log(log_file)
+    phase_wise_overall_data_movement_bytes = [
+        p["tickers"].get("rocksdb.bytes.read", 0)
+        + p["tickers"].get("rocksdb.bytes.written", 0)
+        + p["tickers"].get("rocksdb.compact.write.bytes", 0)
+        + p["tickers"].get("rocksdb.compact.read.bytes", 0)
+        for p in phases
+    ]
+
+    return (impl, phase_wise_overall_data_movement_bytes)
+
+
+def process_write_stalls(impl):
+    path = os.path.join(EXP_DIR, impl)
+    log_file = os.path.join(path, "workload.log")
+
+    phases = parse_rocksdb_log(log_file)
+    phase_wise_write_stalls = [
+        p["tickers"].get("rocksdb.stall.micros", 0) for p in phases
+    ]
+
+    return impl, phase_wise_write_stalls
+
+
+def process_block_read_count_for_PQs(impl):
+    path = os.path.join(EXP_DIR, impl)
+    log_file = os.path.join(path, "workload.log")
+
+    phases = parse_rocksdb_log(log_file)
+    phase_wise_block_reads = [p["perf"].get("block_read_count", 0) for p in phases]
+
+    return impl, phase_wise_block_reads
+
+
 def plot_flush_and_compaction_counts():
     tasks = [
         impl for impl in implementations if os.path.isdir(os.path.join(EXP_DIR, impl))
@@ -492,7 +535,7 @@ def plot_flush_and_compaction_counts():
     num_impls = len(labels)
     num_phases = len(next(iter(results.values())))  # e.g., 3
 
-    _, ax = plt.subplots(figsize=(4, 3))
+    _, ax = plt.subplots(figsize=(3.3, 3))
 
     x = np.arange(num_phases)  # <-- phases on x-axis
     bar_width = 0.8 / num_impls
@@ -508,7 +551,7 @@ def plot_flush_and_compaction_counts():
         ax.bar(
             xpos,
             heights,
-            bar_width-0.008,
+            bar_width - 0.008,
             facecolor="none" if impl != "vector-preallocated" else color,
             edgecolor=color,
             hatch=hatch_map.get(key, None),
@@ -523,7 +566,7 @@ def plot_flush_and_compaction_counts():
 
     ax.set_ylabel("count", labelpad=-6)
 
-    output_file = CURR_DIR / "disk-based-flush-and-compaction-counts.pdf"
+    output_file = CURR_DIR / TAG / "disk-based-flush-and-compaction-counts.pdf"
     plt.savefig(output_file, bbox_inches="tight", pad_inches=0.02)
 
     print(f"Saved plot to {output_file}")
@@ -533,6 +576,8 @@ def plot_flush_and_compaction_counts():
 
     legend_elements = []
     for key, style in line_styles.items():
+        if key == "linkedlist":
+            continue  # skip these two for legend since they are not in the throughput plot
         color = style["color"]
         hatch = hatch_map.get(key, None)
         label = style["label"]
@@ -562,7 +607,7 @@ def plot_flush_and_compaction_counts():
         handletextpad=0.2,
     )
 
-    legend_file = CURR_DIR / "disk-based-latency-legend.pdf"
+    legend_file = CURR_DIR / TAG / "disk-based-latency-legend.pdf"
     fig_legend.savefig(legend_file, bbox_inches="tight", pad_inches=0.02)
     plt.close(fig_legend)
     print(f"Saved legend to {legend_file}")
@@ -582,7 +627,7 @@ def plot_throughput():
     num_impls = len(labels)
     num_phases = len(next(iter(results.values())))  # e.g., 3
 
-    _, ax = plt.subplots(figsize=(4, 3))
+    _, ax = plt.subplots(figsize=(4.5, 3))
 
     x = np.arange(num_phases)  # <-- phases on x-axis
     bar_width = 0.9 / num_impls
@@ -598,7 +643,7 @@ def plot_throughput():
         ax.bar(
             xpos,
             heights,
-            bar_width-0.008,
+            bar_width - 0.008,
             facecolor="none" if impl != "vector-preallocated" else color,
             edgecolor=color,
             hatch=hatch_map.get(key, None),
@@ -607,16 +652,215 @@ def plot_throughput():
 
     # --- center ticks under groups ---
     ax.set_xticks(x + bar_width * (num_impls - 1) / 2)
-    ax.set_xticklabels([f"{i+1}" for i in range(num_phases)])
+    ax.set_xticklabels([f"P{i+1}" for i in range(num_phases)])
 
-    ax.set_yticks([0, 50_000, 100_000], ["0", "5", "10"])
+    ax.set_yticks([0, 50_000, 100_000], ["0", "50", "100"])
 
-    ax.set_ylabel("throughput (ops)", labelpad=-1, loc="top")
-    ax.set_xlabel("phase", labelpad=-1)
+    ax.set_ylabel("throughput (kOPS)", labelpad=-1, loc="top")
+    # ax.set_xlabel("phase", labelpad=-1)
 
-    output_file = CURR_DIR / "disk-based-throughput.pdf"
+    output_file = CURR_DIR / TAG / "disk-based-throughput.pdf"
     plt.savefig(output_file, bbox_inches="tight", pad_inches=0.02)
 
+    print(f"Saved plot to {output_file}")
+
+
+def plot_overall_datamovement():
+    GB_1 = 1024**3
+    tasks = [
+        impl for impl in implementations if os.path.isdir(os.path.join(EXP_DIR, impl))
+    ]
+    results = {}
+    with ProcessPoolExecutor(max_workers=3) as executor:
+        for impl, stats in executor.map(process_data_movement, tasks):
+            results[impl] = stats
+
+    labels = list(results.keys())
+    num_impls = len(labels)
+    num_phases = len(next(iter(results.values())))
+
+    _, ax = plt.subplots(figsize=(4.5, 3))
+    x = np.arange(num_phases)
+    bar_width = 0.9 / num_impls
+
+    for j, impl in enumerate(labels):
+        key = normalize_name(impl)
+        style = line_styles[key]
+        color = style["color"]
+
+        heights = results[impl]
+        xpos = x + j * bar_width
+        ax.bar(
+            xpos,
+            heights,
+            bar_width - 0.008,
+            facecolor="none" if impl != "vector-preallocated" else color,
+            edgecolor=color,
+            hatch=hatch_map.get(key, None),
+            label=style["label"],
+        )
+
+    ax.set_xticks(x + bar_width * (num_impls - 1) / 2)
+    ax.set_xticklabels([f"P{i+1}" for i in range(num_phases)])
+
+    ax.set_yticks([0, 100 * GB_1, 200 * GB_1], ["0", "100", "200"])
+
+    ax.set_ylabel("data movement (GB)", y=0.45)
+
+    output_file = CURR_DIR / TAG / "disk-based-overall-datamovement.pdf"
+    plt.savefig(output_file, bbox_inches="tight", pad_inches=0.06)
+    print(f"Saved plot to {output_file}")
+
+
+def plot_write_stall():
+    convert_to_sec = lambda micros: micros / 1_000_000
+    tasks = [
+        impl for impl in implementations if os.path.isdir(os.path.join(EXP_DIR, impl))
+    ]
+    results = {}
+    with ProcessPoolExecutor(max_workers=3) as executor:
+        for impl, stats in executor.map(process_write_stalls, tasks):
+            if stats:
+                results[impl] = stats
+
+    labels = list(results.keys())
+    num_impls = len(labels)
+    num_phases = len(next(iter(results.values())))
+
+    _, ax = plt.subplots(figsize=(4.5, 3))
+    x = np.arange(num_phases)
+    bar_width = 0.9 / num_impls
+
+    for j, impl in enumerate(labels):
+        key = normalize_name(impl)
+        style = line_styles[key]
+        color = style["color"]
+        heights = [convert_to_sec(stall) for stall in results[impl]]
+        xpos = x + j * bar_width
+        ax.bar(
+            xpos,
+            heights,
+            bar_width - 0.008,
+            facecolor="none" if impl != "vector-preallocated" else color,
+            edgecolor=color,
+            hatch=hatch_map.get(key, None),
+            label=style["label"],
+        )
+
+    ax.set_xticks(x + bar_width * (num_impls - 1) / 2)
+    ax.set_xticklabels([f"P{i+1}" for i in range(num_phases)])
+
+    ax.set_yticks([0, 1000, 2000], ["0", "1", "2"])
+
+    ax.set_ylabel("write stall (s)")
+
+    output_file = CURR_DIR / TAG / "disk-based-write-stall.pdf"
+    plt.savefig(output_file, bbox_inches="tight", pad_inches=0.06)
+    print(f"Saved plot to {output_file}")
+
+
+def plot_block_read_count():
+    tasks = [
+        impl for impl in implementations if os.path.isdir(os.path.join(EXP_DIR, impl))
+    ]
+    results = {}
+    with ProcessPoolExecutor(max_workers=3) as executor:
+        for impl, stats in executor.map(process_block_read_count_for_PQs, tasks):
+            if stats:
+                results[impl] = stats
+
+    labels = list(results.keys())
+    num_impls = len(labels)
+    phases_to_show = [1, 2]  # P2 and P3 (0-indexed), skip P1 (no block reads)
+
+    _, ax = plt.subplots(figsize=(3.3, 3))
+    x = np.arange(len(phases_to_show))
+    bar_width = 0.9 / num_impls
+
+    for j, impl in enumerate(labels):
+        key = normalize_name(impl)
+        style = line_styles[key]
+        color = style["color"]
+        heights = [results[impl][i] for i in phases_to_show]
+        xpos = x + j * bar_width
+        ax.bar(
+            xpos,
+            heights,
+            bar_width - 0.008,
+            facecolor="none" if impl != "vector-preallocated" else color,
+            edgecolor=color,
+            hatch=hatch_map.get(key, None),
+            label=style["label"],
+        )
+
+    ax.set_xticks(x + bar_width * (num_impls - 1) / 2)
+    ax.set_xticklabels([f"P{i+1}" for i in phases_to_show])
+
+    ax.set_yticks([0, 10000, 20000], ["0", "10", "20"])
+
+    ax.set_ylabel("read query I/Os")
+
+    output_file = CURR_DIR / TAG / "disk-based-block-read-count.pdf"
+    plt.savefig(output_file, bbox_inches="tight", pad_inches=0.06)
+    print(f"Saved plot to {output_file}")
+
+
+def process_level_hits_for_PQs(impl):
+    path = os.path.join(EXP_DIR, impl)
+    log_file = os.path.join(path, "workload.log")
+
+    phases = parse_rocksdb_log(log_file)
+    p = phases[1]  # PQ phase only
+
+    return impl, {
+        "l0": p["tickers"].get("rocksdb.l0.hit", 0),
+        "l1": p["tickers"].get("rocksdb.l1.hit", 0),
+        "l2andup": p["tickers"].get("rocksdb.l2andup.hit", 0),
+    }
+
+
+def plot_level_hits():
+    tasks = [
+        impl for impl in implementations if os.path.isdir(os.path.join(EXP_DIR, impl))
+    ]
+    results = {}
+    with ProcessPoolExecutor(max_workers=3) as executor:
+        for impl, hits in executor.map(process_level_hits_for_PQs, tasks):
+            results[impl] = hits
+
+    labels = list(results.keys())
+    num_impls = len(labels)
+    levels = ["l0", "l1", "l2andup"]
+
+    _, ax = plt.subplots(figsize=(4, 3))
+    x = np.arange(len(levels))
+    bar_width = 0.9 / num_impls
+
+    for j, impl in enumerate(labels):
+        key = normalize_name(impl)
+        style = line_styles[key]
+        color = style["color"]
+        heights = [results[impl][lvl] for lvl in levels]
+        xpos = x + j * bar_width
+        ax.bar(
+            xpos,
+            heights,
+            bar_width - 0.008,
+            facecolor="none" if impl != "vector-preallocated" else color,
+            edgecolor=color,
+            hatch=hatch_map.get(key, None),
+            label=style["label"],
+        )
+
+    ax.set_xticks(x + bar_width * (num_impls - 1) / 2)
+    ax.set_xticklabels(["L0", "L1", "L2+"])
+
+    ax.set_ylabel("PQ hit")
+    ax.set_yscale("log")
+    ax.set_ylim(1e0)
+
+    output_file = CURR_DIR / TAG / "disk-based-level-hits-pq.pdf"
+    plt.savefig(output_file, bbox_inches="tight", pad_inches=0.06)
     print(f"Saved plot to {output_file}")
 
 
@@ -626,7 +870,11 @@ if __name__ == "__main__":
     )
     # plot_insert_latencies_violin()
     # plot_insert_latencies()
-    plot_PQ_latencies()
+    # plot_PQ_latencies()
     plot_RQ_latencies()
-    plot_throughput()
-    plot_flush_and_compaction_counts()
+    # plot_throughput()
+    # plot_flush_and_compaction_counts()
+    # plot_overall_datamovement()
+    # plot_write_stall()
+    # plot_block_read_count()
+    # plot_level_hits()
