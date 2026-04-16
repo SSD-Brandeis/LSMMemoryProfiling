@@ -41,7 +41,7 @@ SPECS_FILE="workload.specs.json"
 if [ ! -f "$WORKLOAD_FILE" ]; then
     if [ -f "$SPECS_FILE" ]; then
         echo "Generating workload..."
-        ../../bin/tectonic-cli generate -w "$SPECS_FILE"
+        ../../bin/tectonic-cli generate -w "$SPECS_FILE" -o "workload.txt"
     else
         echo "Error: workload not found"
         exit 1
