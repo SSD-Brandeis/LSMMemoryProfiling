@@ -124,46 +124,46 @@ line_styles_bold = {
 
 line_styles = {
     "vector": {
-        "label": "\\textbf{vec}tor",
+        "label": "vector",
         "color": "#006d2c",  # Dark green (distinct and rich)
         "linestyle": 'solid', # (0, (1, 1)),  # Dotted
-        # "marker": "x",
+        "marker": "x",
         "markersize": 12,
         "markerfacecolor": "none",
         "linewidth": 2,
     },
     "unsortedvector": {
-        "label": "\\textbf{u}nsorted \\textbf{vec}tor",
+        "label": "unsorted vector",
         "color": "#4d4d4d",  # Dark gray (visible and clean)
         "linestyle": 'dotted',  # Long dashes
-        # "marker": "v",
+        "marker": "v",
         "markersize": 12,
         "markerfacecolor": "none",
         "linewidth": 2,
     },
     "alwayssortedvector": {
-        "label": "\\textbf{s}orted \\textbf{vec}tor",
+        "label": "sorted vector",
         "color": "#8b4513",  # SaddleBrown (dark reddish-brown)
         "linestyle": 'dashed',  # Dash-dot-dot
-        # "marker": "s",
+        "marker": "s",
         "markersize": 12,
         "markerfacecolor": "none",
         "linewidth": 2,
     },
     "skiplist": {
-        "label": "\\textbf{i}nline \\textbf{skip}-list",
+        "label": "inline skip-list",
         "color": "#6a3d9a",  # Deep purple
         "linestyle": (0, (3, 5, 1, 5, 1, 5)),  # Dotted (long gaps)
-        # "marker": "o",
+        "marker": "o",
         "markersize": 12,
         "markerfacecolor": "none",
         "linewidth": 2,
     },
     "simpleskiplist": {
-        "label": "\\textbf{skip}-list",
+        "label": "skip-list",
         "color": "#cf17a7",  # Teal (distinct from purple & blue)
         "linestyle": (0, (1, 1)),    # Dotted (different from skiplist solid)
-        # "marker": "P",       # Plus-filled marker (distinct)
+        "marker": "P",       # Plus-filled marker (distinct)
         "markersize": 12,
         "markerfacecolor": "none",
         "linewidth": 2,
@@ -172,34 +172,34 @@ line_styles = {
         "label": "linked-list",
         "color": "#222d8b",  # ForestGreen (distinct and vibrant)
         "linestyle": (5, (10, 3)),
-        # "marker": "D",       # Diamond marker (distinct)
+        "marker": "D",       # Diamond marker (distinct)
         "markersize": 12,
         "markerfacecolor": "none",
         "linewidth": 2,
     },
     "hashlinkedlist": {
-        "label": "\\textbf{h}ash \\textbf{link}ed-list",
+        "label": "hash linked-list",
         "color": "#b22222",  # Firebrick (dark red)
         "linestyle": "-.",
-        # "marker": "D",
+        "marker": "D",
         "markersize": 12,
         "markerfacecolor": "none",
         "linewidth": 2,
     },
     "hashskiplist": {
-        "label": "\\textbf{h}ash \\textbf{skip}-list",
+        "label": "hash skip-list",
         "color": "#1f78b4",  # Darker blue (colorblind-friendly)
         "linestyle": "--",
-        # "marker": "^",
+        "marker": "^",
         "markersize": 12,
         "markerfacecolor": "none",
         "linewidth": 2,
     },
     "hashvector": {
-        "label": "\\textbf{h}ash \\textbf{vec}tor",
+        "label": "hash vector",
         "color": "#ff7f0e",  # Orange (distinct from others)
         "linestyle": (0, (3, 1, 1, 1, 1, 1)),
-        # "marker": "H",       # Hexagon marker (distinct)
+        "marker": "H",       # Hexagon marker (distinct)
         "markersize": 12,
         "markerfacecolor": "none",
         "linewidth": 2,

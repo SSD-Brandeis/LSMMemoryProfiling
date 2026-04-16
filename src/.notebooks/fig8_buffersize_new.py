@@ -1,5 +1,4 @@
 import re
-from typing import List, Dict, Any
 from pathlib import Path
 
 import pandas as pd
@@ -8,6 +7,7 @@ import matplotlib.pyplot as plt
 # Assuming these are defined in your 'plot' module
 from plot import *
 from plot.utils import process_LOG_file
+from plot.style import line_styles
 
 # --- CONFIGURATION ---
 CURR_DIR = Path(__file__).parent
@@ -18,7 +18,7 @@ DATA_DIR = EXP_DIR / "fig8_newbuffer_scatter"
 
 PREFIX_LEN = 6
 BUCKET_COUNT = 100000
-FIGSIZE = (4, 3.2)
+FIGSIZE = (5, 3.8)
 
 # --- SWITCH PARAMETERS ---
 USE_LOG_Y = False  # Parameter to toggle log scale
@@ -26,14 +26,14 @@ USE_LOG_Y = False  # Parameter to toggle log scale
 
 # Comment/Uncomment buffers here to control the plot
 BUFFERS_TO_PLOT = [
-    "vector-dynamic",
+    ("vector-dynamic", "vector"),
     # "unsortedvector-dynamic",
     # "alwayssortedVector-dynamic",
-    "skiplist",
-    "linkedlist",
-    "hash_skip_list",
-    "hash_linked_list",
-    "hash_vector",
+    ("skiplist", "skiplist"),
+    # ("linkedlist", "linkedlist"),
+    ("hash_skip_list", "hashskiplist"),
+    ("hash_linked_list", "hashlinkedlist"),
+    ("hash_vector", "hashvector"),
 ]
 
 
@@ -100,28 +100,29 @@ def main():
 
     # Grouping by KB-based x-axis and MB-based y-axis
     df = df.groupby(["buffer", "buffer_size_kb"], as_index=False).mean()
-    df = df[df["buffer"].isin(BUFFERS_TO_PLOT)]
+    df = df[df["buffer"].isin([buff for buff, _ in BUFFERS_TO_PLOT])]
 
     fig, ax = plt.subplots(figsize=FIGSIZE)
 
-    for buffer_name in BUFFERS_TO_PLOT:
+    for buffer_name, impl in BUFFERS_TO_PLOT:
         subset = df[df["buffer"] == buffer_name].sort_values("buffer_size_kb")
+        print(subset)
         if subset.empty:
             continue
 
-        style = line_styles.get(buffer_name, {}).copy()
+        style = line_styles.get(impl, {}).copy()
 
-        if "hash" in buffer_name and "X=" not in style.get("label", ""):
-            style["label"] = (
-                f"{style.get('label', buffer_name)} X={PREFIX_LEN} H={BUCKET_COUNT//1000}K"
-            )
+        # if "hash" in buffer_name and "X=" not in style.get("label", ""):
+        #     style["label"] = (
+        #         f"{style.get('label', buffer_name)} X={PREFIX_LEN} H={BUCKET_COUNT//1000}K"
+        #     )
 
         # Plotting: X in KB, Y in MB
         ax.plot(subset["buffer_size_kb"], subset["metadata_over_mb"], **style)
 
     ax.set_xlabel("buffer size (KB)")
     # Updated label to MB
-    ax.set_ylabel("metadata overhead (MB)", labelpad=0.1, loc="top")
+    ax.set_ylabel("metadata overhead (MB)", labelpad=0.1, y=0.38)
 
     # Toggle logic for y-axis scale
     if USE_LOG_Y:
@@ -131,7 +132,7 @@ def main():
     else:
         ax.set_ylim(bottom=0)
         # Explicit y-tick control
-        ax.set_yticks([0, 50, 100, 150, 200])
+        ax.set_yticks([0, 25, 50])
 
     # X-axis scale using log base 2 for binary memory increments
     ax.set_xscale("log", base=2)
@@ -151,7 +152,18 @@ def main():
     handles, labels = ax.get_legend_handles_labels()
     if handles:
         legend_fig = plt.figure(figsize=(10, 2))
-        legend_fig.legend(handles, labels, loc="center", ncol=3, frameon=False)
+        legend_fig.legend(
+            handles,
+            labels,
+            loc="center",
+            ncol=1,
+            frameon=False,
+            borderaxespad=0,
+            labelspacing=0.2,
+            borderpad=0,
+            columnspacing=0.5,
+            handletextpad=0.2,
+        )
         legend_path = save_dir / "metadata_overhead_vs_buffer_legend.pdf"
         legend_fig.savefig(legend_path, bbox_inches="tight", pad_inches=0.012)
         print(f"[saved] {legend_path}")

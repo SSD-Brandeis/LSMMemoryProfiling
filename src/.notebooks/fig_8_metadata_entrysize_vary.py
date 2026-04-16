@@ -5,28 +5,36 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from plot import *
 from plot.utils import process_LOG_file
+from plot.style import line_styles
 
 # --- CONFIGURATION ---
 CURR_DIR = Path(__file__).parent
 # DATA_DIR = EXP_DIR / "fig8_vary_entrysize"
-DATA_DIR = Path("/Users/cba/Desktop/LSM/LSMMemoryProfiling/data_new/fig8_vary_entrysize")
+DATA_DIR = EXP_DIR / "fig8_vary_entrysize"
 BUFFER_SIZE_IN_MB = 128
 PREFIX_LEN = 6
 BUCKET_COUNT = 100000
-FIGSIZE = (4, 3.2) # Matched exactly
+FIGSIZE = (5, 3.8)
 
 USE_LOG_Y = False # Consistent with other plot
 
+# BUFFERS_TO_PLOT = [
+#     "vector-dynamic", "unsortedvector-dynamic", "alwayssortedVector-dynamic",
+#     "skiplist", "linkedlist", "hash_skip_list", "hash_linked_list", "hash_vector",
+#     "simple_skiplist",
+# ]
+
 BUFFERS_TO_PLOT = [
-    "vector-dynamic", "unsortedvector-dynamic", "alwayssortedVector-dynamic",
-    "skiplist", "linkedlist", "hash_skip_list", "hash_linked_list", "hash_vector",
-    "simple_skiplist",
+    ("vector-dynamic", "vector"),
+    # "unsortedvector-dynamic",
+    # "alwayssortedVector-dynamic",
+    ("skiplist", "skiplist"),
+    # ("linkedlist", "linkedlist"),
+    ("hash_skip_list", "hashskiplist"),
+    ("hash_linked_list", "hashlinkedlist"),
+    ("hash_vector", "hashvector"),
 ]
 
-# BUFFERS_TO_PLOT = [
-#     "vector-dynamic", 
-#     "skiplist", "linkedlist", "hash_skip_list", "hash_linked_list", "hash_vector",
-# ]
 
 def get_experiment_data() -> pd.DataFrame:
     records = []
@@ -65,19 +73,19 @@ def main():
     df = get_experiment_data()
     if df.empty: return
     df = df.groupby(["buffer", "entry_size"], as_index=False).mean()
-    df = df[df["buffer"].isin(BUFFERS_TO_PLOT)]
+    df = df[df["buffer"].isin([buff for buff,_ in BUFFERS_TO_PLOT])]
 
     fig, ax = plt.subplots(figsize=FIGSIZE)
-    for buffer_name in BUFFERS_TO_PLOT:
+    for (buffer_name, impl) in BUFFERS_TO_PLOT:
         subset = df[df["buffer"] == buffer_name].sort_values("entry_size")
         if subset.empty: continue
-        style = line_styles.get(buffer_name, {}).copy()
+        style = line_styles.get(impl, {}).copy()
         if "hash" in buffer_name and "X=" not in style.get("label", ""):
             style["label"] = f"{style.get('label', buffer_name)} X={PREFIX_LEN} H={BUCKET_COUNT//1000}K"
         ax.plot(subset["entry_size"], subset["overhead_mb"], **style)
 
     ax.set_xlabel("entry size (B)")
-    ax.set_ylabel("metadata overhead (MB)", labelpad=0.1, loc="top") # Updated unit to MB
+    ax.set_ylabel("metadata overhead (MB)", labelpad=-1, y=0.38) # Updated unit to MB
     # ax.set_ylabel("overhead (KB)", labelpad=0.1, loc="top") 
     if USE_LOG_Y:
         ax.set_yscale("log")

@@ -1,70 +1,75 @@
 #!/bin/bash
 set -e
 
-
 bash ./scripts/rebuild.sh
 
+TAG=multiphase
+ENTRY_SIZE=128
+LAMBDA=0.0625
 
-TAG=testing2-diskbased-1mb-buffer-t6
-ENTRY_SIZE=32
-LAMBDA=0.25
+INSERTS=100000
+UPDATES=0
+POINT_QUERIES=0
+POINT_DELETES=0
+RANGE_QUERIES=0
+SELECTIVITY=0.1
+RANGE_DELETES=0
+RANGE_DELETES_SEL=0
 
 PAGE_SIZE=4096
 ENTRIES_PER_PAGE=$((PAGE_SIZE / ENTRY_SIZE))
+PAGES_PER_FILE=32768
+SIZE_RATIO=10
 
-# 1MB buffer → 256 pages
-PAGES_PER_FILE=256
-
-SIZE_RATIO=6
 LOW_PRI=0
 ROCKSDB_STATS=1
 SHOW_PROGRESS=1
 
-THRESHOLD_TO_CONVERT_TO_SKIPLIST=$((PAGE_SIZE * PAGES_PER_FILE / ENTRY_SIZE))
+THRESHOLD_TO_CONVERT_TO_SKIPLIST=$INSERTS
 
 echo -e "\n========================================"
 echo "TAG              : $TAG"
+echo "ENTRY_SIZE       : $ENTRY_SIZE"
+echo "LAMBDA           : $LAMBDA"
+echo "INSERTS          : $INSERTS"
+echo "POINT_QUERIES    : $POINT_QUERIES"
+echo "RANGE_QUERIES    : $RANGE_QUERIES"
+echo "SELECTIVITY      : $SELECTIVITY"
 echo "ENTRIES_PER_PAGE : $ENTRIES_PER_PAGE"
 echo "PAGES_PER_FILE   : $PAGES_PER_FILE"
 echo "SIZE_RATIO       : $SIZE_RATIO"
 echo -e "========================================\n"
 
+EXP_DIR="experiments-${TAG}-I${INSERTS}-PQ${POINT_QUERIES}-RQ${RANGE_QUERIES}"
 
-BASE_DIR=".vstats/${TAG}"
-mkdir -p "$BASE_DIR"
-cd "$BASE_DIR" || exit
+mkdir -p .vstats
+cd .vstats || exit
+mkdir -p "$EXP_DIR"
+cd "$EXP_DIR" || exit
 
+python3 ../../scripts/generate_specs.py \
+    -I ${INSERTS} \
+    -U ${UPDATES} \
+    -Q ${POINT_QUERIES} \
+    -D ${POINT_DELETES} \
+    -S ${RANGE_QUERIES} \
+    -Y ${SELECTIVITY} \
+    -R ${RANGE_DELETES} \
+    -y ${RANGE_DELETES_SEL} \
+    -E ${ENTRY_SIZE} \
+    -L ${LAMBDA}
 
-WORKLOAD_FILE="workload.txt"
-SPECS_FILE="workload.specs.json"
-
-if [ ! -f "$WORKLOAD_FILE" ]; then
-    if [ -f "$SPECS_FILE" ]; then
-        echo "Generating workload..."
-        ../../bin/tectonic-cli generate -w "$SPECS_FILE"
-    else
-        echo "Error: workload not found"
-        exit 1
-    fi
-fi
-
+../../bin/tectonic-cli generate -w workload.specs.json
 
 mkdir -p \
-vector-preallocated \
+vector-preallocated # vector-dynamic 
 # skiplist \
-# simpleskiplist \
-# unsortedvector-preallocated \
-# sortedvector-preallocated \
+# unsortedvector-dynamic unsortedvector-preallocated \
+# sortedvector-dynamic sortedvector-preallocated \
 # hashskiplist-H100000-X6 \
 # hashvector-H100000-X6 \
 # hashlinkedlist-H100000-X6 \
 # linkedlist
-# vector-dynamic \
-# unsortedvector-dynamic \
-# sortedvector-dynamic \
-# hashskiplist-H1000-X2 \
-# hashvector-H1000-X2 \
-# hashlinkedlist-H1000-X2 \
 
 # ########################################
 # echo "Running skiplist ... "
@@ -83,26 +88,6 @@ vector-preallocated \
 # rm -rf db workload.txt
 # cd ..
 # echo -e "\n"
-# sleep 5
-
-
-# echo "Running simpleskiplist ... "
-# cd simpleskiplist
-# cp ../workload.txt .
-# ../../../bin/working_version \
-#     --memtable_factory=8 \
-#     -E "$ENTRY_SIZE" \
-#     -B "$ENTRIES_PER_PAGE" \
-#     -P "$PAGES_PER_FILE" \
-#     -T "$SIZE_RATIO" \
-#     --lowpri "$LOW_PRI" \
-#     --stat "$ROCKSDB_STATS" \
-#     --progress "$SHOW_PROGRESS" > rocksdb_stats.log
-# mv db/LOG LOG
-# rm -rf db workload.txt
-# cd ..
-# echo -e "\n"
-# sleep 5
 
 
 # ########################################
@@ -130,7 +115,6 @@ mv db/LOG LOG
 rm -rf db workload.txt
 cd ..
 echo -e "\n"
-# sleep 5
 
 # ########################################
 # echo "Running unsortedvector-dynamic ... "
@@ -157,7 +141,6 @@ echo -e "\n"
 # rm -rf db workload.txt
 # cd ..
 # echo -e "\n"
-# sleep 5
 
 # ########################################
 # echo "Running sortedvector-dynamic ... "
@@ -184,7 +167,6 @@ echo -e "\n"
 # rm -rf db workload.txt
 # cd ..
 # echo -e "\n"
-# sleep 5
 
 # ########################################
 # echo "Running linkedlist ... "
@@ -198,7 +180,6 @@ echo -e "\n"
 # rm -rf db workload.txt
 # cd ..
 # echo -e "\n"
-# sleep 5
 
 # ########################################
 # echo "Running hashskiplist-H100000-X6 ... "
@@ -214,21 +195,6 @@ echo -e "\n"
 # rm -rf db workload.txt
 # cd ..
 # echo -e "\n"
-# sleep 5
-
-# echo "Running hashskiplist-H1000-X2 ... "
-# cd hashskiplist-H1000-X2
-# cp ../workload.txt .
-# ../../../bin/working_version \
-#     --memtable_factory=3 \
-#     --bucket_count=1000 \
-#     --prefix_length=2 \
-#     -E "$ENTRY_SIZE" -B "$ENTRIES_PER_PAGE" -P "$PAGES_PER_FILE" -T "$SIZE_RATIO" \
-#     --lowpri "$LOW_PRI" --stat "$ROCKSDB_STATS" --progress "$SHOW_PROGRESS" > rocksdb_stats.log
-# mv db/LOG LOG
-# rm -rf db workload.txt
-# cd ..
-# echo -e "\n"
 
 # ########################################
 # echo "Running hashvector-H100000-X6 ... "
@@ -238,22 +204,6 @@ echo -e "\n"
 #     --memtable_factory=9 \
 #     --bucket_count=100000 \
 #     --prefix_length=6 \
-#     -E "$ENTRY_SIZE" -B "$ENTRIES_PER_PAGE" -P "$PAGES_PER_FILE" -T "$SIZE_RATIO" \
-#     --lowpri "$LOW_PRI" --stat "$ROCKSDB_STATS" --progress "$SHOW_PROGRESS" > rocksdb_stats.log
-# mv db/LOG LOG
-# rm -rf db workload.txt
-# cd ..
-# echo -e "\n"
-# sleep 5
-
-
-# echo "Running hashvector-H1000-X2 ... "
-# cd hashvector-H1000-X2
-# cp ../workload.txt .
-# ../../../bin/working_version \
-#     --memtable_factory=9 \
-#     --bucket_count=1000 \
-#     --prefix_length=2 \
 #     -E "$ENTRY_SIZE" -B "$ENTRIES_PER_PAGE" -P "$PAGES_PER_FILE" -T "$SIZE_RATIO" \
 #     --lowpri "$LOW_PRI" --stat "$ROCKSDB_STATS" --progress "$SHOW_PROGRESS" > rocksdb_stats.log
 # mv db/LOG LOG
@@ -276,35 +226,21 @@ echo -e "\n"
 # rm -rf db workload.txt
 # cd ..
 # echo -e "\n"
-# sleep 5
-
-# echo "Running hashlinkedlist-H1000-X2 ... "
-# cd hashlinkedlist-H1000-X2
-# cp ../workload.txt .
-# ../../../bin/working_version \
-#     --memtable_factory=4 \
-#     --bucket_count=1000 \
-#     --prefix_length=2 \
-#     -E "$ENTRY_SIZE" -B "$ENTRIES_PER_PAGE" -P "$PAGES_PER_FILE" -T "$SIZE_RATIO" \
-#     --lowpri "$LOW_PRI" --stat "$ROCKSDB_STATS" --progress "$SHOW_PROGRESS" \
-#     --threshold_use_skiplist "$THRESHOLD_TO_CONVERT_TO_SKIPLIST" > rocksdb_stats.log
-# mv db/LOG LOG
-# rm -rf db workload.txt
-# cd ..
-# echo -e "\n"
 
 # ########################################
 cd ../..
 echo "Done."
-echo "Experiments finished."
 
 
-source .env
-
-SLACK_WEBHOOK_URL=${SLACK_WEBHOOK_URL}
-HOSTNAME=$(hostname)
-
-MESSAGE="Experiments Completed on ${HOSTNAME}"
-PAYLOAD="{\"text\": \"${MESSAGE}\"}"
-
-curl -X POST -H 'Content-type: application/json' --data "${PAYLOAD}" ${SLACK_WEBHOOK_URL}
+# #   .vstats/$EXP_DIR/vector-dynamic/stats.log \
+# #   .vstats/$EXP_DIR/vector-preallocated/stats.log \
+# #   .vstats/$EXP_DIR/unsortedvector-dynamic/stats.log \
+# #   .vstats/$EXP_DIR/unsortedvector-preallocated/stats.log \
+# #   .vstats/$EXP_DIR/sortedvector-dynamic/stats.log \
+# #   .vstats/$EXP_DIR/sortedvector-preallocated/stats.log \
+# #   .vstats/$EXP_DIR/linkedlist/stats.log \
+# python3 plot/plot_skiplist_vs_hashvector.py \
+#   .vstats/$EXP_DIR/skiplist/stats.log \
+#   .vstats/$EXP_DIR/hashvector-H100000-X6/stats.log \
+#   .vstats/$EXP_DIR/hashlinkedlist-H100000-X6/stats.log \
+#   .vstats/$EXP_DIR/hashskiplist-H100000-X6/stats.log
