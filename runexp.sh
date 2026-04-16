@@ -7,14 +7,9 @@ TAG=multiphase
 ENTRY_SIZE=128
 LAMBDA=0.0625
 
-INSERTS=100000
-UPDATES=0
-POINT_QUERIES=0
-POINT_DELETES=0
-RANGE_QUERIES=0
-SELECTIVITY=0.1
-RANGE_DELETES=0
-RANGE_DELETES_SEL=0
+TAG=multiphase-diskbased-1mb-buffer-t6
+ENTRY_SIZE=32
+LAMBDA=0.25
 
 PAGE_SIZE=4096
 ENTRIES_PER_PAGE=$((PAGE_SIZE / ENTRY_SIZE))
@@ -59,35 +54,68 @@ python3 ../../scripts/generate_specs.py \
     -E ${ENTRY_SIZE} \
     -L ${LAMBDA}
 
-../../bin/tectonic-cli generate -w workload.specs.json
+WORKLOAD_FILE="workload.txt"
+SPECS_FILE="workload.specs.json"
+
+if [ ! -f "$WORKLOAD_FILE" ]; then
+    if [ -f "$SPECS_FILE" ]; then
+        echo "Generating workload..."
+        ../../bin/tectonic-cli generate -w "$SPECS_FILE" -o "workload.txt"
+    else
+        echo "Error: workload not found"
+        exit 1
+    fi
+fi
+
 
 mkdir -p \
-vector-preallocated # vector-dynamic 
-# skiplist \
-# unsortedvector-dynamic unsortedvector-preallocated \
-# sortedvector-dynamic sortedvector-preallocated \
-# hashskiplist-H100000-X6 \
-# hashvector-H100000-X6 \
-# hashlinkedlist-H100000-X6 \
+vector-preallocated \
+skiplist \
+simpleskiplist \
+unsortedvector-preallocated \
+sortedvector-preallocated \
+hashskiplist-H100000-X6 \
+hashvector-H100000-X6 \
+hashlinkedlist-H100000-X6 \
 # linkedlist
 
 # ########################################
-# echo "Running skiplist ... "
-# cd skiplist
-# cp ../workload.txt .
-# ../../../bin/working_version \
-#     --memtable_factory=1 \
-#     -E "$ENTRY_SIZE" \
-#     -B "$ENTRIES_PER_PAGE" \
-#     -P "$PAGES_PER_FILE" \
-#     -T "$SIZE_RATIO" \
-#     --lowpri "$LOW_PRI" \
-#     --stat "$ROCKSDB_STATS" \
-#     --progress "$SHOW_PROGRESS" > rocksdb_stats.log
-# mv db/LOG LOG
-# rm -rf db workload.txt
-# cd ..
-# echo -e "\n"
+echo "Running skiplist ... "
+cd skiplist
+cp ../workload.txt .
+../../../bin/working_version \
+    --memtable_factory=1 \
+    -E "$ENTRY_SIZE" \
+    -B "$ENTRIES_PER_PAGE" \
+    -P "$PAGES_PER_FILE" \
+    -T "$SIZE_RATIO" \
+    --lowpri "$LOW_PRI" \
+    --stat "$ROCKSDB_STATS" \
+    --progress "$SHOW_PROGRESS" > rocksdb_stats.log
+mv db/LOG LOG
+rm -rf db workload.txt
+cd ..
+echo -e "\n"
+sleep 5
+
+
+echo "Running simpleskiplist ... "
+cd simpleskiplist
+cp ../workload.txt .
+../../../bin/working_version \
+    --memtable_factory=8 \
+    -E "$ENTRY_SIZE" \
+    -B "$ENTRIES_PER_PAGE" \
+    -P "$PAGES_PER_FILE" \
+    -T "$SIZE_RATIO" \
+    --lowpri "$LOW_PRI" \
+    --stat "$ROCKSDB_STATS" \
+    --progress "$SHOW_PROGRESS" > rocksdb_stats.log
+mv db/LOG LOG
+rm -rf db workload.txt
+cd ..
+echo -e "\n"
+sleep 5
 
 
 # ########################################
@@ -115,6 +143,7 @@ mv db/LOG LOG
 rm -rf db workload.txt
 cd ..
 echo -e "\n"
+sleep 5
 
 # ########################################
 # echo "Running unsortedvector-dynamic ... "
@@ -130,17 +159,18 @@ echo -e "\n"
 # cd ..
 # echo -e "\n"
 
-# echo "Running unsortedvector-preallocated ... "
-# cd unsortedvector-preallocated
-# cp ../workload.txt .
-# ../../../bin/working_version \
-#     --memtable_factory=5 \
-#     -E "$ENTRY_SIZE" -B "$ENTRIES_PER_PAGE" -P "$PAGES_PER_FILE" -T "$SIZE_RATIO" \
-#     --lowpri "$LOW_PRI" --stat "$ROCKSDB_STATS" --progress "$SHOW_PROGRESS" > rocksdb_stats.log
-# mv db/LOG LOG
-# rm -rf db workload.txt
-# cd ..
-# echo -e "\n"
+echo "Running unsortedvector-preallocated ... "
+cd unsortedvector-preallocated
+cp ../workload.txt .
+../../../bin/working_version \
+    --memtable_factory=5 \
+    -E "$ENTRY_SIZE" -B "$ENTRIES_PER_PAGE" -P "$PAGES_PER_FILE" -T "$SIZE_RATIO" \
+    --lowpri "$LOW_PRI" --stat "$ROCKSDB_STATS" --progress "$SHOW_PROGRESS" > rocksdb_stats.log
+mv db/LOG LOG
+rm -rf db workload.txt
+cd ..
+echo -e "\n"
+sleep 5
 
 # ########################################
 # echo "Running sortedvector-dynamic ... "
@@ -156,17 +186,18 @@ echo -e "\n"
 # cd ..
 # echo -e "\n"
 
-# echo "Running sortedvector-preallocated ... "
-# cd sortedvector-preallocated
-# cp ../workload.txt .
-# ../../../bin/working_version \
-#     --memtable_factory=6 \
-#     -E "$ENTRY_SIZE" -B "$ENTRIES_PER_PAGE" -P "$PAGES_PER_FILE" -T "$SIZE_RATIO" \
-#     --lowpri "$LOW_PRI" --stat "$ROCKSDB_STATS" --progress "$SHOW_PROGRESS" > rocksdb_stats.log
-# mv db/LOG LOG
-# rm -rf db workload.txt
-# cd ..
-# echo -e "\n"
+echo "Running sortedvector-preallocated ... "
+cd sortedvector-preallocated
+cp ../workload.txt .
+../../../bin/working_version \
+    --memtable_factory=6 \
+    -E "$ENTRY_SIZE" -B "$ENTRIES_PER_PAGE" -P "$PAGES_PER_FILE" -T "$SIZE_RATIO" \
+    --lowpri "$LOW_PRI" --stat "$ROCKSDB_STATS" --progress "$SHOW_PROGRESS" > rocksdb_stats.log
+mv db/LOG LOG
+rm -rf db workload.txt
+cd ..
+echo -e "\n"
+sleep 5
 
 # ########################################
 # echo "Running linkedlist ... "
@@ -182,13 +213,28 @@ echo -e "\n"
 # echo -e "\n"
 
 # ########################################
-# echo "Running hashskiplist-H100000-X6 ... "
-# cd hashskiplist-H100000-X6
+echo "Running hashskiplist-H100000-X6 ... "
+cd hashskiplist-H100000-X6
+cp ../workload.txt .
+../../../bin/working_version \
+    --memtable_factory=3 \
+    --bucket_count=100000 \
+    --prefix_length=6 \
+    -E "$ENTRY_SIZE" -B "$ENTRIES_PER_PAGE" -P "$PAGES_PER_FILE" -T "$SIZE_RATIO" \
+    --lowpri "$LOW_PRI" --stat "$ROCKSDB_STATS" --progress "$SHOW_PROGRESS" > rocksdb_stats.log
+mv db/LOG LOG
+rm -rf db workload.txt
+cd ..
+echo -e "\n"
+sleep 5
+
+# echo "Running hashskiplist-H1000-X2 ... "
+# cd hashskiplist-H1000-X2
 # cp ../workload.txt .
 # ../../../bin/working_version \
 #     --memtable_factory=3 \
-#     --bucket_count=100000 \
-#     --prefix_length=6 \
+#     --bucket_count=1000 \
+#     --prefix_length=2 \
 #     -E "$ENTRY_SIZE" -B "$ENTRIES_PER_PAGE" -P "$PAGES_PER_FILE" -T "$SIZE_RATIO" \
 #     --lowpri "$LOW_PRI" --stat "$ROCKSDB_STATS" --progress "$SHOW_PROGRESS" > rocksdb_stats.log
 # mv db/LOG LOG
@@ -197,13 +243,29 @@ echo -e "\n"
 # echo -e "\n"
 
 # ########################################
-# echo "Running hashvector-H100000-X6 ... "
-# cd hashvector-H100000-X6
+echo "Running hashvector-H100000-X6 ... "
+cd hashvector-H100000-X6
+cp ../workload.txt .
+../../../bin/working_version \
+    --memtable_factory=9 \
+    --bucket_count=100000 \
+    --prefix_length=6 \
+    -E "$ENTRY_SIZE" -B "$ENTRIES_PER_PAGE" -P "$PAGES_PER_FILE" -T "$SIZE_RATIO" \
+    --lowpri "$LOW_PRI" --stat "$ROCKSDB_STATS" --progress "$SHOW_PROGRESS" > rocksdb_stats.log
+mv db/LOG LOG
+rm -rf db workload.txt
+cd ..
+echo -e "\n"
+sleep 5
+
+
+# echo "Running hashvector-H1000-X2 ... "
+# cd hashvector-H1000-X2
 # cp ../workload.txt .
 # ../../../bin/working_version \
 #     --memtable_factory=9 \
-#     --bucket_count=100000 \
-#     --prefix_length=6 \
+#     --bucket_count=1000 \
+#     --prefix_length=2 \
 #     -E "$ENTRY_SIZE" -B "$ENTRIES_PER_PAGE" -P "$PAGES_PER_FILE" -T "$SIZE_RATIO" \
 #     --lowpri "$LOW_PRI" --stat "$ROCKSDB_STATS" --progress "$SHOW_PROGRESS" > rocksdb_stats.log
 # mv db/LOG LOG
@@ -212,13 +274,29 @@ echo -e "\n"
 # echo -e "\n"
 
 # ########################################
-# echo "Running hashlinkedlist-H100000-X6 ... "
-# cd hashlinkedlist-H100000-X6
+echo "Running hashlinkedlist-H100000-X6 ... "
+cd hashlinkedlist-H100000-X6
+cp ../workload.txt .
+../../../bin/working_version \
+    --memtable_factory=4 \
+    --bucket_count=100000 \
+    --prefix_length=6 \
+    -E "$ENTRY_SIZE" -B "$ENTRIES_PER_PAGE" -P "$PAGES_PER_FILE" -T "$SIZE_RATIO" \
+    --lowpri "$LOW_PRI" --stat "$ROCKSDB_STATS" --progress "$SHOW_PROGRESS" \
+    --threshold_use_skiplist "$THRESHOLD_TO_CONVERT_TO_SKIPLIST" > rocksdb_stats.log
+mv db/LOG LOG
+rm -rf db workload.txt
+cd ..
+echo -e "\n"
+sleep 5
+
+# echo "Running hashlinkedlist-H1000-X2 ... "
+# cd hashlinkedlist-H1000-X2
 # cp ../workload.txt .
 # ../../../bin/working_version \
 #     --memtable_factory=4 \
-#     --bucket_count=100000 \
-#     --prefix_length=6 \
+#     --bucket_count=1000 \
+#     --prefix_length=2 \
 #     -E "$ENTRY_SIZE" -B "$ENTRIES_PER_PAGE" -P "$PAGES_PER_FILE" -T "$SIZE_RATIO" \
 #     --lowpri "$LOW_PRI" --stat "$ROCKSDB_STATS" --progress "$SHOW_PROGRESS" \
 #     --threshold_use_skiplist "$THRESHOLD_TO_CONVERT_TO_SKIPLIST" > rocksdb_stats.log
@@ -232,15 +310,3 @@ cd ../..
 echo "Done."
 
 
-# #   .vstats/$EXP_DIR/vector-dynamic/stats.log \
-# #   .vstats/$EXP_DIR/vector-preallocated/stats.log \
-# #   .vstats/$EXP_DIR/unsortedvector-dynamic/stats.log \
-# #   .vstats/$EXP_DIR/unsortedvector-preallocated/stats.log \
-# #   .vstats/$EXP_DIR/sortedvector-dynamic/stats.log \
-# #   .vstats/$EXP_DIR/sortedvector-preallocated/stats.log \
-# #   .vstats/$EXP_DIR/linkedlist/stats.log \
-# python3 plot/plot_skiplist_vs_hashvector.py \
-#   .vstats/$EXP_DIR/skiplist/stats.log \
-#   .vstats/$EXP_DIR/hashvector-H100000-X6/stats.log \
-#   .vstats/$EXP_DIR/hashlinkedlist-H100000-X6/stats.log \
-#   .vstats/$EXP_DIR/hashskiplist-H100000-X6/stats.log

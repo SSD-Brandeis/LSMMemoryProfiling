@@ -453,8 +453,17 @@ int runWorkload(std::unique_ptr<DBEnv> &env)
 
     ith_op += 1;
 #ifdef RESET
-
-    if (ith_op == 80000000 || ith_op == 90010000)
+    // Scaled-down cumulative transition points:
+    // 8M (P1)
+    // 8M + 1k = 8,001,000 (P2)
+    // 8,001k + 10k = 8,011,000 (P3)
+    // 8,011k + 1k = 8,012,000 (P4)
+    // 8,012k + 1M = 9,012,000 (P5)
+    // 9,012k + 100 = 9,012,100 (P6)
+    // 9,012,100 + 100 = 9,012,200 (P7)
+    if (ith_op == 8000000 || ith_op == 8001000 || ith_op == 8011000 || 
+        ith_op == 8012000 || ith_op == 9012000 || ith_op == 9012100 || 
+        ith_op == 9012200)
     {
       auto now = std::chrono::high_resolution_clock::now();
       auto elapsed_so_far =
