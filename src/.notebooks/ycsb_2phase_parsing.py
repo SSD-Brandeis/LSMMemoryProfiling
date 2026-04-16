@@ -16,7 +16,7 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
-# Fixed: Import directly from style to avoid broken plot/__init__.py
+# Import directly from style to avoid broken plot/__init__.py
 from plot.style import line_styles, hatch_map
 
 if plt.rcParams["font.family"][0] == "sans-serif":
@@ -25,7 +25,7 @@ if plt.rcParams["font.family"][0] == "sans-serif":
 
 # --- Configuration ---
 # Parameter to switch between linear and log
-USE_LOG_SCALE = True
+USE_LOG_SCALE = False
 NS_TO_S = 1e-9
 
 SCRIPT_NAME = Path(__file__).stem
@@ -46,6 +46,7 @@ FILTER_BUFFERS = [
     "simple_skiplist",
     "hash_linked_list-X6-H100000",
     "hash_skip_list-X6-H100000",
+    "hash_vector-X6-H100000",
 ]
 
 WORKLOAD_TIME_RE = re.compile(r"^Workload Execution Time:\s*(\d+)")
@@ -74,7 +75,7 @@ def normalize_name(name):
         return "linkedlist"
     if "unsortedvector" in name:
         return "unsortedvector"
-    if "sortedvector" in name:
+    if "alwayssortedvector" in name or "sortedvector" in name:
         return "alwayssortedvector"
     if "vector" in name:
         return "vector"
@@ -156,7 +157,8 @@ def plot_workload(workload_id, df):
     y_max = df["exec_time"].max()
     if USE_LOG_SCALE:
         ax.set_yscale("log", base=10)
-        ax.set_ylim(bottom=10, top=y_max * 5 if y_max > 10 else 100)
+        # Starting at 10^0 (1)
+        ax.set_ylim(bottom=1, top=y_max * 10)
         ax.yaxis.set_major_formatter(LogFormatterMathtext(base=10))
     else:
         ax.set_ylim(bottom=0, top=y_max * 1.1)
@@ -201,7 +203,8 @@ def plot_latency_workload(workload_id, df, op_type):
     if USE_LOG_SCALE:
         ax.set_yscale("log", base=10)
         ax.yaxis.set_major_formatter(LogFormatterMathtext(base=10))
-        ax.set_ylim(bottom=10, top=y_data_max * 5 if y_data_max > 10 else 100)
+        # Starting at 10^0 (1)
+        ax.set_ylim(bottom=1, top=y_data_max * 10)
     else:
         ax.set_ylim(bottom=0, top=y_data_max * 1.1)
 

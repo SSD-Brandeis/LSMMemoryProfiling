@@ -311,5 +311,8 @@ def main():
     
     save_plot_legend(all_legend_handles, all_legend_labels, PLOTS_DIR / "multi_throughput_legend")
 
+    # Print full path of the directory containing all saved artifacts
+    print(f"\n[INFO] All plots and logs saved to: {PLOTS_DIR.resolve()}")
+
 if __name__ == "__main__":
     main()

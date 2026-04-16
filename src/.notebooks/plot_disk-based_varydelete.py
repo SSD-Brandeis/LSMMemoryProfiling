@@ -6,6 +6,7 @@ import re
 from pathlib import Path
 import numpy as np
 import matplotlib.pyplot as plt
+from concurrent.futures import ProcessPoolExecutor
 
 # ==============================================================================
 # SETUP OUTPUT DIRECTORY BASED ON SCRIPT NAME
@@ -32,8 +33,6 @@ class Logger(object):
     def flush(self):
         self.terminal.flush()
         self.log.flush()
-
-from concurrent.futures import ProcessPoolExecutor
 
 from plot.rocksdb_stats import parse_rocksdb_log
 from plot.style import hatch_map, line_styles
@@ -147,7 +146,93 @@ def process_run_metrics(args):
     
     return impl, metrics
 
-def generate_lineplot_for_metric(metric_key, ylabel, filename_suffix, cap_y=None, y_ticks=None, divisor=1, scale="linear"):
+def generate_metrics_table():
+    """Generates a structured table in the log for Overleaf conversion."""
+    if not os.path.exists(EXP_DIR):
+        print(f"[ERROR] The directory {EXP_DIR} does not exist.")
+        return
+        
+    exp_folders = [d for d in os.listdir(EXP_DIR) if os.path.isdir(os.path.join(EXP_DIR, d))]
+    valid_targets = set(normalize_name(impl) for impl in implementations if normalize_name(impl))
+    
+    all_data = {}
+    percentages = set()
+    metrics_keys = ["throughput", "data_movement_gb", "flush_count", "compaction_count", "space_amplification"]
+    
+    display_names = {
+        "throughput": "ops",
+        "data_movement_gb": "data movement (GB)",
+        "flush_count": "flush count",
+        "compaction_count": "compaction count",
+        "space_amplification": "space amplification"
+    }
+
+    print("[PROCESSING] Gathering all metrics for table generation...")
+    
+    with ProcessPoolExecutor(max_workers=4) as executor:
+        for exp in exp_folders:
+            match = re.search(r'varydelete_(\d+)', exp)
+            if not match: continue
+            pct = int(match.group(1))
+            percentages.add(pct)
+            
+            exp_path = os.path.join(EXP_DIR, exp)
+            tasks = []
+            for item in os.listdir(exp_path):
+                full_path = os.path.join(exp_path, item)
+                if os.path.isdir(full_path) and "buffer-" in item:
+                    norm_item = normalize_name(item)
+                    if norm_item and norm_item in valid_targets:
+                        tasks.append((item, full_path))
+                        
+            if not tasks: continue
+            
+            for impl, metrics in executor.map(process_run_metrics, tasks):
+                norm_impl = normalize_name(impl)
+                if norm_impl not in all_data:
+                    all_data[norm_impl] = {m: {} for m in metrics_keys}
+                
+                for mk in metrics_keys:
+                    all_data[norm_impl][mk][pct] = metrics.get(mk, np.nan)
+
+    sorted_pcts = sorted(list(percentages))
+    sorted_impls = sorted(list(all_data.keys()))
+
+    print("\n" + "="*100)
+    print("METRICS DATA TABLE (FOR OVERLEAF)")
+    print("="*100)
+    
+    header = f"{'Buffer':<25}"
+    for mk in metrics_keys:
+        name = display_names[mk]
+        header += f" | {name} ({', '.join([f'{p}%' for p in sorted_pcts])})"
+    
+    print(header)
+    print("-" * len(header))
+
+    for impl in sorted_impls:
+        row_str = f"{impl:<25}"
+        for mk in metrics_keys:
+            vals = []
+            for pct in sorted_pcts:
+                v = all_data[impl][mk].get(pct, 0)
+                if np.isnan(v):
+                    vals.append("N/A")
+                elif mk == "space_amplification":
+                    # Request: 3 decimal points for space amplification
+                    vals.append(f"{v:.3f}")
+                else:
+                    # Request: Whole numbers for everything else
+                    vals.append(f"{int(round(v))}")
+            
+            cell_content = "  ".join(vals)
+            row_str += f" | {cell_content}"
+        print(row_str)
+    
+    print("-" * len(header))
+    print("="*100 + "\n")
+
+def generate_lineplot_for_metric(metric_key, ylabel, filename_suffix, cap_y=None, y_ticks=None, divisor=1, scale="linear", y_min=None):
     if not os.path.exists(EXP_DIR):
         print(f"[ERROR] The directory {EXP_DIR} does not exist.")
         return
@@ -215,11 +300,12 @@ def generate_lineplot_for_metric(metric_key, ylabel, filename_suffix, cap_y=None
     
     if scale == "log":
         ax.set_yscale('log')
-        ax.set_ylim(bottom=10**1)
+        ax.set_ylim(bottom=y_min if y_min is not None else 10**1)
     else:
-        ax.set_ylim(bottom=0)
+        current_ymin = y_min if y_min is not None else 0
+        ax.set_ylim(bottom=current_ymin)
         if cap_y is not None:
-            ax.set_ylim(0, cap_y)
+            ax.set_ylim(current_ymin, cap_y)
     
     if y_ticks is not None and scale == "linear":
         ax.set_yticks(y_ticks)
@@ -228,7 +314,6 @@ def generate_lineplot_for_metric(metric_key, ylabel, filename_suffix, cap_y=None
     ax.set_ylabel(ylabel, labelpad=8)
     ax.set_xlabel("delete percentage ")
     
-    # Save PDF in OUTPUT_DIR
     output_file = OUTPUT_DIR / f"disk-based-{filename_suffix}-{scale}-lineplot-delete.pdf"
     plt.savefig(output_file, bbox_inches="tight", pad_inches=0.1)
     print(f"Saved plot to {output_file.resolve()}")
@@ -239,7 +324,6 @@ def generate_lineplot_for_metric(metric_key, ylabel, filename_suffix, cap_y=None
     fig_leg.legend(by_label.values(), by_label.keys(), loc='center', ncol=4, frameon=False)
     plt.axis('off')
     
-    # Save legend in OUTPUT_DIR
     legend_file = OUTPUT_DIR / f"disk-based-{filename_suffix}-legend-delete.pdf"
     fig_leg.savefig(legend_file, bbox_inches="tight")
     plt.close('all')
@@ -247,8 +331,7 @@ def generate_lineplot_for_metric(metric_key, ylabel, filename_suffix, cap_y=None
 
 def plot_space_amplification():
     for s in ["linear", "log"]:
-        # NOTE: divisor=1 for space amp as per your preference
-        generate_lineplot_for_metric("space_amplification", "space amplification", "space-amplification", cap_y=1.5, y_ticks=[0, 0.5, 1.0, 1.5], divisor=1, scale=s)
+        generate_lineplot_for_metric("space_amplification", "space amplification", "space-amplification", cap_y=1.5, y_ticks=[1.0, 1.5], divisor=1, scale=s, y_min=1)
 
 def plot_throughput():
     for s in ["linear", "log"]:
@@ -271,11 +354,15 @@ def plot_flush_and_compaction_counts():
     plot_compaction_counts()
 
 if __name__ == "__main__":
-    # Log filename still used, but Logger class now handles saving into OUTPUT_DIR
     log_filename = f"{SCRIPT_NAME}.log"
     sys.stdout = Logger(log_filename)
     
-    plot_flush_and_compaction_counts()
-    plot_throughput()
-    plot_overall_datamovement()
-    plot_space_amplification()
+    generate_metrics_table()
+    
+    full_log_path = (OUTPUT_DIR / log_filename).resolve()
+    sys.stdout.terminal.write(f"\n[TABLE GENERATED] Full log path: file://{full_log_path}\n")
+
+    # plot_flush_and_compaction_counts()
+    # plot_throughput()
+    # plot_overall_datamovement()
+    # plot_space_amplification()

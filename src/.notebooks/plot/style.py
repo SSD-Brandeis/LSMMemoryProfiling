@@ -1,15 +1,41 @@
 bar_styles = {
-    "hash_linked_list":               {"label": "Hash linked list",               "color": "None", "edgecolor": "black", "hatch": "////"},
-    "hash_linked_list-X6-H100000":    {"label": "Hash linked list X6 H100k",      "color": "None", "edgecolor": "black", "hatch": "////"},
-    "hash_skip_list":                 {"label": "Hash skip list",                 "color": "None", "edgecolor": "black", "hatch": "\\\\"},
-    "hash_skip_list-X6-H100000":      {"label": "Hash skip list X6 H100k",        "color": "None", "edgecolor": "black", "hatch": "\\\\"},
-    "skiplist":                       {"label": "inline Skip-list",                      "color": "None", "edgecolor": "black", "hatch": "++++"},
-    "AlwaysSortedVector":             {"label": "Always-sorted vector",           "color": "None", "edgecolor": "black", "hatch": "...."},
-    "AlwaysSortedVector-dynamic":     {"label": "Always-sorted vector dynamic",       "color": "None", "edgecolor": "black", "hatch": "...."},
-    "UnsortedVector":                 {"label": "Unsorted vector",                "color": "None", "edgecolor": "black", "hatch": "xxxx"},
-    "UnsortedVector-dynamic":         {"label": "Unsorted vector dynamic",            "color": "None", "edgecolor": "black", "hatch": "xxxx"},
-    "Vector":                         {"label": "Vector",                         "color": "None", "edgecolor": "black", "hatch": "----"},
-    "Vector-dynamic":                 {"label": "Vector dynamic",                     "color": "None", "edgecolor": "black", "hatch": "----"},
+    # --- Vector (Solid) ---
+    "Vector":                         {"label": "vector",                         "color": "#006d2c", "edgecolor": "#006d2c", "hatch": ""},
+    "vector-preallocated":            {"label": "vector",                         "color": "#006d2c", "edgecolor": "#006d2c", "hatch": ""},
+    "Vector-dynamic":                 {"label": "vector dynamic",                 "color": "#006d2c", "edgecolor": "#006d2c", "hatch": ""},
+
+    # --- Unsorted Vector ---
+    "UnsortedVector":                 {"label": "unsorted vector",                "color": "None", "edgecolor": "#4d4d4d", "hatch": "\\\\"},
+    "unsortedvector-preallocated":    {"label": "unsorted vector",                "color": "None", "edgecolor": "#4d4d4d", "hatch": "\\\\"},
+    "UnsortedVector-dynamic":         {"label": "unsorted vector dynamic",        "color": "None", "edgecolor": "#4d4d4d", "hatch": "\\\\"},
+
+    # --- Sorted Vector ---
+    "AlwaysSortedVector":             {"label": "sorted vector",                  "color": "None", "edgecolor": "#8b4513", "hatch": "/"},
+    "sortedvector-preallocated":      {"label": "sorted vector",                  "color": "None", "edgecolor": "#8b4513", "hatch": "/"},
+    "AlwaysSortedVector-dynamic":     {"label": "sorted vector dynamic",          "color": "None", "edgecolor": "#8b4513", "hatch": "/"},
+
+    # --- Skip Lists ---
+    "skiplist":                       {"label": "inline skip-list",               "color": "None", "edgecolor": "#6a3d9a", "hatch": "-"},
+    "simpleskiplist":                 {"label": "skip-list",                      "color": "None", "edgecolor": "#cf17a7", "hatch": "---"},
+    "simple_skiplist":                {"label": "skip-list",                      "color": "None", "edgecolor": "#cf17a7", "hatch": "---"},
+
+    # --- Linked List ---
+    "linkedlist":                     {"label": "linked-list",                    "color": "None", "edgecolor": "#222d8b", "hatch": "\\\\."},
+
+    # --- Hash Linked List ---
+    "hash_linked_list":               {"label": "hash linked-list",               "color": "None", "edgecolor": "#b22222", "hatch": "////"},
+    "hash_linked_list-X6-H100000":    {"label": "hash linked-list",               "color": "None", "edgecolor": "#b22222", "hatch": "////"},
+    "hashlinkedlist-H100000-X6":      {"label": "hash linked-list",               "color": "None", "edgecolor": "#b22222", "hatch": "////"},
+
+    # --- Hash Skip List ---
+    "hash_skip_list":                 {"label": "hash skip-list",                 "color": "None", "edgecolor": "#1f78b4", "hatch": "\\\\\\\\"},
+    "hash_skip_list-X6-H100000":      {"label": "hash skip-list",                 "color": "None", "edgecolor": "#1f78b4", "hatch": "\\\\\\\\"},
+    "hashskiplist-H100000-X6":        {"label": "hash skip-list",                 "color": "None", "edgecolor": "#1f78b4", "hatch": "\\\\\\\\"},
+
+    # --- Hash Vector ---
+    "hashvector":                     {"label": "hash vector",                    "color": "None", "edgecolor": "#ff7f0e", "hatch": "/."},
+    "hash_vector-X6-H100000":         {"label": "hash vector",                    "color": "None", "edgecolor": "#ff7f0e", "hatch": "/."},
+    "hashvector-H100000-X6":          {"label": "hash vector",                    "color": "None", "edgecolor": "#ff7f0e", "hatch": "/."},
 }
 
 
