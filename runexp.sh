@@ -1,58 +1,39 @@
 #!/bin/bash
 set -e
 
+
 bash ./scripts/rebuild.sh
 
-TAG=multiphase
-ENTRY_SIZE=128
-LAMBDA=0.0625
 
-TAG=multiphase-diskbased-1mb-buffer-t6
+TAG=testing2-diskbased-1mb-buffer-t6
 ENTRY_SIZE=32
 LAMBDA=0.25
 
 PAGE_SIZE=4096
 ENTRIES_PER_PAGE=$((PAGE_SIZE / ENTRY_SIZE))
-PAGES_PER_FILE=32768
-SIZE_RATIO=6
 
+# 1MB buffer → 256 pages
+PAGES_PER_FILE=256
+
+SIZE_RATIO=6
 LOW_PRI=0
 ROCKSDB_STATS=1
 SHOW_PROGRESS=1
 
-THRESHOLD_TO_CONVERT_TO_SKIPLIST=$INSERTS
+THRESHOLD_TO_CONVERT_TO_SKIPLIST=$((PAGE_SIZE * PAGES_PER_FILE / ENTRY_SIZE))
 
 echo -e "\n========================================"
 echo "TAG              : $TAG"
-echo "ENTRY_SIZE       : $ENTRY_SIZE"
-echo "LAMBDA           : $LAMBDA"
-echo "INSERTS          : $INSERTS"
-echo "POINT_QUERIES    : $POINT_QUERIES"
-echo "RANGE_QUERIES    : $RANGE_QUERIES"
-echo "SELECTIVITY      : $SELECTIVITY"
 echo "ENTRIES_PER_PAGE : $ENTRIES_PER_PAGE"
 echo "PAGES_PER_FILE   : $PAGES_PER_FILE"
 echo "SIZE_RATIO       : $SIZE_RATIO"
 echo -e "========================================\n"
 
-EXP_DIR="experiments-${TAG}-I${INSERTS}-PQ${POINT_QUERIES}-RQ${RANGE_QUERIES}"
 
-mkdir -p .vstats
-cd .vstats || exit
-mkdir -p "$EXP_DIR"
-cd "$EXP_DIR" || exit
+BASE_DIR=".vstats/${TAG}"
+mkdir -p "$BASE_DIR"
+cd "$BASE_DIR" || exit
 
-python3 ../../scripts/generate_specs.py \
-    -I ${INSERTS} \
-    -U ${UPDATES} \
-    -Q ${POINT_QUERIES} \
-    -D ${POINT_DELETES} \
-    -S ${RANGE_QUERIES} \
-    -Y ${SELECTIVITY} \
-    -R ${RANGE_DELETES} \
-    -y ${RANGE_DELETES_SEL} \
-    -E ${ENTRY_SIZE} \
-    -L ${LAMBDA}
 
 WORKLOAD_FILE="workload.txt"
 SPECS_FILE="workload.specs.json"
@@ -60,7 +41,7 @@ SPECS_FILE="workload.specs.json"
 if [ ! -f "$WORKLOAD_FILE" ]; then
     if [ -f "$SPECS_FILE" ]; then
         echo "Generating workload..."
-        ../../bin/tectonic-cli generate -w "$SPECS_FILE" -o "workload.txt"
+        ../../bin/tectonic-cli generate -w "$SPECS_FILE" -o "workload.txt
     else
         echo "Error: workload not found"
         exit 1
@@ -78,6 +59,12 @@ hashskiplist-H100000-X6 \
 hashvector-H100000-X6 \
 hashlinkedlist-H100000-X6 \
 # linkedlist
+# vector-dynamic \
+# unsortedvector-dynamic \
+# sortedvector-dynamic \
+# hashskiplist-H1000-X2 \
+# hashvector-H1000-X2 \
+# hashlinkedlist-H1000-X2 \
 
 # ########################################
 echo "Running skiplist ... "
@@ -211,6 +198,7 @@ sleep 5
 # rm -rf db workload.txt
 # cd ..
 # echo -e "\n"
+# sleep 5
 
 # ########################################
 echo "Running hashskiplist-H100000-X6 ... "
@@ -308,5 +296,6 @@ sleep 5
 # ########################################
 cd ../..
 echo "Done."
+echo "Experiments finished."
 
 
