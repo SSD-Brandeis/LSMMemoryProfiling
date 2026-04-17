@@ -108,7 +108,7 @@ void configOptions(std::unique_ptr<DBEnv> &env, Options *options,
     break;
   //         // add linklist buffer
   case 7:
-    options->memtable_factory.reset(NewLinkListRepFactory());
+    options->memtable_factory.reset(new LinkListRepFactory());
     break;
   // Add SimpleSkipList
   case 8:
