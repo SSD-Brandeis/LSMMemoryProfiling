@@ -26,14 +26,14 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
   std::shared_ptr<Buffer> buffer = std::make_unique<Buffer>(buffer_file);
   std::unique_ptr<Buffer> stats = std::make_unique<Buffer>(stats_file);
 
-  // Add custom listners
-  std::shared_ptr<CompactionsListner> compaction_listener =
-      std::make_shared<CompactionsListner>(env);
-  options.listeners.emplace_back(compaction_listener);
+  // // Add custom listners
+  // std::shared_ptr<CompactionsListner> compaction_listener =
+  //     std::make_shared<CompactionsListner>(env);
+  // options.listeners.emplace_back(compaction_listener);
 
-  std::shared_ptr<FlushListner> flush_listener =
-      std::make_shared<FlushListner>(buffer);
-  options.listeners.emplace_back(flush_listener);
+  // std::shared_ptr<FlushListner> flush_listener =
+  //     std::make_shared<FlushListner>(buffer);
+  // options.listeners.emplace_back(flush_listener);
 
   if (env->IsDestroyDatabaseEnabled()) {
     DestroyDB(env->kDBPath, options);
