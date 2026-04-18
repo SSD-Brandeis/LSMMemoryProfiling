@@ -80,7 +80,7 @@ spec = {
       },
       { "empty_point_queries": { "op_count": $EMPTY_PQ, "key": {"uniform": {"len": $KEY_LEN}} } },
       { "point_queries":       { "op_count": $NONEMPTY_PQ, "selection": {"uniform": {"min": 0, "max": 1}} } },
-      { "range_queries":       { "op_count": $RQ, "selectivity": $SELECTIVITY, "selection": {"uniform": {"min": 0, "max": 1}} } }
+      { "range_queries":       { "op_count": $RQ, "selectivity": $SELECTIVITY, "selection": {"uniform": {"min": 0, "max": 1}}, "range_format": "StartEnd" } }
     ]
   }]
 }
@@ -113,7 +113,7 @@ spec = {
         },
         "empty_point_queries": { "op_count": $EMPTY_PQ, "key": {"uniform": {"len": $KEY_LEN}} },
         "point_queries":       { "op_count": $NONEMPTY_PQ, "selection": {"uniform": {"min": 0, "max": 1}} },
-        "range_queries":       { "op_count": $RQ, "selectivity": $SELECTIVITY, "selection": {"uniform": {"min": 0, "max": 1}} }
+        "range_queries":       { "op_count": $RQ, "selectivity": $SELECTIVITY, "selection": {"uniform": {"min": 0, "max": 1}}, "range_format": "StartEnd" }
       }
     ]
   }]
