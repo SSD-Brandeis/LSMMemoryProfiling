@@ -398,6 +398,11 @@ public:
   uint32_t prefix_length = 0;
   size_t bucket_count = 50000;
 
+  // Number of leading bytes shared between the start key and the synthesised
+  // end key for range queries.  When common_prefix_len == prefix_length the
+  // hash index can resolve the scan without a full-order seek.
+  uint32_t common_prefix_len = 0;
+
   // refer memtable.h (NewHashSkipListRepFactory)
   // Below option are picked from function default arguments
   int32_t skiplist_height = 4;

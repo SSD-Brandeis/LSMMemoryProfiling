@@ -85,6 +85,13 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
   if (env->IsIOStatEnabled())
     rocksdb::get_iostats_context()->Reset();
 
+  // Precompute whether to disable total_order_seek for prefix-bounded scans.
+  // When common_prefix_len == prefix_length, the scan is fully prefix-bounded
+  // and hash-based memtables can use the prefix extractor directly.
+  const bool use_prefix_seek =
+      (env->common_prefix_len > 0 &&
+       env->common_prefix_len == env->prefix_length);
+
   std::string line;
   unsigned long ith_op = 0;
   while (std::getline(workload_file, line)) {
@@ -184,9 +191,24 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
       std::string start_key, end_key;
       stream >> start_key >> end_key;
 
-      uint64_t keys_returned = 0, keys_read = 0;
+      // Synthesise a prefix-controlled end key when common_prefix_len > 0.
+      // We keep common_prefix_len bytes from start_key as the shared prefix,
+      // then reuse the remaining suffix from the tectonic-generated end_key.
+      // This avoids any random generation overhead while still producing a
+      // valid random suffix.
+      if (env->common_prefix_len > 0) {
+        const size_t prefix_bytes =
+            std::min((size_t)env->common_prefix_len, start_key.size());
+        end_key = start_key.substr(0, prefix_bytes) +
+                  end_key.substr(prefix_bytes);
+      }
+
       ReadOptions scan_read_options = ReadOptions(read_options);
-      scan_read_options.total_order_seek = true;
+      // Disable total_order_seek only when the scan is fully prefix-bounded
+      // (common_prefix_len == prefix_length), so hash-based memtables can
+      // use the prefix bloom filter. In all other cases keep it enabled.
+      scan_read_options.total_order_seek = !use_prefix_seek;
+
       Iterator *it = db->NewIterator(scan_read_options);
       assert(it->status().ok());
 
@@ -205,7 +227,6 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
       if (!it->status().ok()) {
         (*buffer) << it->status().ToString() << std::endl << std::flush;
       }
-      // std::cout << "Total Keys Returned: " << keys_returned << std::endl;
 #ifdef PER_OP_TIMER
       auto stop = std::chrono::high_resolution_clock::now();
       auto duration =
