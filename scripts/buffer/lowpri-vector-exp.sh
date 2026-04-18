@@ -22,7 +22,7 @@ ENTRIES_PER_PAGE=$(( PAGE_SIZE / ENTRY_SIZE ))
 
 # Vector overhead is 21% of total buffer capacity:
 #   INSERTS = buffer_bytes * (100 - overhead_pct) / (entry_size * 100)
-VECTOR_OVERHEAD_PCT=21
+VECTOR_OVERHEAD_PCT=15
 INSERTS=$(( BUFFER_SIZE_MB * 1024 * 1024 * (100 - VECTOR_OVERHEAD_PCT) / (ENTRY_SIZE * 100) ))
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
@@ -71,7 +71,7 @@ popd > /dev/null
 ########################################
 # Sweep LOW_PRI: 0 = writes prioritized, 1 = compaction prioritized
 ########################################
-for LOW_PRI in 0; do # 1; do
+for LOW_PRI in 0 1; do
 
     LPDIR="$BASE_DIR/lowpri-${LOW_PRI}"
     mkdir -p \
@@ -94,22 +94,22 @@ for LOW_PRI in 0; do # 1; do
     rm -rf db workload.txt
     cd "$REPO_ROOT"
     echo -e "\n"
-    # sleep 5
+    sleep 5
 
-    # ########################################
-    # echo "  [lowpri-${LOW_PRI}] Running vector-dynamic..."
-    # cd "$LPDIR/vector-dynamic"
-    # cp "$BASE_DIR/workload.txt" .
-    # "$BIN" \
-    #     --memtable_factory=2 \
-    #     -A 0 \
-    #     -E "$ENTRY_SIZE" -B "$ENTRIES_PER_PAGE" -P "$PAGES_PER_FILE" -T "$SIZE_RATIO" \
-    #     --lowpri "$LOW_PRI" --stat "$ROCKSDB_STATS" --progress "$SHOW_PROGRESS" > rocksdb_stats.log
-    # mv db/LOG LOG
-    # rm -rf db workload.txt
-    # cd "$REPO_ROOT"
-    # echo -e "\n"
-    # sleep 5
+    ########################################
+    echo "  [lowpri-${LOW_PRI}] Running vector-dynamic..."
+    cd "$LPDIR/vector-dynamic"
+    cp "$BASE_DIR/workload.txt" .
+    "$BIN" \
+        --memtable_factory=2 \
+        -A 0 \
+        -E "$ENTRY_SIZE" -B "$ENTRIES_PER_PAGE" -P "$PAGES_PER_FILE" -T "$SIZE_RATIO" \
+        --lowpri "$LOW_PRI" --stat "$ROCKSDB_STATS" --progress "$SHOW_PROGRESS" > rocksdb_stats.log
+    mv db/LOG LOG
+    rm -rf db workload.txt
+    cd "$REPO_ROOT"
+    echo -e "\n"
+    sleep 5
 
     echo "  Done with lowpri-${LOW_PRI}"
     echo ""
