@@ -7,7 +7,7 @@ bash ./scripts/rebuild.sh
 
 TAG=inmemory-mixed-ops-exp
 ENTRY_SIZE=128
-LAMBDA=0.25
+LAMBDA=0.0625
 PAGE_SIZE=4096
 BUFFER_SIZE_MB=128
 PAGES_PER_FILE=$(( BUFFER_SIZE_MB * 1024 * 1024 / PAGE_SIZE ))   # 32768 pages = 128MB
