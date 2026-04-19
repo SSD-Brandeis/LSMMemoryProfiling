@@ -39,8 +39,8 @@ COMMON_PREFIX_LENS=(0 1 2 3 4 5 6 7 8)
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 # This experiment uses run_workload_prefix which synthesises end_key with a
-# controlled common prefix.  Build target: prefix_version.
-BIN="$REPO_ROOT/bin/prefix_version"
+# controlled common prefix.  Build target: working_version.
+BIN="$REPO_ROOT/bin/working_version"
 TECTONIC_CLI="$REPO_ROOT/bin/tectonic-cli"
 
 BASE_DIR="$REPO_ROOT/.vstats/${TAG}"
