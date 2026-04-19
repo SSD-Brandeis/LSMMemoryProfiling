@@ -118,6 +118,12 @@ int parse_arguments(int argc, char *argv[], std::unique_ptr<DBEnv> &env) {
       "Set the priority of write requests (0 means compactions aren't "
       "prioritized) [def: 1]",
       {"lowpri"});
+ // Aadded
+  args::ValueFlag<int> disable_wal_cmd(
+      group1, "disableWAL",
+      "Set whether to disable Write Ahead Log (1 to disable, 0 to enable) [def: 1]",
+      {"disableWAL"});
+
 
   try {
     parser.ParseCLI(argc, argv);
