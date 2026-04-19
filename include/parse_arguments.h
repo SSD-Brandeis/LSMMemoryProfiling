@@ -124,6 +124,11 @@ int parse_arguments(int argc, char *argv[], std::unique_ptr<DBEnv> &env) {
       "Set the priority of write requests (0 means compactions aren't "
       "prioritized) [def: 1]",
       {"lowpri"});
+  args::ValueFlag<int> wal_cmd(
+      group1, "wal",
+      "Enable Write-Ahead Log (1 = enabled / disableWAL=false, 0 = disabled "
+      "/ disableWAL=true) [def: 0]",
+      {"wal"});
 
   try {
     parser.ParseCLI(argc, argv);
@@ -209,6 +214,9 @@ int parse_arguments(int argc, char *argv[], std::unique_ptr<DBEnv> &env) {
           ? args::get(vector_pre_allocation_size_cmd)
           : env->entries_per_page * env->buffer_size_in_pages;
   env->low_pri = low_pri_cmd ? args::get(low_pri_cmd) : env->low_pri;
+  // --wal 1 enables WAL (disableWAL=false); --wal 0 disables it (disableWAL=true)
+  if (wal_cmd)
+    env->disableWAL = !args::get(wal_cmd);
 
   return 0;
 }
