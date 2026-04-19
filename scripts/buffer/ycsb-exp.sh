@@ -161,7 +161,7 @@ for WORKLOAD in a b c d e f; do
 
     # Generate workload from the YCSB spec file
     pushd "$WDIR" > /dev/null
-    "$TECTONIC_CLI" generate -w "$SPEC"
+    "$TECTONIC_CLI" generate -w "$SPEC" -o "workload.txt"
     popd > /dev/null
 
     run_all_memtables "$WDIR/workload.txt" "$WDIR"
