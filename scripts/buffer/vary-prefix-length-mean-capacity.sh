@@ -4,7 +4,7 @@ set -e
 bash ./scripts/rebuild.sh
 
 
-TAG=vary-prefix-length-small-exp
+TAG=vary-prefix-length-mean-capacity
 ENTRY_SIZE=128
 LAMBDA=0.0625          # key = 8B, val = 120B
 PAGE_SIZE=4096
