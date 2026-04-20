@@ -35,7 +35,9 @@ BIN="$REPO_ROOT/bin/working_version"
 TECTONIC_CLI="$REPO_ROOT/bin/tectonic-cli"
 
 BASE_DIR="$REPO_ROOT/.vstats/${TAG}"
+mkdir -p "$BASE_DIR/unsortedvector-preallocated"
 mkdir -p "$BASE_DIR/vector-preallocated"
+mkdir -p "$BASE_DIR/sortedvector-preallocated"
 mkdir -p "$BASE_DIR/skiplist"
 
 echo -e "\n========================================"
@@ -84,6 +86,19 @@ pushd "$BASE_DIR" > /dev/null
 "$TECTONIC_CLI" generate -w workload.specs.json
 popd > /dev/null
 
+########################################
+echo "Running unsortedvector-preallocated..."
+cd "$BASE_DIR/unsortedvector-preallocated"
+cp "$BASE_DIR/workload.txt" .
+"$BIN" \
+    --memtable_factory=5 \
+    -E "$ENTRY_SIZE" -B "$ENTRIES_PER_PAGE" -P "$PAGES_PER_FILE" -T "$SIZE_RATIO" \
+    --lowpri "$LOW_PRI" --stat "$ROCKSDB_STATS" --progress "$SHOW_PROGRESS" > rocksdb_stats.log
+mv db/LOG LOG
+rm -rf db workload.txt
+cd "$REPO_ROOT"
+echo -e "\n"
+sleep 5
 
 ########################################
 echo "Running vector-preallocated..."
@@ -91,6 +106,20 @@ cd "$BASE_DIR/vector-preallocated"
 cp "$BASE_DIR/workload.txt" .
 "$BIN" \
     --memtable_factory=2 \
+    -E "$ENTRY_SIZE" -B "$ENTRIES_PER_PAGE" -P "$PAGES_PER_FILE" -T "$SIZE_RATIO" \
+    --lowpri "$LOW_PRI" --stat "$ROCKSDB_STATS" --progress "$SHOW_PROGRESS" > rocksdb_stats.log
+mv db/LOG LOG
+rm -rf db workload.txt
+cd "$REPO_ROOT"
+echo -e "\n"
+sleep 5
+
+########################################
+echo "Running sortedvector-preallocated..."
+cd "$BASE_DIR/sortedvector-preallocated"
+cp "$BASE_DIR/workload.txt" .
+"$BIN" \
+    --memtable_factory=6 \
     -E "$ENTRY_SIZE" -B "$ENTRIES_PER_PAGE" -P "$PAGES_PER_FILE" -T "$SIZE_RATIO" \
     --lowpri "$LOW_PRI" --stat "$ROCKSDB_STATS" --progress "$SHOW_PROGRESS" > rocksdb_stats.log
 mv db/LOG LOG
@@ -321,7 +350,7 @@ curl -X POST -H 'Content-type: application/json' --data "${PAYLOAD}" ${SLACK_WEB
 #       immutable_(false),
 #       sorted_(false),
 #       compare_(compare),
-#       snapshot_log_(fopen("snapshot_ns.log", "w")),
+#       snapshot_log_(fopen("snapshot_ns.log", "a")),
 #       tl_writes_(DeleteTlBucket) {
 #   bucket_.get()->reserve(count);
 # }
