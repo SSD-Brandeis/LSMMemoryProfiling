@@ -7,10 +7,12 @@
 #include <tuple>
 
 #include "config_options.h"
+#include "util/get_latency_tracker.h"
 #include "utils.h"
 
 std::string buffer_file = "workload.log";
 std::string stats_file = "stats.log";
+std::string fnbreakdown_file = "fnbreakdown.log";
 
 int runWorkload(std::unique_ptr<DBEnv> &env) {
   DB *db;
@@ -25,6 +27,8 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
 
   std::shared_ptr<Buffer> buffer = std::make_unique<Buffer>(buffer_file);
   std::unique_ptr<Buffer> stats = std::make_unique<Buffer>(stats_file);
+  std::unique_ptr<Buffer> fnbreakdown = std::make_unique<Buffer>(fnbreakdown_file);
+  (*fnbreakdown) << rocksdb::GetLatencyTracker::CsvHeader() << std::endl;
 
   // // Add custom listners
   // std::shared_ptr<CompactionsListner> compaction_listener =
@@ -91,6 +95,9 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
   const bool use_prefix_seek =
       (env->common_prefix_len > 0 &&
        env->common_prefix_len == env->prefix_length);
+
+  rocksdb::GetLatencyTracker get_breakdown;
+  int64_t get_op_id = 0;
 
   std::string line;
   unsigned long ith_op = 0;
@@ -167,7 +174,11 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
 #ifdef PER_OP_TIMER
       auto start = std::chrono::high_resolution_clock::now();
 #endif // PER_OP_TIMER
+      get_breakdown.Reset();
+      rocksdb::g_get_tracker = &get_breakdown;
       s = db->Get(read_options, key, &value);
+      rocksdb::g_get_tracker = nullptr;
+      (*fnbreakdown) << get_breakdown.CsvRow(get_op_id++) << std::endl;
       // if (s.IsNotFound()) {
       //   std::cout << key << ", Not Found" << std::endl;
       // } else if (s.ok()) {
@@ -301,6 +312,7 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
   // flush final stats and delete ptr
   buffer->flush();
   stats->flush();
+  fnbreakdown->flush();
 #ifdef TOTAL_TIMER
   long long total_seconds = total_exec_time / 1e9;
   std::cerr << "\nExperiment completed in " << total_seconds / 3600 << "h "
