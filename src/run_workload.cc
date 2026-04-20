@@ -90,7 +90,7 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
   // and hash-based memtables can use the prefix extractor directly.
   const bool use_prefix_seek =
       (env->common_prefix_len > 0 &&
-       env->common_prefix_len == env->prefix_length);
+       env->common_prefix_len >= env->prefix_length);
 
   std::string line;
   unsigned long ith_op = 0;
