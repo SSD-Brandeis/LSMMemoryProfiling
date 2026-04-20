@@ -324,11 +324,6 @@ curl -X POST -H 'Content-type: application/json' --data "${PAYLOAD}" ${SLACK_WEB
 #       snapshot_log_(fopen("snapshot_ns.log", "w")),
 #       tl_writes_(DeleteTlBucket) {
 #   bucket_.get()->reserve(count);
-#   // 1MB write buffer — fprintf writes stay in memory until full or fclose,
-#   // eliminating per-call syscall overhead that would inflate snapshot timings.
-#   if (snapshot_log_) {
-#     setvbuf(snapshot_log_, nullptr, _IOFBF, 1 << 20);
-#   }
 # }
 
 # VectorRep::~VectorRep() {
