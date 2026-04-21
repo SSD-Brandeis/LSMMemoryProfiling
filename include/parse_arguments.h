@@ -98,6 +98,12 @@ int parse_arguments(int argc, char *argv[], std::unique_ptr<DBEnv> &env) {
       group1, "prefix_length",
       "[Prefix Length: Number of bytes of the key forming the prefix; def: 0]",
       {'X', "prefix_length"});
+  args::ValueFlag<int> common_prefix_len_cmd(
+      group1, "common_prefix_len",
+      "[Common Prefix Length: Number of leading bytes shared between RQ start "
+      "and synthesised end key; when equal to prefix_length, total_order_seek "
+      "is disabled; def: 0]",
+      {"common_prefix_len"});
   args::ValueFlag<long> bucket_count_cmd(
       group1, "bucket_count",
       "[Bucket Count: Number of buckets for the hash table in HashSkipList & "
@@ -118,6 +124,11 @@ int parse_arguments(int argc, char *argv[], std::unique_ptr<DBEnv> &env) {
       "Set the priority of write requests (0 means compactions aren't "
       "prioritized) [def: 1]",
       {"lowpri"});
+  args::ValueFlag<int> wal_cmd(
+      group1, "wal",
+      "Enable Write-Ahead Log (1 = enabled / disableWAL=false, 0 = disabled "
+      "/ disableWAL=true) [def: 0]",
+      {"wal"});
 
   try {
     parser.ParseCLI(argc, argv);
@@ -142,8 +153,8 @@ int parse_arguments(int argc, char *argv[], std::unique_ptr<DBEnv> &env) {
                                 : env->clear_system_cache;
   env->size_ratio =
       size_ratio_cmd ? args::get(size_ratio_cmd) : env->size_ratio;
-//   env->level0_slowdown_writes_trigger = env->size_ratio - 1;
-//   env->level0_stop_writes_trigger = env->size_ratio;
+  //   env->level0_slowdown_writes_trigger = env->size_ratio - 1;
+  //   env->level0_stop_writes_trigger = env->size_ratio;
   env->level0_file_num_compaction_trigger = env->size_ratio;
   env->buffer_size_in_pages = buffer_size_in_pages_cmd
                                   ? args::get(buffer_size_in_pages_cmd)
@@ -188,6 +199,9 @@ int parse_arguments(int argc, char *argv[], std::unique_ptr<DBEnv> &env) {
                                                : env->memtable_factory;
   env->prefix_length =
       prefix_length_cmd ? args::get(prefix_length_cmd) : env->prefix_length;
+  env->common_prefix_len = common_prefix_len_cmd
+                               ? args::get(common_prefix_len_cmd)
+                               : env->common_prefix_len;
   env->bucket_count =
       bucket_count_cmd ? args::get(bucket_count_cmd) : env->bucket_count;
   env->linklist_threshold_use_skiplist =
@@ -200,6 +214,9 @@ int parse_arguments(int argc, char *argv[], std::unique_ptr<DBEnv> &env) {
           ? args::get(vector_pre_allocation_size_cmd)
           : env->entries_per_page * env->buffer_size_in_pages;
   env->low_pri = low_pri_cmd ? args::get(low_pri_cmd) : env->low_pri;
+  // --wal 1 enables WAL (disableWAL=false); --wal 0 disables it (disableWAL=true)
+  if (wal_cmd)
+    env->disableWAL = !args::get(wal_cmd);
 
   return 0;
 }
