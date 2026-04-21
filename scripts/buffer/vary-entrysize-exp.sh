@@ -60,8 +60,8 @@ for ENTRY_SIZE in "${ENTRY_SIZES[@]}"; do
         "$ENTRY_DIR/sortedvector-preallocated" \
         "$ENTRY_DIR/hashskiplist-H100000-X6" \
         "$ENTRY_DIR/hashvector-H100000-X6" \
-        "$ENTRY_DIR/hashlinkedlist-H100000-X6" \
-        "$ENTRY_DIR/linkedlist"
+        "$ENTRY_DIR/hashlinkedlist-H100000-X6"
+        # "$ENTRY_DIR/linkedlist"
 
     echo "========================================"
     echo "Entry size: ${ENTRY_SIZE}B   inserts: $INSERTS   entries/page: $ENTRIES_PER_PAGE"
@@ -157,19 +157,19 @@ for ENTRY_SIZE in "${ENTRY_SIZES[@]}"; do
     echo -e "\n"
     sleep 5
 
-    ########################################
-    echo "  [${ENTRY_SIZE}B] Running linkedlist..."
-    cd "$ENTRY_DIR/linkedlist"
-    cp ../workload.txt .
-    "$BIN" \
-        --memtable_factory=7 \
-        -E "$ENTRY_SIZE" -B "$ENTRIES_PER_PAGE" -P "$PAGES_PER_FILE" -T "$SIZE_RATIO" \
-        --lowpri "$LOW_PRI" --stat "$ROCKSDB_STATS" --progress "$SHOW_PROGRESS" > rocksdb_stats.log
-    mv db/LOG LOG
-    rm -rf db workload.txt
-    cd "$REPO_ROOT"
-    echo -e "\n"
-    sleep 5
+    # ########################################
+    # echo "  [${ENTRY_SIZE}B] Running linkedlist..."
+    # cd "$ENTRY_DIR/linkedlist"
+    # cp ../workload.txt .
+    # "$BIN" \
+    #     --memtable_factory=7 \
+    #     -E "$ENTRY_SIZE" -B "$ENTRIES_PER_PAGE" -P "$PAGES_PER_FILE" -T "$SIZE_RATIO" \
+    #     --lowpri "$LOW_PRI" --stat "$ROCKSDB_STATS" --progress "$SHOW_PROGRESS" > rocksdb_stats.log
+    # mv db/LOG LOG
+    # rm -rf db workload.txt
+    # cd "$REPO_ROOT"
+    # echo -e "\n"
+    # sleep 5
 
     ########################################
     echo "  [${ENTRY_SIZE}B] Running hashskiplist-H100000-X6..."
