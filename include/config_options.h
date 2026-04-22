@@ -1,6 +1,7 @@
 #include <iostream>
 #include <rocksdb/filter_policy.h>
 #include <rocksdb/iostats_context.h>
+#include <rocksdb/merge_operator.h>
 #include <rocksdb/options.h>
 #include <rocksdb/perf_context.h>
 #include <rocksdb/slice_transform.h>
@@ -10,6 +11,25 @@
 #include "db_env.h"
 #include "event_listners.h"
 #include "fluid_lsm.h"
+
+class StringAppendOperator : public rocksdb::AssociativeMergeOperator {
+public:
+  bool Merge(const rocksdb::Slice &key, const rocksdb::Slice *existing_value,
+             const rocksdb::Slice &value, std::string *new_value,
+             rocksdb::Logger *logger) const override {
+
+    if (existing_value) {
+      // Append new value to existing value
+      *new_value = existing_value->ToString() + value.ToString();
+    } else {
+      // No existing value, just use new value
+      *new_value = value.ToString();
+    }
+    return true;
+  }
+
+  const char *Name() const override { return "StringAppendOperator"; }
+};
 
 namespace ROCKSDB_NAMESPACE {
 extern MemTableRepFactory *NewSimpleSkipListRepFactory();
@@ -36,6 +56,7 @@ void configOptions(std::unique_ptr<DBEnv> &env, Options *options,
       env->delete_obsolete_files_period_micros;
   options->allow_mmap_reads = env->allow_mmap_reads;
   options->allow_mmap_writes = env->allow_mmap_writes;
+  options->merge_operator.reset(new StringAppendOperator());
   options->info_log_level = InfoLogLevel::INFO_LEVEL;
 #pragma endregion
 

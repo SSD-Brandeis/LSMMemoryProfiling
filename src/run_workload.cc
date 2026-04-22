@@ -244,6 +244,13 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
       s = db->DeleteRange(write_options, start_key, end_key);
       break;
     }
+    // [ReadModifyWrite]
+    case 'M': {
+      std::string start_key, end_key;
+      stream >> start_key >> end_key;
+      s = db->Merge(write_options, start_key, end_key);
+      break;
+    }
     default:
       (*buffer) << "ERROR: Case match NOT found !!" << std::endl;
       break;
