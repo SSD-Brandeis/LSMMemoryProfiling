@@ -11,6 +11,7 @@
 #include "db_env.h"
 #include "event_listners.h"
 #include "fluid_lsm.h"
+#include "workload_monitor.h"
 
 class StringAppendOperator : public rocksdb::AssociativeMergeOperator {
 public:
@@ -31,9 +32,6 @@ public:
   const char *Name() const override { return "StringAppendOperator"; }
 };
 
-namespace ROCKSDB_NAMESPACE {
-extern MemTableRepFactory *NewSimpleSkipListRepFactory();
-}
 
 void configOptions(std::unique_ptr<DBEnv> &env, Options *options,
                    BlockBasedTableOptions *table_options,
@@ -133,19 +131,33 @@ void configOptions(std::unique_ptr<DBEnv> &env, Options *options,
     break;
   // Add SimpleSkipList
   case 8:
-    options->memtable_factory.reset(
-        ROCKSDB_NAMESPACE::NewSimpleSkipListRepFactory());
+    options->memtable_factory.reset(new SimpleSkipListFactory());
     break;
   case 9:
     options->memtable_factory.reset(NewHashVectorRepFactory(env->bucket_count));
     options->prefix_extractor.reset(
         NewFixedPrefixTransform(env->prefix_length));
     break;
-    // case 10:
-    //     options->memtable_factory.reset(
-    //         new InPlaceUpdateSortedVectorRepFactory(
-    //             env->vector_preallocation_size_in_bytes));
-    //     break;
+  case 10: {
+    DynamicMemtableConfig cfg;
+    cfg.vector_prealloc        = env->vector_preallocation_size_in_bytes;
+    cfg.bucket_count           = env->bucket_count;
+    cfg.skiplist_height        = env->skiplist_height;
+    cfg.skiplist_branch        = env->skiplist_branching_factor;
+    cfg.huge_page_tlb_size     = env->linklist_huge_page_tlb_size;
+    cfg.linklist_log_threshold = env->linklist_bucket_entries_logging_threshold;
+    cfg.linklist_log_dist      = env->linklist_if_log_bucket_dist_when_flash;
+    cfg.linklist_use_skiplist  = env->linklist_threshold_use_skiplist;
+    options->memtable_factory.reset(
+        NewDynamicMemTableFactory(&GlobalWorkloadMonitor(), cfg));
+    // Install a prefix extractor only when one is explicitly requested;
+    // the factory will fall back to non-hash types when transform is null.
+    if (env->prefix_length > 0) {
+      options->prefix_extractor.reset(
+          NewFixedPrefixTransform(env->prefix_length));
+    }
+    break;
+  }
   default:
     std::cerr << "Error[" << __FILE__ << " : " << __LINE__
               << "]: Invalid memtable factory!" << std::endl;

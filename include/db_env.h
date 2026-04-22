@@ -141,15 +141,16 @@ public:
 
   /**
    * Memtable Factory
-   * 1 for skiplist
-   * 2 for vector
-   * 3 for hash skip list
-   * 4 for hash linked list
-   * 5 for unsorted vector
-   * 6 for sorted vector
-   * 7 for linked list
-   * 8 for simple skip list
-   * 9 for hash vector
+   * 1  for skiplist
+   * 2  for vector
+   * 3  for hash skip list
+   * 4  for hash linked list
+   * 5  for unsorted vector
+   * 6  for sorted vector
+   * 7  for linked list
+   * 8  for simple skip list
+   * 9  for hash vector
+   * 10 for dynamic (cost-model-driven buffer)
    */
   uint16_t memtable_factory = 1; // [m]
 

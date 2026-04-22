@@ -8,6 +8,7 @@
 
 #include "config_options.h"
 #include "utils.h"
+#include "workload_monitor.h"
 
 std::string buffer_file = "workload.log";
 std::string stats_file = "stats.log";
@@ -113,6 +114,7 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
       auto start = std::chrono::high_resolution_clock::now();
 #endif // PER_OP_TIMER
       s = db->Put(write_options, key, value);
+      GlobalWorkloadMonitor().RecordInsert();
 #ifdef PER_OP_TIMER
       auto stop = std::chrono::high_resolution_clock::now();
       auto duration =
@@ -131,6 +133,7 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
       auto start = std::chrono::high_resolution_clock::now();
 #endif // PER_OP_TIMER
       s = db->Put(write_options, key, value);
+      GlobalWorkloadMonitor().RecordUpdate();
 #ifdef PER_OP_TIMER
       auto stop = std::chrono::high_resolution_clock::now();
       auto duration =
@@ -149,6 +152,7 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
       auto start = std::chrono::high_resolution_clock::now();
 #endif // PER_OP_TIMER
       s = db->Delete(write_options, key);
+      GlobalWorkloadMonitor().RecordPointDelete();
 #ifdef PER_OP_TIMER
       auto stop = std::chrono::high_resolution_clock::now();
       auto duration =
@@ -168,6 +172,7 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
       auto start = std::chrono::high_resolution_clock::now();
 #endif // PER_OP_TIMER
       s = db->Get(read_options, key, &value);
+      GlobalWorkloadMonitor().RecordPointQuery();
       // if (s.IsNotFound()) {
       //   std::cout << key << ", Not Found" << std::endl;
       // } else if (s.ok()) {
@@ -187,26 +192,21 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
       break;
     }
       // [ScanRangeQuery]
+      // Handles two formats produced by Tectonic:
+      //   "S  <start_key> <end_key>"   — StartEnd  (key comparison termination)
+      //   "SC <start_key> <scan_len>"  — StartCount (YCSB-style fixed-length scan)
+      // After the switch reads 'S', peek at the next character: if it is 'C'
+      // consume it and treat the second token as a step count, otherwise treat
+      // it as an end key.
     case 'S': {
-      std::string start_key, end_key;
-      stream >> start_key >> end_key;
+      // Detect "SC": next char on the stream is 'C' with no whitespace between.
+      const bool is_count_scan = (stream.peek() == 'C');
+      if (is_count_scan) stream.get(); // consume the 'C'
 
-      // Synthesise a prefix-controlled end key when common_prefix_len > 0.
-      // We keep common_prefix_len bytes from start_key as the shared prefix,
-      // then reuse the remaining suffix from the tectonic-generated end_key.
-      // This avoids any random generation overhead while still producing a
-      // valid random suffix.
-      if (env->common_prefix_len > 0) {
-        const size_t prefix_bytes =
-            std::min((size_t)env->common_prefix_len, start_key.size());
-        end_key = start_key.substr(0, prefix_bytes) +
-                  end_key.substr(prefix_bytes);
-      }
+      std::string start_key;
+      stream >> start_key;
 
       ReadOptions scan_read_options = ReadOptions(read_options);
-      // Disable total_order_seek only when the scan is fully prefix-bounded
-      // (common_prefix_len == prefix_length), so hash-based memtables can
-      // use the prefix bloom filter. In all other cases keep it enabled.
       scan_read_options.total_order_seek = !use_prefix_seek;
 
       Iterator *it = db->NewIterator(scan_read_options);
@@ -216,14 +216,37 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
       auto start = std::chrono::high_resolution_clock::now();
 #endif // PER_OP_TIMER
 
-      for (it->Seek(start_key); it->Valid(); it->Next()) {
-        if (it->key().ToString() >= end_key) {
-          break;
+      if (is_count_scan) {
+        // SC <start_key> <scan_len> — iterate exactly scan_len steps.
+        uint64_t scan_len;
+        stream >> scan_len;
+
+        uint64_t steps = 0;
+        for (it->Seek(start_key); it->Valid() && steps < scan_len;
+             it->Next(), ++steps) {
         }
+      } else {
+        // S <start_key> <end_key> — iterate until key >= end_key.
+        std::string end_key;
+        stream >> end_key;
+
+        // Synthesise a prefix-controlled end key when common_prefix_len > 0.
+        if (env->common_prefix_len > 0) {
+          const size_t prefix_bytes =
+              std::min((size_t)env->common_prefix_len, start_key.size());
+          end_key = start_key.substr(0, prefix_bytes) +
+                    end_key.substr(prefix_bytes);
+        }
+
+        for (it->Seek(start_key); it->Valid(); it->Next()) {
+          if (it->key().ToString() >= end_key) {
+            break;
+          }
         // std::cout << "Key: " << it->key().ToString()
         //           << " Value: " << it->value().ToString() << std::endl;
-        // keys_returned++;
+        }
       }
+
       if (!it->status().ok()) {
         (*buffer) << it->status().ToString() << std::endl << std::flush;
       }
@@ -234,6 +257,7 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
       (*stats) << "S: " << duration.count() << std::endl;
       rq_exec_time += duration.count();
 #endif // PER_OP_TIMER
+      GlobalWorkloadMonitor().RecordRangeQuery();
       delete it;
       break;
     }
@@ -242,6 +266,7 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
       std::string start_key, end_key;
       stream >> start_key >> end_key;
       s = db->DeleteRange(write_options, start_key, end_key);
+      GlobalWorkloadMonitor().RecordRangeDelete();
       break;
     }
     // [ReadModifyWrite]
