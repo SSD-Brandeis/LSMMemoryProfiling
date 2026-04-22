@@ -73,7 +73,7 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
 
 #ifdef PER_OP_TIMER
   unsigned long inserts_exec_time = 0, updates_exec_time = 0, pq_exec_time = 0,
-                pdelete_exec_time = 0, rq_exec_time = 0;
+                pdelete_exec_time = 0, rq_exec_time = 0, merge_exec_time = 0;
 #endif // PER_OP_TIMER
 
 #ifdef TOTAL_TIMER
@@ -246,9 +246,19 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
     }
     // [ReadModifyWrite]
     case 'M': {
+#ifdef PER_OP_TIMER
+      auto start = std::chrono::high_resolution_clock::now();
+#endif // PER_OP_TIMER
       std::string start_key, end_key;
       stream >> start_key >> end_key;
       s = db->Merge(write_options, start_key, end_key);
+#ifdef PER_OP_TIMER
+      auto stop = std::chrono::high_resolution_clock::now();
+      auto duration =
+          std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+      (*stats) << "M: " << duration.count() << std::endl;
+      merge_exec_time += duration.count();
+#endif // PER_OP_TIMER
       break;
     }
     default:
@@ -288,6 +298,7 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
   (*buffer) << "PointQuery Execution Time: " << pq_exec_time << std::endl;
   (*buffer) << "PointDelete Execution Time: " << pdelete_exec_time << std::endl;
   (*buffer) << "RangeQuery Execution Time: " << rq_exec_time << std::endl;
+  (*buffer) << "Merge Execution Time: " << merge_exec_time << std::endl;
 #endif // PER_OP_TIMER
 
   // tree->BuildStructure(db); //rebuild structure after each input
