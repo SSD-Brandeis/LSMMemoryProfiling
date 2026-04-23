@@ -1,7 +1,7 @@
 #pragma once
 
-#include <array>
 #include <atomic>
+#include <memory>
 #include <cmath>
 #include <cstdint>
 
@@ -15,9 +15,6 @@
 // model adapts to workload shifts rather than being dominated by the initial
 // bulk-load phase forever.
 struct WorkloadMonitor : public ROCKSDB_NAMESPACE::MemtableAdvisor {
-  // Number of recent operations the cost model looks at.
-  // Larger → smoother / slower adaptation.  Smaller → faster response.
-  static constexpr size_t WINDOW_SIZE = 12000; //[MAKE IT CONFIGURABLE THROUGH BUFFER SIZE IN PAGES AND ENTRIES PER PAGE]
 
   // Operation types recorded into the ring buffer.
   enum class OpType : int8_t {
@@ -47,7 +44,12 @@ struct WorkloadMonitor : public ROCKSDB_NAMESPACE::MemtableAdvisor {
     }
   };
 
-  WorkloadMonitor() : n_entries_(1024), bucket_count_(50000) { Reset(); }
+  WorkloadMonitor()
+      : n_entries_(1024), bucket_count_(50000),
+        window_size_(1024 / 2),
+        ring_(new std::atomic<int8_t>[1024 / 2]{}) {
+    Reset();
+  }
 
   // Call once after argument parsing, before the workload loop.
   //   n_entries:    expected entries per memtable at flush
@@ -58,6 +60,9 @@ struct WorkloadMonitor : public ROCKSDB_NAMESPACE::MemtableAdvisor {
   void Configure(size_t n_entries, size_t bucket_count) {
     n_entries_    = n_entries    > 0 ? n_entries    : 1;
     bucket_count_ = bucket_count > 0 ? bucket_count : 1;
+    window_size_  = std::max(n_entries_ / 2, size_t(1));
+    ring_.reset(new std::atomic<int8_t>[window_size_]{});
+    Reset();
   }
 
   // --- recording API (one call per executed operation) -------------------
@@ -71,16 +76,16 @@ struct WorkloadMonitor : public ROCKSDB_NAMESPACE::MemtableAdvisor {
 
   // Clear the ring buffer (e.g. to force a cold-start re-evaluation).
   void Reset() {
-    for (auto& slot : ring_)
-      slot.store(static_cast<int8_t>(OpType::Empty), std::memory_order_relaxed);
+    for (size_t i = 0; i < window_size_; ++i)
+      ring_[i].store(static_cast<int8_t>(OpType::Empty), std::memory_order_relaxed);
     write_pos_.store(0, std::memory_order_relaxed);
   }
 
   // Compute the distribution over the current window without selecting a type.
   WindowStats ComputeStats() const {
     uint64_t counts[static_cast<size_t>(OpType::kCount)] = {};
-    for (const auto& slot : ring_) {
-      const int8_t raw = slot.load(std::memory_order_relaxed);
+    for (size_t i = 0; i < window_size_; ++i) {
+      const int8_t raw = ring_[i].load(std::memory_order_relaxed);
       if (raw > 0 && raw < static_cast<int8_t>(OpType::kCount))
         counts[raw]++;
     }
@@ -146,7 +151,7 @@ struct WorkloadMonitor : public ROCKSDB_NAMESPACE::MemtableAdvisor {
     // const double c_hl_lookup   = n_over_B + cache_penalty;  // effective PQ cost
 
     // Expected cost per op (proportional units):
-    const double c_skiplist = w * logn + pq * logn + rq * (3 * n/2) * logn;
+    const double c_skiplist = w * logn + pq * logn + rq * logn;
     const double c_unsorted = w        + pq * (n/2)           + rq * n * logn;
     const double c_hashlink = w * logn
                             + pq * logn_over_B
@@ -170,14 +175,15 @@ struct WorkloadMonitor : public ROCKSDB_NAMESPACE::MemtableAdvisor {
  private:
   size_t n_entries_;
   size_t bucket_count_;
-  std::array<std::atomic<int8_t>, WINDOW_SIZE> ring_;
+  size_t window_size_;
+  std::unique_ptr<std::atomic<int8_t>[]> ring_;
   std::atomic<uint64_t> write_pos_{0};
 
   static constexpr size_t idx(OpType t) { return static_cast<size_t>(t); }
 
   void record(OpType op) {
     const uint64_t pos =
-        write_pos_.fetch_add(1, std::memory_order_relaxed) % WINDOW_SIZE;
+        write_pos_.fetch_add(1, std::memory_order_relaxed) % window_size_;
     ring_[pos].store(static_cast<int8_t>(op), std::memory_order_relaxed);
   }
 };
