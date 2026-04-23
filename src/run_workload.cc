@@ -14,6 +14,13 @@ std::string buffer_file = "workload.log";
 std::string stats_file = "stats.log";
 
 int runWorkload(std::unique_ptr<DBEnv> &env) {
+  // Give the cost model the actual buffer geometry so it computes data-driven
+  // crossover thresholds instead of using hardcoded ratio cutoffs.
+  GlobalWorkloadMonitor().Configure(
+      env->entries_per_page * env->buffer_size_in_pages,  // n entries per memtable
+      env->bucket_count                                    // hash table bucket count
+  );
+
   DB *db;
   Options options;
   WriteOptions write_options;
@@ -277,6 +284,7 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
       std::string start_key, end_key;
       stream >> start_key >> end_key;
       s = db->Merge(write_options, start_key, end_key);
+      GlobalWorkloadMonitor().RecordUpdate();
 #ifdef PER_OP_TIMER
       auto stop = std::chrono::high_resolution_clock::now();
       auto duration =

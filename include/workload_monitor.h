@@ -2,6 +2,7 @@
 
 #include <array>
 #include <atomic>
+#include <cmath>
 #include <cstdint>
 
 #include <rocksdb/memtablerep.h>
@@ -16,7 +17,7 @@
 struct WorkloadMonitor : public ROCKSDB_NAMESPACE::MemtableAdvisor {
   // Number of recent operations the cost model looks at.
   // Larger → smoother / slower adaptation.  Smaller → faster response.
-  static constexpr size_t WINDOW_SIZE = 100;
+  static constexpr size_t WINDOW_SIZE = 12000; //[MAKE IT CONFIGURABLE THROUGH BUFFER SIZE IN PAGES AND ENTRIES PER PAGE]
 
   // Operation types recorded into the ring buffer.
   enum class OpType : int8_t {
@@ -46,7 +47,18 @@ struct WorkloadMonitor : public ROCKSDB_NAMESPACE::MemtableAdvisor {
     }
   };
 
-  WorkloadMonitor() { Reset(); }
+  WorkloadMonitor() : n_entries_(1024), bucket_count_(50000) { Reset(); }
+
+  // Call once after argument parsing, before the workload loop.
+  //   n_entries:    expected entries per memtable at flush
+  //                 (= entries_per_page × buffer_size_in_pages).
+  //   bucket_count: hash table bucket count for hash-based memtables.
+  // These drive the cost model in SelectMemtableType so thresholds are
+  // derived from the actual buffer geometry rather than hardcoded ratios.
+  void Configure(size_t n_entries, size_t bucket_count) {
+    n_entries_    = n_entries    > 0 ? n_entries    : 1;
+    bucket_count_ = bucket_count > 0 ? bucket_count : 1;
+  }
 
   // --- recording API (one call per executed operation) -------------------
 
@@ -86,50 +98,78 @@ struct WorkloadMonitor : public ROCKSDB_NAMESPACE::MemtableAdvisor {
 
   // --- MemtableAdvisor ----------------------------------------------------
 
-  // Cost-model selector called by DynamicMemtableFactory on every flush.
-  // Applies threshold rules derived from the asymptotic cost of each structure.
+  // Selects the memtable type by computing expected cost per op for each
+  // candidate structure using the actual n (entries per memtable) and B
+  // (bucket count) supplied via Configure().
   //
-  //   Structure       insert       point-query    range-scan
-  //   SkipList        O(log n)     O(log n)       O(log n + k)
-  //   SortedVector    O(n)         O(n)           O(n)
-  //   UnsortedVector  O(1)         O(n)           O(n )
-  //   HashSkipList    O(log n/B)   O(log n/B)     O(n log n)  [prefix]
-  //   HashLinkList    O(1)         O(n/B)         O(n log n)  [prefix]
-  //   HashVector      O(1)         O(n/B)         O(n log n)  [prefix]
-  //   SimpleSkipList  ~SkipList, lower constant
+  //   Structure       insert         point-query         range-scan
+  //   SkipList        O(log n)       O(log n)            O(log n + k)
+  //   UnsortedVector  O(1)           O(n)                O(n·log n)
+  //   HashLinkList    O(log n·1.2)   O(n/B + cache_pen)  O(n·log n)
+  //
+  // HashLinkList (RocksDB HashLinkedListRep) keeps a sorted linked list per
+  // bucket.  Each operation hashes the key and accesses a random bucket.
+  //
+  // Cache penalty: the bucket-pointer array is B×8 bytes.  When that array
+  // exceeds the L2 cache, every bucket access is a cache miss costing roughly
+  // logn comparison-units.  Example: B=100 000 → 800 KB array >> 256 KB L2
+  // → cache_penalty ≈ logn.  B=1 000 → 8 KB array fits in L1 → penalty ≈ 0.
+  //
+  // This means: when the dynamic binary is configured with a large B (e.g.
+  // 100 000) the effective HashLinkList lookup cost equals SkipList or worse,
+  // so SkipList is preferred.  Only a well-sized B (B ≈ n) makes HL faster.
+  //
+  // Write overhead: HL writes (hash + sorted insert + alloc) cost ≈1.2×logn,
+  // slightly more than SkipList.  HL therefore only wins when reads are
+  // frequent enough to offset this, i.e. when w < 1/1.2 ≈ 0.83.
   //
   // Returns a type id in [1, 9] matching the memtable_factory enum.
-  int SelectMemtableType(bool has_prefix) const override {
+  int SelectMemtableType(bool /*has_prefix*/) const override {
     const WindowStats s = ComputeStats();
-    if (s.total == 0) return 1;  // no window data yet → SkipList default
+    if (s.total == 0) return 1;  // window not yet warm → SkipList default
 
-    const double wr  = s.write_ratio();
-    const double pqr = s.point_query_ratio();
-    const double rqr = s.range_read_ratio();
+    const double w  = s.write_ratio();
+    const double pq = s.point_query_ratio();
+    const double rq = 1.0 - w - pq;   // range query fraction of total ops
 
-    // rule 1: almost pure writes → cheapest-insert structure
-    if (wr > 0.95)
-      return 5;  // UnsortedVector
+    const double n        = static_cast<double>(n_entries_);
+    const double B        = static_cast<double>(bucket_count_);
+    const double logn     = std::log2(std::max(n, 2.0));
+    const double logn_over_B = std::log2(std::max(n / B, 2.0));
+    const double n_over_B = n / B;
 
-    // rule 2: write-heavy (80-95 %) → skip-list variants, avoid O(n) insert
-    if (wr > 0.80 && pqr > 0.05) {
-      return 3;  // HashSkipList
-    }
+    // Cache-miss penalty for HashLinkList bucket access.
+    // The bucket array is B×8 bytes; fraction exceeding a 256 KB L2 cache
+    // causes random cache misses, each costing ~logn comparison-units.
+    const double kL2Bytes      = 256.0 * 1024.0;
+    const double cache_penalty = std::min(1.0, B * 8.0 / kL2Bytes) * logn;
+    // const double c_hl_lookup   = n_over_B + cache_penalty;  // effective PQ cost
 
-    // rule 3: range-scan dominant → sorted structure for cheap range seek
-    if (rqr > 0.60) {
-      // if (wr < 0.20) return 6;  // SortedVector (near-read-only)
-      return 9;                  // hashvector
-    }
+    // Expected cost per op (proportional units):
+    const double c_skiplist = w * logn + pq * logn + rq * (3 * n/2) * logn;
+    const double c_unsorted = w        + pq * (n/2)           + rq * n * logn;
+    const double c_hashlink = w * logn
+                            + pq * logn_over_B
+                            + rq * n * logn;
+    const double c_hashskiplist = w * logn * 1.02
+                            + pq * logn_over_B
+                            + rq * n * logn;
+    const double c_hashvector = w * n * logn
+                            + pq * logn_over_B
+                            + rq * n * logn;
 
-    // rule 4: point-query dominant with prefix → hash bucket lookup
-    // if (pqr > 0.50 && has_prefix) return 4;  // HashVector
-    if (pqr > 0.30) return 4;  // HashLinkedlist
-    
-    return 1;  // SkipList default
+    double best = c_skiplist;
+    int    type = 1;                                          // SkipList
+    if (c_unsorted < best) { best = c_unsorted; type = 5; }  // UnsortedVector
+    if (c_hashvector < best) { best = c_hashvector; type = 9; }  // HashVector
+    if (c_hashskiplist < best) { best = c_hashskiplist; type = 3; }  // HashSkipList
+    if (c_hashlink < best) { best = c_hashlink; type = 4; }  // HashLinkList
+    return type;
   }
 
  private:
+  size_t n_entries_;
+  size_t bucket_count_;
   std::array<std::atomic<int8_t>, WINDOW_SIZE> ring_;
   std::atomic<uint64_t> write_pos_{0};
 
