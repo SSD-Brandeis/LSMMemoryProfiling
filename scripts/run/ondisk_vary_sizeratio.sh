@@ -40,7 +40,7 @@ SPECS_FILE="workload.specs.json"
 if [ ! -f "$WORKLOAD_FILE" ]; then
     if [ -f "$SPECS_FILE" ]; then
         echo "Generating workload..."
-        ../../bin/tectonic-cli generate -w "$SPECS_FILE"
+        ../../bin/tectonic-cli generate -w "$SPECS_FILE" -o "workload.txt"
     else
         echo "Error: workload not found"
         exit 1
@@ -63,9 +63,8 @@ for SIZE_RATIO in "${SIZE_RATIOS[@]}"; do
     unsortedvector-preallocated-T${SIZE_RATIO} \
     hashskiplist-H100000-X6-T${SIZE_RATIO} \
     hashvector-H100000-X6-T${SIZE_RATIO} \
-    hashlinkedlist-H100000-X6-T${SIZE_RATIO}
-    
-    # sortedvector-preallocated \
+    hashlinkedlist-H100000-X6-T${SIZE_RATIO} \
+    sortedvector-preallocated-T${SIZE_RATIO}
     # linkedlist
     # vector-dynamic \
     # unsortedvector-dynamic \
@@ -138,7 +137,7 @@ for SIZE_RATIO in "${SIZE_RATIOS[@]}"; do
     rm -rf db workload.txt
     cd ..
     echo -e "\n"
-    # sleep 5
+    sleep 5
 
     # ########################################
     # echo "Running unsortedvector-dynamic ... "
@@ -181,18 +180,18 @@ for SIZE_RATIO in "${SIZE_RATIOS[@]}"; do
     # cd ..
     # echo -e "\n"
 
-    # echo "Running sortedvector-preallocated ... "
-    # cd sortedvector-preallocated
-    # cp ../workload.txt .
-    # ../../../bin/working_version \
-    #     --memtable_factory=6 \
-    #     -E "$ENTRY_SIZE" -B "$ENTRIES_PER_PAGE" -P "$PAGES_PER_FILE" -T "$SIZE_RATIO" \
-    #     --lowpri "$LOW_PRI" --stat "$ROCKSDB_STATS" --progress "$SHOW_PROGRESS" > rocksdb_stats.log
-    # mv db/LOG LOG
-    # rm -rf db workload.txt
-    # cd ..
-    # echo -e "\n"
-    # sleep 5
+    echo "Running sortedvector-preallocated (T=$SIZE_RATIO) ... "
+    cd sortedvector-preallocated-T${SIZE_RATIO}
+    cp ../workload.txt .
+    ../../../bin/working_version \
+        --memtable_factory=6 \
+        -E "$ENTRY_SIZE" -B "$ENTRIES_PER_PAGE" -P "$PAGES_PER_FILE" -T "$SIZE_RATIO" \
+        --lowpri "$LOW_PRI" --stat "$ROCKSDB_STATS" --progress "$SHOW_PROGRESS" > rocksdb_stats.log
+    mv db/LOG LOG
+    rm -rf db workload.txt
+    cd ..
+    echo -e "\n"
+    sleep 5
 
     # ########################################
     # echo "Running linkedlist ... "
@@ -280,14 +279,3 @@ done
 cd ../..
 echo "Done."
 echo "Experiments finished."
-
-
-source .env
-
-SLACK_WEBHOOK_URL=${SLACK_WEBHOOK_URL}
-HOSTNAME=$(hostname)
-
-MESSAGE="Experiments Completed on ${HOSTNAME}"
-PAYLOAD="{\"text\": \"${MESSAGE}\"}"
-
-curl -X POST -H 'Content-type: application/json' --data "${PAYLOAD}" ${SLACK_WEBHOOK_URL}
