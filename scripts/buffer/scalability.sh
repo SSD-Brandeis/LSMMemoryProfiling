@@ -27,7 +27,7 @@ THRESHOLD_TO_CONVERT_TO_SKIPLIST=$(( PAGE_SIZE * PAGES_PER_FILE / ENTRY_SIZE ))
 
 # Scale factors: label, numerator, denominator (scale = num/den)
 # Scales: 1/4, 1/2, 1, 2, 4, 8  relative to base workload (100M inserts, 10K PQs, 1K RQs)
-SCALE_ENTRIES=("0.25x:1:4" "0.5x:1:2") # "1x:1:1" "2x:2:1" "4x:4:1" "8x:8:1")
+SCALE_ENTRIES=("4x:4:1" ) # "1x:1:1" "2x:2:1" "4x:4:1" "8x:8:1")
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 BIN="$REPO_ROOT/bin/working_version"
@@ -42,7 +42,7 @@ echo "ENTRY_SIZE       : $ENTRY_SIZE B  (key=${KEY_LEN}B  val=${VAL_LEN}B)"
 echo "BUFFER           : ${BUFFER_SIZE_MB}MB  (PAGES_PER_FILE=$PAGES_PER_FILE)"
 echo "LOW_PRI          : $LOW_PRI  (fixed)"
 echo "BUCKET_COUNT     : $BUCKET_COUNT   PREFIX_LENGTH: $PREFIX_LENGTH"
-echo "SCALE_FACTORS    : 0.25x 0.5x --- 1x 2x 4x 8x"
+echo "SCALE_FACTORS    : 4x"
 echo "SIZE_RATIO       : $SIZE_RATIO"
 echo -e "========================================\n"
 
