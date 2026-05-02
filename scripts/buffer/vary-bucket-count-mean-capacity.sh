@@ -29,7 +29,7 @@ NUM_FLUSHES=10
 INSERTS=$(( BUFFER_SIZE_MB * 1024 * 1024 * (100 - VECTOR_OVERHEAD_PCT) * NUM_FLUSHES / (ENTRY_SIZE * 100) ))
 
 # Small bucket counts to sweep; prefix length fixed at 6.
-BUCKET_COUNTS=(1 200 400 600 800 1000)
+BUCKET_COUNTS=(1000 200000 400000 600000 800000 1000000)
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 BIN="$REPO_ROOT/bin/working_version"

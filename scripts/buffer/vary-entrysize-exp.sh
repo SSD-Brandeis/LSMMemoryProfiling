@@ -5,7 +5,7 @@ set -e
 bash ./scripts/rebuild.sh
 
 
-TAG=vary-entrysize-exp
+TAG=vary-entrysize-exp-32-64
 LAMBDA=0.5
 PAGE_SIZE=4096
 BUFFER_SIZE_MB=128
@@ -20,7 +20,7 @@ SHOW_PROGRESS=1
 NUM_FLUSHES=10
 
 # Entry sizes to sweep (bytes)
-ENTRY_SIZES=(8 16 32 64 128 256 512 1024 2048)
+ENTRY_SIZES=(32 64) # 128 256 512 1024 2048) # 8 16 
 
 # Pre-computed op counts (128MB / ENTRY_SIZE * NUM_FLUSHES):
 #   8B→167772160  16B→83886080  32B→41943040   64B→20971520

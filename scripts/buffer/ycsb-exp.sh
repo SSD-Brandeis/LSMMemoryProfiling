@@ -5,7 +5,7 @@ set -e
 bash ./scripts/rebuild.sh
 
 
-TAG=ycsb-exp
+TAG=ycsb-exp-onlyf-rerun
 # YCSB entries: ~33B key + 1024B value ≈ 1057B; use 1024 as the nearest round
 # power-of-two approximation so -E -B -P remain consistent with other scripts.
 ENTRY_SIZE=1024
@@ -149,7 +149,8 @@ run_all_memtables() {
 ########################################
 # Sweep YCSB workloads a–f
 ########################################
-for WORKLOAD in a b c d e f; do
+# for WORKLOAD in a b c d e f; do
+for WORKLOAD in f; do
 
     SPEC="$YCSB_SPECS_DIR/${WORKLOAD}.spec.json"
     WDIR="$BASE_DIR/ycsb-${WORKLOAD}"

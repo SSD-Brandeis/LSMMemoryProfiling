@@ -23,7 +23,7 @@ VAL_LEN=$(python3 -c "print(int($ENTRY_SIZE * (1 - $LAMBDA)))")   # 24
 ENTRIES_PER_PAGE=$(( PAGE_SIZE / ENTRY_SIZE ))
 
 # Buffer sizes to sweep in MB
-BUFFER_SIZES_MB=(1 2 4 8 16 32 64 128)
+BUFFER_SIZES_MB=(1 2 4) #  8 16 32 64 128
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 BIN="$REPO_ROOT/bin/working_version"
@@ -42,59 +42,59 @@ echo "SIZE_RATIO       : $SIZE_RATIO"
 echo -e "========================================\n"
 
 
-########################################
-# Generate workload once — three sequential groups:
-#   Group 1: 80M inserts (bulk load)
-#   Group 2: 10M inserts + 10K non-empty PQs (interleaved)
-#   Group 3: 10M inserts + 1K RQs selectivity=0.0000001 (interleaved)
-########################################
-python3 - <<EOF
-import json
-spec = {
-  "sections": [{
-    "groups": [
-      {
-        "inserts": {
-          "op_count": 80000000,
-          "key": {"uniform": {"len": $KEY_LEN}},
-          "val": {"uniform": {"len": $VAL_LEN}}
-        }
-      },
-      {
-        "inserts": {
-          "op_count": 10000000,
-          "key": {"uniform": {"len": $KEY_LEN}},
-          "val": {"uniform": {"len": $VAL_LEN}}
-        },
-        "point_queries": {
-          "op_count": 10000,
-          "selection": {"uniform": {"min": 0, "max": 1}}
-        }
-      },
-      {
-        "inserts": {
-          "op_count": 10000000,
-          "key": {"uniform": {"len": $KEY_LEN}},
-          "val": {"uniform": {"len": $VAL_LEN}}
-        },
-        "range_queries": {
-          "op_count": 1000,
-          "selection": {"uniform": {"min": 0, "max": 1}},
-          "selectivity": 0.0000001,
-          "range_format": "StartEnd"
-        }
-      }
-    ]
-  }]
-}
-with open("$BASE_DIR/workload.specs.json", "w") as f:
-    json.dump(spec, f, indent=2)
-print("Wrote workload.specs.json")
-EOF
+# ########################################
+# # Generate workload once — three sequential groups:
+# #   Group 1: 80M inserts (bulk load)
+# #   Group 2: 10M inserts + 10K non-empty PQs (interleaved)
+# #   Group 3: 10M inserts + 1K RQs selectivity=0.0000001 (interleaved)
+# ########################################
+# python3 - <<EOF
+# import json
+# spec = {
+#   "sections": [{
+#     "groups": [
+#       {
+#         "inserts": {
+#           "op_count": 80000000,
+#           "key": {"uniform": {"len": $KEY_LEN}},
+#           "val": {"uniform": {"len": $VAL_LEN}}
+#         }
+#       },
+#       {
+#         "inserts": {
+#           "op_count": 10000000,
+#           "key": {"uniform": {"len": $KEY_LEN}},
+#           "val": {"uniform": {"len": $VAL_LEN}}
+#         },
+#         "point_queries": {
+#           "op_count": 10000,
+#           "selection": {"uniform": {"min": 0, "max": 1}}
+#         }
+#       },
+#       {
+#         "inserts": {
+#           "op_count": 10000000,
+#           "key": {"uniform": {"len": $KEY_LEN}},
+#           "val": {"uniform": {"len": $VAL_LEN}}
+#         },
+#         "range_queries": {
+#           "op_count": 1000,
+#           "selection": {"uniform": {"min": 0, "max": 1}},
+#           "selectivity": 0.0000001,
+#           "range_format": "StartEnd"
+#         }
+#       }
+#     ]
+#   }]
+# }
+# with open("$BASE_DIR/workload.specs.json", "w") as f:
+#     json.dump(spec, f, indent=2)
+# print("Wrote workload.specs.json")
+# EOF
 
-pushd "$BASE_DIR" > /dev/null
-"$TECTONIC_CLI" generate -w workload.specs.json
-popd > /dev/null
+# pushd "$BASE_DIR" > /dev/null
+# "$TECTONIC_CLI" generate -w workload.specs.json
+# popd > /dev/null
 
 
 ########################################
