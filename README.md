@@ -14,7 +14,7 @@ cd LSMMemoryProfiling
 This repository now includes `setup.sh` and `scripts/rebuild.sh`.
 
 ### Install dependencies and build
-On macOS or Linux, run:
+First run:
 ```bash
 bash ./setup.sh
 ```
