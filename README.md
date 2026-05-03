@@ -5,35 +5,45 @@ This repository contains benchmarking for different write buffer implementations
 We also use a `KV-WorkloadGenerator` and `Tectonic` as a submodule for generating different type of workloads with different compositions (inserts, updates, point queries and range queries etc) and different distributions (uniform, Beta, etc).
 
 ## Pre-requisites
-The step 1 is to clone this respository in your local machine. You can do this by running the following command:
+The first step is to clone this repository to your local machine. Run:
 ```bash
 git clone https://github.com/SSD-Brandeis/LSMMemoryProfiling
+cd LSMMemoryProfiling
 ```
 
-You might also need `cmake` and `make`. Other than this you may need to install `libgflags-dev` for RocksDB. You can install this by running the following command:
+This repository now includes `setup.sh` and `scripts/rebuild.sh`.
+
+### Install dependencies and build
+On macOS or Linux, run:
 ```bash
-sudo apt-get install libgflags-dev
+bash ./setup.sh
 ```
 
-After installing the dependencies, you can run the following command to install all the submodules and build the project. Make sure you are in the root directory of the project:
+Then build the project and its submodules with:
 ```bash
-git submodule update --init --recursive
-mkdir build
-cd build
-cmake ..
-make -j66  # 66 is the number of cores, change if required
+bash ./scripts/rebuild.sh
 ```
 
-The above command will do the following:
-1. Install the `KV-WorkloadGenerator` submodule.
-2. Build the RocksDB source code.
-3. Build the `KV-WorkloadGenerator` source code.
-4. Build the `working_version` source code. (This you can find in `./MemoryProfiling/examples/__working_branch` directory)
+`./scripts/rebuild.sh` will:
+1. initialize and update git submodules, including `lib/Tectonic` and `lib/KV-WorkloadGenerator`
+2. build RocksDB and the `working_version` benchmark binary
+3. build the Tectonic CLI and copy it to `./bin/tectonic-cli`
+
+After the build completes, you should have:
+- `./bin/working_version`
+- `./bin/tectonic-cli`
 
 ## Running the benchmarks
 
-### Step 1: Generating the workload
-To run any benchmark, you have to first generate the workload. You can do this by going to the `KV-WorkloadGenerator` directory and running the following command:
+### Generating the workload
+To run any benchmark, you have to first generate the workload. You can do this by going to the `Tectonic` directory and running the following command: 
+```bash
+./tectonic-cli generate -w workload.spec.json -o workload_output_path
+```
+Generate takes in a path to a json workload specification file and an output file path as well. Without an output path, it will default to spec.txt. Generate will output a special text file that you can then feed into the execute command to execute the workload on a database. Use --help with the generate command to see additional flags that can be used with generate
+
+
+Alternatively, you can do this by going to the `KV-WorkloadGenerator` directory and running the following command:
 ```bash
 ./load_gen -I 100 -U 50 -Q 50 -S 100 -Y 0.1
 
@@ -47,12 +57,12 @@ To run any benchmark, you have to first generate the workload. You can do this b
 ```
 **Note**: The above command will generate a `workload.txt` file in the same directory.
 
-### Step 2: Running the benchmark
-After generating the workload, you may want to copy paste the `workload.txt` to the `./MemoryProfiling/examples/__working_branch` directory.
+### Running the benchmark
+After generating the workload, you may want to copy paste the `workload.txt` to the `./LSMMemoryProfiling/examples/__working_branch` directory.
 
 Great! Now you can run the benchmark by running the following command:
 ```bash
-cd MemoryProfiling/examples/__working_branch
+cd LSMMemoryProfiling/examples/__working_branch
 
 ./working_version 
 ```
@@ -61,9 +71,6 @@ The above command will run the benchmark with default parameters. You can also p
 ```bash
 ./working_version --memtable_factory=2
 ```
-
-### Step 3: Analyzing the results
-After running the benchmark, you can find the results in the `./MemoryProfiling/examples/__working_branch` directory. The execution will generate a workload.log file which contains the execution details including the time taken for each operation. You can also find the `db_working_home` directory which contains the RocksDB database files.
 
 
 
