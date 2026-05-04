@@ -1,4 +1,4 @@
-mkdir -p /home/cc/LSMMemoryProfiling/.filter_result_feb24_linklist_insert
+mkdir -p /home/cc/LSMMemoryProfiling/concurrency
 
 rsync -av \
   --prune-empty-dirs \
@@ -7,8 +7,8 @@ rsync -av \
   --exclude '.DS_Store' \
   --exclude 'Icon?' \
   --exclude 'stats.log' \
-  /home/cc/LSMMemoryProfiling/.results/ \
-  /home/cc/LSMMemoryProfiling/.filter_result_feb24_linklist_insert/
+  /home/cc/LSMMemoryProfiling/.vstats/ \
+  /home/cc/LSMMemoryProfiling/concurrency/
 
 
 

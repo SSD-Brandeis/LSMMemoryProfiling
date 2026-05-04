@@ -75,6 +75,9 @@ public:
   bool create_if_missing = true;
   bool clear_system_cache = true;
 
+  // number of client threads to run the workload
+  int num_threads = 4;
+
   // number of open files that can be used by the DB
   int max_open_files = -1;
   // number of threads used to open the files.
@@ -85,10 +88,10 @@ public:
 
   // If true, then the status of the threads involved in this DB will
   // be tracked and available via GetThreadList() API.
-  bool enable_thread_tracking = false;
+  bool enable_thread_tracking = true;
 
   // if true, allow multi-writers to update mem tables in parallel.
-  bool allow_concurrent_memtable_write = false;
+  bool allow_concurrent_memtable_write = true;
 
   // the memory size for stats snapshots, default is 1MB
   size_t stats_history_buffer_size = 1024 * 1024;
@@ -184,7 +187,7 @@ public:
   // maximum number of concurrent background jobs (compactions and flushes)
   // if it is 1, RocksDB still run 2 threads one for compaction and
   // another for flush
-  int max_background_jobs = 1;
+  int max_background_jobs = 8;
 
   // No pending compaction anytime, try and see
   int soft_pending_compaction_bytes_limit = 0;

@@ -72,6 +72,11 @@ int parse_arguments(int argc, char *argv[], std::unique_ptr<DBEnv> &env) {
   args::ValueFlag<int> show_progress_cmd(
       group1, "show_progress_bar", "Shows progress bar [def: 0]", {"progress"});
 
+  args::ValueFlag<int> num_threads_cmd(
+      group1, "threads",
+      "The number of client threads to run the workload [def: 1]",
+      {'t', "threads"});
+
   args::ValueFlag<long> num_inserts_cmd(
       group1, "inserts",
       "The number of unique inserts to issue in the experiment [def: 1]",
@@ -185,6 +190,9 @@ int parse_arguments(int argc, char *argv[], std::unique_ptr<DBEnv> &env) {
                           : env->IsRocksDBStatEnabled());
   env->SetShowProgress(show_progress_cmd ? args::get(show_progress_cmd)
                                          : env->IsShowProgressEnabled());
+  
+  env->num_threads = num_threads_cmd ? args::get(num_threads_cmd) 
+                                     : env->num_threads;
 
   // LSM options
   env->num_inserts =

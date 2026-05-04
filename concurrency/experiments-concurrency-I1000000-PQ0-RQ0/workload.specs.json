@@ -1,0 +1,25 @@
+{
+  "sections": [
+    {
+      "groups": [
+        {
+          "inserts": {
+            "op_count": 1000000.0,
+            "key": {
+              "uniform": {
+                "len": 8.0
+              }
+            },
+            "val": {
+              "uniform": {
+                "len": 24.0
+              }
+            }
+          }
+        },
+        {},
+        {}
+      ]
+    }
+  ]
+}
