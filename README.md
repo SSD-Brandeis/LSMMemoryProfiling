@@ -72,6 +72,8 @@ The above command will run the benchmark with default parameters. You can also p
 ./working_version --memtable_factory=2
 ```
 
+Some example scripts are located in: `scripts/buffer`. These scripts automate various experiments, such as varying buffer sizes, entry sizes, and other parameters. You can run them from the project root, for example: `bash scripts/buffer/vary-buffer-exp.sh`.
+
 
 
 ---
