@@ -35,7 +35,7 @@ RQ_SELECTIVITY=0.1
 # Common prefix lengths to sweep; PREFIX_LENGTH and BUCKET_COUNT are fixed.
 # common_prefix_len=0  → no prefix synthesis, total_order_seek=true (baseline)
 # common_prefix_len=6  → fully prefix-bounded (==PREFIX_LENGTH), total_order_seek=false
-COMMON_PREFIX_LENS=(0 1 2 3 4 5 6 7 8)
+COMMON_PREFIX_LENS=(7 8) # 0 1 2 3 4 5 6 
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 # This experiment uses run_workload_prefix which synthesises end_key with a
@@ -59,44 +59,44 @@ echo "SIZE_RATIO       : $SIZE_RATIO"
 echo -e "========================================\n"
 
 
-########################################
-# Generate workload once — two sequential groups:
-#   Group 1: all inserts
-#   Group 2: 1K RQs with selectivity 0.1 (draws start/end keys from inserted set)
-# The binary synthesises the end key at runtime based on common_prefix_len,
-# so a single workload.txt is shared across all CPL values.
-########################################
-python3 - <<EOF
-import json
-spec = {
-  "sections": [{
-    "groups": [
-      {
-        "inserts": {
-          "op_count": $INSERTS,
-          "key": {"uniform": {"len": $KEY_LEN}},
-          "val": {"uniform": {"len": $VAL_LEN}}
-        }
-      },
-      {
-        "range_queries": {
-          "op_count": $RQ_COUNT,
-          "selectivity": $RQ_SELECTIVITY,
-          "range_format": "StartEnd",
-          "selection": {"uniform": {"min": 0, "max": 1}}
-        }
-      }
-    ]
-  }]
-}
-with open("$BASE_DIR/workload.specs.json", "w") as f:
-    json.dump(spec, f, indent=2)
-print("Wrote workload.specs.json")
-EOF
+# ########################################
+# # Generate workload once — two sequential groups:
+# #   Group 1: all inserts
+# #   Group 2: 1K RQs with selectivity 0.1 (draws start/end keys from inserted set)
+# # The binary synthesises the end key at runtime based on common_prefix_len,
+# # so a single workload.txt is shared across all CPL values.
+# ########################################
+# python3 - <<EOF
+# import json
+# spec = {
+#   "sections": [{
+#     "groups": [
+#       {
+#         "inserts": {
+#           "op_count": $INSERTS,
+#           "key": {"uniform": {"len": $KEY_LEN}},
+#           "val": {"uniform": {"len": $VAL_LEN}}
+#         }
+#       },
+#       {
+#         "range_queries": {
+#           "op_count": $RQ_COUNT,
+#           "selectivity": $RQ_SELECTIVITY,
+#           "range_format": "StartEnd",
+#           "selection": {"uniform": {"min": 0, "max": 1}}
+#         }
+#       }
+#     ]
+#   }]
+# }
+# with open("$BASE_DIR/workload.specs.json", "w") as f:
+#     json.dump(spec, f, indent=2)
+# print("Wrote workload.specs.json")
+# EOF
 
-pushd "$BASE_DIR" > /dev/null
-"$TECTONIC_CLI" generate -w workload.specs.json
-popd > /dev/null
+# pushd "$BASE_DIR" > /dev/null
+# "$TECTONIC_CLI" generate -w workload.specs.json
+# popd > /dev/null
 
 
 ########################################

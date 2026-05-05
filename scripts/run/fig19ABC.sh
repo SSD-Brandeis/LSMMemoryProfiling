@@ -54,31 +54,27 @@ for PAGE_SIZE in "${PAGE_SIZES[@]}"; do
   for ENTRY_SIZE in "${ENTRY_SIZES[@]}"; do
     ENTRIES_PER_PAGE=$((PAGE_SIZE / ENTRY_SIZE))
 
-    # --- WORKLOAD GENERATION (Once per Entry Size) ---
-    # This creates the master workload in the root of .result
+    # Sweep 1: vary H at X=6 (I+Q+S together)
+    EXP_DIR="IPQRS_X6_varH-${SETTINGS}-I${INSERTS}-U${UPDATES}-Q${POINT_QUERIES}-S${RANGE_QUERIES}-Y${SELECTIVITY}-T${SIZE_RATIO}-P${PAGES_PER_FILE}-B${ENTRIES_PER_PAGE}-E${ENTRY_SIZE}"
+    mkdir -p "$EXP_DIR"; cd "$EXP_DIR"
+
     "${LOAD_GEN}" -I "${INSERTS}" -U 0 -Q "${POINT_QUERIES}" -S "${RANGE_QUERIES}" -Y "${SELECTIVITY}" -E "${ENTRY_SIZE}" -L "${LAMBDA}"
     if [[ "$SORT_WORKLOAD" -eq 1 ]]; then
       IFILE=$(mktemp); QFILE=$(mktemp); SFILE=$(mktemp)
       grep '^I ' workload.txt > "$IFILE" || true
       grep '^Q ' workload.txt > "$QFILE" || true
       grep '^S ' workload.txt > "$SFILE" || true
-      cat "$IFILE" "$QFILE" "$SFILE" > workload_sorted.txt
-      rm -f "$IFILE" "$QFILE" "$SFILE" workload.txt
-      mv workload_sorted.txt workload.txt
+      cat "$IFILE" "$QFILE" "$SFILE" > workload.txt
+      rm -f "$IFILE" "$QFILE" "$SFILE"
     fi
-    # workload.txt now persists in .result
-
-    # Sweep 1: vary H at X=6 (I+Q+S together)
-    EXP_DIR="IPQRS_X6_varH-${SETTINGS}-I${INSERTS}-U${UPDATES}-Q${POINT_QUERIES}-S${RANGE_QUERIES}-Y${SELECTIVITY}-T${SIZE_RATIO}-P${PAGES_PER_FILE}-B${ENTRIES_PER_PAGE}-E${ENTRY_SIZE}"
-    mkdir -p "$EXP_DIR"; cd "$EXP_DIR"
 
     for H in 100 1000 10000 100000 250000 500000 1000000 2000000 4000000; do
       for impl in "${!BUFFER_IMPLEMENTATIONS[@]}"; do
         NAME="${BUFFER_IMPLEMENTATIONS[$impl]}"
         mkdir -p "${NAME}-X6-H${H}"; cd "${NAME}-X6-H${H}"
-        cp ../../workload.txt ./workload.txt
+        cp ../workload.txt ./workload.txt
         for run in 1; do
-          echo "Run ${NAME} #${run} Sweep 1: X=6 H=${H}"
+          echo "Run ${NAME} #${run} I+Q+S X=6 H=${H}"
           if [[ "$NAME" == "hash_linked_list" || "$NAME" == "hash_skip_list" || "$NAME" == "hash_vector" ]]; then
             if [[ "$NAME" == "hash_linked_list" ]]; then
               "${WORKING_VERSION}" --memtable_factory="${impl}" \
@@ -108,19 +104,30 @@ for PAGE_SIZE in "${PAGE_SIZES[@]}"; do
         cd ..
       done
     done
+    # rm -f workload.txt
     cd ..
 
     # Sweep 2: PQ focus, X=6 vary H (still I+Q+S)
     EXP_DIR="insertPQRS_X6_varH_PQ-${SETTINGS}-I${INSERTS}-U${UPDATES}-Q${POINT_QUERIES}-S${RANGE_QUERIES}-Y${SELECTIVITY}-T${SIZE_RATIO}-P${PAGES_PER_FILE}-B${ENTRIES_PER_PAGE}-E${ENTRY_SIZE}"
     mkdir -p "$EXP_DIR"; cd "$EXP_DIR"
 
+    "${LOAD_GEN}" -I "${INSERTS}" -U 0 -Q "${POINT_QUERIES}" -S "${RANGE_QUERIES}" -Y "${SELECTIVITY}" -E "${ENTRY_SIZE}" -L "${LAMBDA}"
+    if [[ "$SORT_WORKLOAD" -eq 1 ]]; then
+      IFILE=$(mktemp); QFILE=$(mktemp); SFILE=$(mktemp)
+      grep '^I ' workload.txt > "$IFILE" || true
+      grep '^Q ' workload.txt > "$QFILE" || true
+      grep '^S ' workload.txt > "$SFILE" || true
+      cat "$IFILE" "$QFILE" "$SFILE" > workload.txt
+      rm -f "$IFILE" "$QFILE" "$SFILE"
+    fi
+
     for H in 100 1000 10000 100000 250000 500000 1000000 2000000 4000000; do
       for impl in "${!BUFFER_IMPLEMENTATIONS[@]}"; do
         NAME="${BUFFER_IMPLEMENTATIONS[$impl]}"
         mkdir -p "${NAME}-X6-H${H}"; cd "${NAME}-X6-H${H}"
-        cp ../../workload.txt ./workload.txt
+        cp ../workload.txt ./workload.txt
         for run in 1; do
-          echo "Run ${NAME} #${run} Sweep 2: X=6 H=${H}"
+          echo "Run ${NAME} #${run} I+Q+S X=6 H=${H}"
           if [[ "$NAME" == "hash_linked_list" || "$NAME" == "hash_skip_list" || "$NAME" == "hash_vector" ]]; then
             if [[ "$NAME" == "hash_linked_list" ]]; then
               "${WORKING_VERSION}" --memtable_factory="${impl}" \
@@ -150,19 +157,30 @@ for PAGE_SIZE in "${PAGE_SIZES[@]}"; do
         cd ..
       done
     done
+    # rm -f workload.txt
     cd ..
 
     # Sweep 3: PQ focus, H=100k vary X=1..6 (still I+Q+S)
     EXP_DIR="insertPQRS_H100k_varX-${SETTINGS}-I${INSERTS}-U${UPDATES}-Q${POINT_QUERIES}-S${RANGE_QUERIES}-Y${SELECTIVITY}-T${SIZE_RATIO}-P${PAGES_PER_FILE}-B${ENTRIES_PER_PAGE}-E${ENTRY_SIZE}"
     mkdir -p "$EXP_DIR"; cd "$EXP_DIR"
 
+    "${LOAD_GEN}" -I "${INSERTS}" -U 0 -Q "${POINT_QUERIES}" -S "${RANGE_QUERIES}" -Y "${SELECTIVITY}" -E "${ENTRY_SIZE}" -L "${LAMBDA}"
+    if [[ "$SORT_WORKLOAD" -eq 1 ]]; then
+      IFILE=$(mktemp); QFILE=$(mktemp); SFILE=$(mktemp)
+      grep '^I ' workload.txt > "$IFILE" || true
+      grep '^Q ' workload.txt > "$QFILE" || true
+      grep '^S ' workload.txt > "$SFILE" || true
+      cat "$IFILE" "$QFILE" "$SFILE" > workload.txt
+      rm -f "$IFILE" "$QFILE" "$SFILE"
+    fi
+
     for X in 1 2 3 4 5 6; do
       for impl in "${!BUFFER_IMPLEMENTATIONS[@]}"; do
         NAME="${BUFFER_IMPLEMENTATIONS[$impl]}"
         mkdir -p "${NAME}-X${X}-H100000"; cd "${NAME}-X${X}-H100000"
-        cp ../../workload.txt ./workload.txt
+        cp ../workload.txt ./workload.txt
         for run in 1; do
-          echo "Run ${NAME} #${run} Sweep 3: X=${X} H=100000"
+          echo "Run ${NAME} #${run} I+Q+S X=${X} H=100000"
           if [[ "$NAME" == "hash_linked_list" || "$NAME" == "hash_skip_list" || "$NAME" == "hash_vector" ]]; then
             if [[ "$NAME" == "hash_linked_list" ]]; then
               "${WORKING_VERSION}" --memtable_factory="${impl}" \
@@ -192,9 +210,10 @@ for PAGE_SIZE in "${PAGE_SIZES[@]}"; do
         cd ..
       done
     done
+    # rm -f workload.txt
     cd ..
   done
 done
 
 echo
-echo "Finished experiments. Master workload preserved in ${RESULTS_DIR}/workload.txt"
+echo "Finished experiments"

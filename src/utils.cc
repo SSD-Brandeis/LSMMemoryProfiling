@@ -135,6 +135,7 @@ void LogTreeState(rocksdb::DB *db, std::shared_ptr<Buffer> &buffer,
     cfd_details << "Level: " << level.level << ", Files: " << level.files.size()
                 << ", Size: " << level.size << " bytes" << std::endl;
   }
+
   (*buffer) << cfd_details.str() << std::endl;
 }
 

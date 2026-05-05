@@ -5,30 +5,27 @@ set -e
 bash ./scripts/rebuild.sh
 
 
-TAG=vary-entrysize-exp
-LAMBDA=0.25
+TAG=vary-entrysize-exp-32-64
+LAMBDA=0.5
 PAGE_SIZE=4096
-PAGES_PER_FILE=256      # fixed 1MB buffer
+BUFFER_SIZE_MB=128
+PAGES_PER_FILE=$(( BUFFER_SIZE_MB * 1024 * 1024 / PAGE_SIZE ))   # 32768 pages = 128MB
 SIZE_RATIO=6
 LOW_PRI=0
 ROCKSDB_STATS=1
 SHOW_PROGRESS=1
 
-# Entry sizes to sweep (bytes)
-ENTRY_SIZES=(8 16 32 64 128 256 512 1024 2048)
+# Each entry size gets exactly this many flushes worth of inserts:
+#   INSERTS = (buffer_size_bytes / ENTRY_SIZE) * NUM_FLUSHES
+NUM_FLUSHES=10
 
-# op_count per entry size — scale down for larger entries to keep total data manageable
-# TODO: adjust these values to match your desired total data size
-declare -A OP_COUNTS
-OP_COUNTS[8]=10000000
-OP_COUNTS[16]=10000000
-OP_COUNTS[32]=10000000
-OP_COUNTS[64]=10000000
-OP_COUNTS[128]=10000000
-OP_COUNTS[256]=5000000
-OP_COUNTS[512]=5000000
-OP_COUNTS[1024]=5000000
-OP_COUNTS[2048]=2500000
+# Entry sizes to sweep (bytes)
+ENTRY_SIZES=(32 64) # 128 256 512 1024 2048) # 8 16 
+
+# Pre-computed op counts (128MB / ENTRY_SIZE * NUM_FLUSHES):
+#   8B→167772160  16B→83886080  32B→41943040   64B→20971520
+#  128B→10485760 256B→ 5242880 512B→ 2621440 1024B→ 1310720
+# 2048B→  655360
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 BIN="$REPO_ROOT/bin/working_version"
@@ -49,7 +46,7 @@ echo -e "========================================\n"
 
 
 for ENTRY_SIZE in "${ENTRY_SIZES[@]}"; do
-    INSERTS=${OP_COUNTS[$ENTRY_SIZE]}
+    INSERTS=$(( BUFFER_SIZE_MB * 1024 * 1024 * NUM_FLUSHES / ENTRY_SIZE ))
     ENTRIES_PER_PAGE=$((PAGE_SIZE / ENTRY_SIZE))
     THRESHOLD_TO_CONVERT_TO_SKIPLIST=$((PAGE_SIZE * PAGES_PER_FILE / ENTRY_SIZE))
 
@@ -63,8 +60,8 @@ for ENTRY_SIZE in "${ENTRY_SIZES[@]}"; do
         "$ENTRY_DIR/sortedvector-preallocated" \
         "$ENTRY_DIR/hashskiplist-H100000-X6" \
         "$ENTRY_DIR/hashvector-H100000-X6" \
-        "$ENTRY_DIR/hashlinkedlist-H100000-X6" \
-        "$ENTRY_DIR/linkedlist"
+        "$ENTRY_DIR/hashlinkedlist-H100000-X6"
+        # "$ENTRY_DIR/linkedlist"
 
     echo "========================================"
     echo "Entry size: ${ENTRY_SIZE}B   inserts: $INSERTS   entries/page: $ENTRIES_PER_PAGE"
@@ -160,19 +157,19 @@ for ENTRY_SIZE in "${ENTRY_SIZES[@]}"; do
     echo -e "\n"
     sleep 5
 
-    ########################################
-    echo "  [${ENTRY_SIZE}B] Running linkedlist..."
-    cd "$ENTRY_DIR/linkedlist"
-    cp ../workload.txt .
-    "$BIN" \
-        --memtable_factory=7 \
-        -E "$ENTRY_SIZE" -B "$ENTRIES_PER_PAGE" -P "$PAGES_PER_FILE" -T "$SIZE_RATIO" \
-        --lowpri "$LOW_PRI" --stat "$ROCKSDB_STATS" --progress "$SHOW_PROGRESS" > rocksdb_stats.log
-    mv db/LOG LOG
-    rm -rf db workload.txt
-    cd "$REPO_ROOT"
-    echo -e "\n"
-    sleep 5
+    # ########################################
+    # echo "  [${ENTRY_SIZE}B] Running linkedlist..."
+    # cd "$ENTRY_DIR/linkedlist"
+    # cp ../workload.txt .
+    # "$BIN" \
+    #     --memtable_factory=7 \
+    #     -E "$ENTRY_SIZE" -B "$ENTRIES_PER_PAGE" -P "$PAGES_PER_FILE" -T "$SIZE_RATIO" \
+    #     --lowpri "$LOW_PRI" --stat "$ROCKSDB_STATS" --progress "$SHOW_PROGRESS" > rocksdb_stats.log
+    # mv db/LOG LOG
+    # rm -rf db workload.txt
+    # cd "$REPO_ROOT"
+    # echo -e "\n"
+    # sleep 5
 
     ########################################
     echo "  [${ENTRY_SIZE}B] Running hashskiplist-H100000-X6..."

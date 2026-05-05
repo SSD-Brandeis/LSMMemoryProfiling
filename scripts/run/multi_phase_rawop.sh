@@ -4,7 +4,7 @@ set -e
 
 # ==============================================================================
 # TAG="lsmbuffer-concurrent-write-off-WAL-0-compression-disabled-feb24_unsortedvectest"
-TAG="multiphase_ondisk_setup1_t2"
+TAG="multiphase"
 RUN_PREALLOCATED=1
 
 declare -A BUFFER_IMPLEMENTATIONS=(
@@ -17,30 +17,28 @@ declare -A BUFFER_IMPLEMENTATIONS=(
   [7]="linkedlist"
   [8]="simple_skiplist"
   [9]="hash_vector"
-
+  # [10]="inplaceupdatesortedvector"
 )
 
-ENTRY_SIZE=32
-LAMBDA=0.25
-INSERTS=100000000
+ENTRY_SIZE=128
+LAMBDA=0.0625
+INSERTS=740000
 UPDATES=0
-POINT_QUERIES=0
+POINT_QUERIES=50000
 POINT_DELETES=0
-RANGE_QUERIES=0
-SELECTIVITY=0
+RANGE_QUERIES=1000
+SELECTIVITY=0.1
 RANGE_DELETES=0
 RANGE_DELETES_SEL=0
 
-SIZE_RATIO=2
+SIZE_RATIO=10
 PAGE_SIZE=4096
 ENTRIES_PER_PAGE=$((PAGE_SIZE / ENTRY_SIZE))
 #512mb
 # PAGES_PER_FILE=131072
 #128MB
-# PAGES_PER_FILE=32768 
-#32MB
-PAGES_PER_FILE=8192
-LOW_PRI=1
+PAGES_PER_FILE=32768 
+LOW_PRI=0
 
 THRESHOLD_TO_CONVERT_TO_SKIPLIST=${INSERTS}
 
@@ -52,7 +50,7 @@ LOAD_GEN="${PROJECT_ROOT}/bin/load_gen"
 WORKING_VERSION="${PROJECT_ROOT}/bin/working_version"
 
 WORKLOAD_TXT="workload.txt"
-BASE_EXP_DIR=".results/-${TAG}-I-${INSERTS}-U-${UPDATES}-PQ-${POINT_QUERIES}-RQ-${RANGE_QUERIES}-S-${SELECTIVITY}-Low_Pri${LOW_PRI}-Size_Ratio${SIZE_RATIO}"
+BASE_EXP_DIR=".results/sanitycheck-${TAG}-I-${INSERTS}-U-${UPDATES}-PQ-${POINT_QUERIES}-RQ-${RANGE_QUERIES}-S-${SELECTIVITY}-Low_Pri${LOW_PRI}"
 
 
 bash ./scripts/rebuild.sh

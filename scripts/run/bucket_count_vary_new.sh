@@ -3,20 +3,17 @@ set -e
 
 # Rebuild before starting
 bash ./scripts/rebuild.sh
+
 RESULTS_DIR=".result"
-# --- Configuration & Paths ---
-# Navigate to the project root relative to this script's location
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_DIR="$(cd "${SCRIPT_DIR}/../../" && pwd)"
 
 # --- Parameters ---
-INSERTS=2800000 
+INSERTS=800000 
 UPDATES=0
 RANGE_QUERIES=0
 SELECTIVITY=0
-POINT_QUERIES=100
+POINT_QUERIES=0
 
-TAG="fig18_partc_single-I${INSERTS}_vectors_makeup"
+TAG="fig18_partc_single-I${INSERTS}"
 SETTINGS="lowpri_false"
 LOW_PRI=0
 
@@ -26,18 +23,16 @@ ENTRY_SIZES=(128)
 LAMBDA=0.0625
 PAGE_SIZES=(4096)
 
-# BUCKET_COUNTS=(1000 200000 400000 600000 800000 1000000)
-# BUCKET_COUNTS=(1000 200000)
-# BUCKET_COUNTS=(1 400000 1000000)
+BUCKET_COUNTS=(1 200000 400000 600000 800000 1000000)
 PREFIX_LENGTH=6
 THRESHOLD_TO_CONVERT_TO_SKIPLIST=${INSERTS}
 
 declare -A BUFFER_IMPLEMENTATIONS=(
   [1]="skiplist"
   [2]="Vector"
-  # [3]="hash_skip_list"
-  # [4]="hash_linked_list"
-  # [9]="hash_vector"
+  [3]="hash_skip_list"
+  [4]="hash_linked_list"
+  [9]="hash_vector"
 )
 
 # --- FIXED PATH LOGIC ---

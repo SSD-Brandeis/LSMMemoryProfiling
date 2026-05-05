@@ -6,27 +6,6 @@
 
 #include "buffer.h"
 
-// namespace Default {
-
-// const unsigned int ENTRY_SIZE = 64;
-// const unsigned int ENTRIES_PER_PAGE = 64;
-// const unsigned int BUFFER_SIZE_IN_PAGES = 128;
-
-// const double SIZE_RATIO = 4;
-// const unsigned int FILE_TO_MEMTABLE_SIZE_RATIO = 1;
-
-// // The default and the minimum number is 2
-// const int MAX_WRITE_BUFFER_NUMBER = 2;
-// const int LEVEL0_FILE_NUM_COMPACTION_TRIGGER = SIZE_RATIO;
-
-// // kMaxMultiTrivialMove, default is 4 for RocksDB
-// const size_t MAX_MULTI_TRIVIAL_MOVE = 4;
-
-// const int MAX_OPEN_FILES = 1000;
-// const int MAX_FILE_OPENING_THREADS = 80;
-
-// } // namespace Default
-
 /**
  * RocksDB is an emulator environment that let the user set bunch
  * of options (default or custom) to update the RocksDB knobs
@@ -97,11 +76,9 @@ public:
   bool clear_system_cache = true;
 
   // number of open files that can be used by the DB
-  // int max_open_files = Default::MAX_OPEN_FILES;
-   int max_open_files = -1;
+  int max_open_files = -1;
   // number of threads used to open the files.
-  // int max_file_opening_threads = Default::MAX_FILE_OPENING_THREADS;
-   int max_file_opening_threads = 16;
+  int max_file_opening_threads = 16;
   // Allows OS to incrementally sync files to disk while they are being
   // written, asynchronously, in the background. 0, turned off
   int bytes_per_sync = 0;
@@ -134,31 +111,20 @@ public:
 #pragma endregion
 
   // entry size including key and value size in bytes
-  // unsigned int entry_size = Default::ENTRY_SIZE; // [E]
-    unsigned int entry_size = 1; // [E]
-
+  unsigned int entry_size = 1; // [E]
   // number of entries one page/block stores
-  // unsigned int entries_per_page = Default::ENTRIES_PER_PAGE; // [B]
-    unsigned int entries_per_page = 1; // [B]
-
+  unsigned int entries_per_page = 1; // [B]
   // number of pages in one buffer
-  // unsigned int buffer_size_in_pages = Default::BUFFER_SIZE_IN_PAGES; // [P]
-    unsigned int buffer_size_in_pages = 1; // [P]
+  unsigned int buffer_size_in_pages = 1; // [P]
 
-
-  // double size_ratio = Default::SIZE_RATIO; // [T]
-    double size_ratio = 10; // [T]
-
-  // unsigned int file_to_memtable_size_ratio = Default::FILE_TO_MEMTABLE_SIZE_RATIO; // [f]
-    unsigned int file_to_memtable_size_ratio = 1; // [f]
+  double size_ratio = 10; // [T]
+  unsigned int file_to_memtable_size_ratio = 1; // [f]
 
   // The maximum number of write buffers that are built up in memory.
   // The default and the minimum number is 2, so that when 1 write buffer
   // is being flushed to storage, new writes can continue to the other
   // write buffer.
-  // int max_write_buffer_number = Default::MAX_WRITE_BUFFER_NUMBER;
-    int max_write_buffer_number = 2;
-
+  int max_write_buffer_number = 2;
 
   // bloom filter bits per key
   double bits_per_key = 10; // [b]
@@ -175,15 +141,16 @@ public:
 
   /**
    * Memtable Factory
-   * 1 for skiplist
-   * 2 for vector
-   * 3 for hash skip list
-   * 4 for hash linked list
-   * 5 for unsorted vector
-   * 6 for sorted vector
-   * 7 for linked list
-   * 8 for simple skip list
-   * 9 for hash vector
+   * 1  for skiplist
+   * 2  for vector
+   * 3  for hash skip list
+   * 4  for hash linked list
+   * 5  for unsorted vector
+   * 6  for sorted vector
+   * 7  for linked list
+   * 8  for simple skip list
+   * 9  for hash vector
+   * 10 for dynamic (cost-model-driven buffer)
    */
   uint16_t memtable_factory = 1; // [m]
 
@@ -205,8 +172,7 @@ public:
   // number of files to trigger level-0 compaction. A value < 0 means that
   // level-0 compaction will not be triggered by number of files at all.
   // only applicable if compaction_style != kCompactionStyleUniversal
-  // int level0_file_num_compaction_trigger = Default::LEVEL0_FILE_NUM_COMPACTION_TRIGGER;
-    int level0_file_num_compaction_trigger = 4;
+  int level0_file_num_compaction_trigger = 4;
 
   // number of levels for this database
   int num_levels = 10;
@@ -383,10 +349,10 @@ public:
 
   // Soft limit on number of level-0 files.
   // We start slowing down writes at this point.
-  int level0_slowdown_writes_trigger = 20; // [CHANGED]
+  int level0_slowdown_writes_trigger = 20; // [CHANDED]
 
   // maximum number of level-0 files. RocksDB stop writes at this point
-  int level0_stop_writes_trigger = 36; // [CHANGED]
+  int level0_stop_writes_trigger = 36; // [CHANDED]
 
   // After writing every SST file, reopen it and read all the keys.
   // Checks the hash of all of the keys and values written versus the
@@ -432,6 +398,11 @@ public:
   // implementation fallback to skiplist
   uint32_t prefix_length = 0;
   size_t bucket_count = 50000;
+
+  // Number of leading bytes shared between the start key and the synthesised
+  // end key for range queries.  When common_prefix_len == prefix_length the
+  // hash index can resolve the scan without a full-order seek.
+  uint32_t common_prefix_len = 0;
 
   // refer memtable.h (NewHashSkipListRepFactory)
   // Below option are picked from function default arguments

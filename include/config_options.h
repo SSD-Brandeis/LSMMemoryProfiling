@@ -1,6 +1,7 @@
 #include <iostream>
 #include <rocksdb/filter_policy.h>
 #include <rocksdb/iostats_context.h>
+#include <rocksdb/merge_operator.h>
 #include <rocksdb/options.h>
 #include <rocksdb/perf_context.h>
 #include <rocksdb/slice_transform.h>
@@ -10,10 +11,27 @@
 #include "db_env.h"
 #include "event_listners.h"
 #include "fluid_lsm.h"
+#include "workload_monitor.h"
 
-namespace ROCKSDB_NAMESPACE {
-extern MemTableRepFactory *NewSimpleSkipListRepFactory();
-}
+class StringAppendOperator : public rocksdb::AssociativeMergeOperator {
+public:
+  bool Merge(const rocksdb::Slice &key, const rocksdb::Slice *existing_value,
+             const rocksdb::Slice &value, std::string *new_value,
+             rocksdb::Logger *logger) const override {
+
+    if (existing_value) {
+      // Append new value to existing value
+      *new_value = existing_value->ToString() + value.ToString();
+    } else {
+      // No existing value, just use new value
+      *new_value = value.ToString();
+    }
+    return true;
+  }
+
+  const char *Name() const override { return "StringAppendOperator"; }
+};
+
 
 void configOptions(std::unique_ptr<DBEnv> &env, Options *options,
                    BlockBasedTableOptions *table_options,
@@ -36,6 +54,7 @@ void configOptions(std::unique_ptr<DBEnv> &env, Options *options,
       env->delete_obsolete_files_period_micros;
   options->allow_mmap_reads = env->allow_mmap_reads;
   options->allow_mmap_writes = env->allow_mmap_writes;
+  options->merge_operator.reset(new StringAppendOperator());
   options->info_log_level = InfoLogLevel::INFO_LEVEL;
 #pragma endregion
 
@@ -106,24 +125,39 @@ void configOptions(std::unique_ptr<DBEnv> &env, Options *options,
     options->memtable_factory.reset(
         new SortedVectorRepFactory(env->vector_preallocation_size_in_bytes));
     break;
+  //         // add linklist buffer
   case 7:
     options->memtable_factory.reset(new LinkListRepFactory());
     break;
   // Add SimpleSkipList
   case 8:
-    options->memtable_factory.reset(
-        ROCKSDB_NAMESPACE::NewSimpleSkipListRepFactory());
+    options->memtable_factory.reset(new SimpleSkipListFactory());
     break;
   case 9:
     options->memtable_factory.reset(NewHashVectorRepFactory(env->bucket_count));
     options->prefix_extractor.reset(
         NewFixedPrefixTransform(env->prefix_length));
     break;
-    // case 10:
-    //     options->memtable_factory.reset(
-    //         new InPlaceUpdateSortedVectorRepFactory(
-    //             env->vector_preallocation_size_in_bytes));
-    //     break;
+  case 10: {
+    DynamicMemtableConfig cfg;
+    cfg.vector_prealloc        = env->vector_preallocation_size_in_bytes;
+    cfg.bucket_count           = env->bucket_count;
+    cfg.skiplist_height        = env->skiplist_height;
+    cfg.skiplist_branch        = env->skiplist_branching_factor;
+    cfg.huge_page_tlb_size     = env->linklist_huge_page_tlb_size;
+    cfg.linklist_log_threshold = env->linklist_bucket_entries_logging_threshold;
+    cfg.linklist_log_dist      = env->linklist_if_log_bucket_dist_when_flash;
+    cfg.linklist_use_skiplist  = env->linklist_threshold_use_skiplist;
+    options->memtable_factory.reset(
+        NewDynamicMemTableFactory(&GlobalWorkloadMonitor(), cfg));
+    // Install a prefix extractor only when one is explicitly requested;
+    // the factory will fall back to non-hash types when transform is null.
+    if (env->prefix_length > 0) {
+      options->prefix_extractor.reset(
+          NewFixedPrefixTransform(env->prefix_length));
+    }
+    break;
+  }
   default:
     std::cerr << "Error[" << __FILE__ << " : " << __LINE__
               << "]: Invalid memtable factory!" << std::endl;

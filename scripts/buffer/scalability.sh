@@ -5,13 +5,13 @@ set -e
 bash ./scripts/rebuild.sh
 
 
-TAG=lowpri-wal-exp
+TAG=scalability-exp
 ENTRY_SIZE=32
 LAMBDA=0.25            # key = 8B, val = 24B
 PAGE_SIZE=4096
-BUFFER_SIZE_MB=1       # 1MB buffer → 256 pages (matches diskbased-exp)
-PAGES_PER_FILE=$(( BUFFER_SIZE_MB * 1024 * 1024 / PAGE_SIZE ))   # 256 pages
+BUFFER_SIZE_MB=1       # fixed buffer size
 SIZE_RATIO=6
+LOW_PRI=0
 ROCKSDB_STATS=1
 SHOW_PROGRESS=1
 
@@ -22,11 +22,12 @@ KEY_LEN=$(python3 -c "print(int($ENTRY_SIZE * $LAMBDA))")         # 8
 VAL_LEN=$(python3 -c "print(int($ENTRY_SIZE * (1 - $LAMBDA)))")   # 24
 
 ENTRIES_PER_PAGE=$(( PAGE_SIZE / ENTRY_SIZE ))
+PAGES_PER_FILE=$(( BUFFER_SIZE_MB * 1024 * 1024 / PAGE_SIZE ))
 THRESHOLD_TO_CONVERT_TO_SKIPLIST=$(( PAGE_SIZE * PAGES_PER_FILE / ENTRY_SIZE ))
 
-# low_pri x WAL knob sweep: (LP=0,WAL=0) (LP=0,WAL=1) (LP=1,WAL=0) (LP=1,WAL=1)
-LOW_PRI_VALUES=(0 1)
-WAL_VALUES=(0 1)
+# Scale factors: label, numerator, denominator (scale = num/den)
+# Scales: 1/4, 1/2, 1, 2, 4, 8  relative to base workload (100M inserts, 10K PQs, 1K RQs)
+SCALE_ENTRIES=("4x:4:1" ) # "1x:1:1" "2x:2:1" "4x:4:1" "8x:8:1")
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 BIN="$REPO_ROOT/bin/working_version"
@@ -39,76 +40,20 @@ echo -e "\n========================================"
 echo "TAG              : $TAG"
 echo "ENTRY_SIZE       : $ENTRY_SIZE B  (key=${KEY_LEN}B  val=${VAL_LEN}B)"
 echo "BUFFER           : ${BUFFER_SIZE_MB}MB  (PAGES_PER_FILE=$PAGES_PER_FILE)"
+echo "LOW_PRI          : $LOW_PRI  (fixed)"
 echo "BUCKET_COUNT     : $BUCKET_COUNT   PREFIX_LENGTH: $PREFIX_LENGTH"
-echo "KNOB SWEEP       : low_pri x WAL → 00 01 10 11"
+echo "SCALE_FACTORS    : 4x"
 echo "SIZE_RATIO       : $SIZE_RATIO"
 echo -e "========================================\n"
 
 
 ########################################
-# Generate workload once — three sequential groups:
-#   Group 1: 80M inserts (bulk load)
-#   Group 2: 10M inserts + 10K non-empty PQs (interleaved)
-#   Group 3: 10M inserts + 1K RQs selectivity=0.0000001 (interleaved)
-########################################
-python3 - <<EOF
-import json
-spec = {
-  "sections": [{
-    "groups": [
-      {
-        "inserts": {
-          "op_count": 80000000,
-          "key": {"uniform": {"len": $KEY_LEN}},
-          "val": {"uniform": {"len": $VAL_LEN}}
-        }
-      },
-      {
-        "inserts": {
-          "op_count": 10000000,
-          "key": {"uniform": {"len": $KEY_LEN}},
-          "val": {"uniform": {"len": $VAL_LEN}}
-        },
-        "point_queries": {
-          "op_count": 10000,
-          "selection": {"uniform": {"min": 0, "max": 1}}
-        }
-      },
-      {
-        "inserts": {
-          "op_count": 10000000,
-          "key": {"uniform": {"len": $KEY_LEN}},
-          "val": {"uniform": {"len": $VAL_LEN}}
-        },
-        "range_queries": {
-          "op_count": 1000,
-          "selection": {"uniform": {"min": 0, "max": 1}},
-          "selectivity": 0.0000001,
-          "range_format": "StartEnd"
-        }
-      }
-    ]
-  }]
-}
-with open("$BASE_DIR/workload.specs.json", "w") as f:
-    json.dump(spec, f, indent=2)
-print("Wrote workload.specs.json")
-EOF
-
-pushd "$BASE_DIR" > /dev/null
-"$TECTONIC_CLI" generate -w workload.specs.json
-popd > /dev/null
-
-
-########################################
 # Helper: run all memtables for a given output dir
-# Usage: run_all_memtables <workload_src> <outdir> <low_pri> <wal>
+# Usage: run_all_memtables <workload_src> <outdir>
 ########################################
 run_all_memtables() {
     local WORKLOAD_SRC="$1"
     local OUTDIR="$2"
-    local LP="$3"
-    local WAL="$4"
 
     mkdir -p \
         "$OUTDIR/skiplist" \
@@ -127,7 +72,7 @@ run_all_memtables() {
     "$BIN" \
         --memtable_factory=1 \
         -E "$ENTRY_SIZE" -B "$ENTRIES_PER_PAGE" -P "$PAGES_PER_FILE" -T "$SIZE_RATIO" \
-        --lowpri "$LP" --wal "$WAL" --stat "$ROCKSDB_STATS" --progress "$SHOW_PROGRESS" > rocksdb_stats.log
+        --lowpri "$LOW_PRI" --stat "$ROCKSDB_STATS" --progress "$SHOW_PROGRESS" > rocksdb_stats.log
     mv db/LOG LOG ; rm -rf db workload.txt ; cd "$REPO_ROOT" ; sleep 5
 
     ########################################
@@ -137,7 +82,7 @@ run_all_memtables() {
     "$BIN" \
         --memtable_factory=8 \
         -E "$ENTRY_SIZE" -B "$ENTRIES_PER_PAGE" -P "$PAGES_PER_FILE" -T "$SIZE_RATIO" \
-        --lowpri "$LP" --wal "$WAL" --stat "$ROCKSDB_STATS" --progress "$SHOW_PROGRESS" > rocksdb_stats.log
+        --lowpri "$LOW_PRI" --stat "$ROCKSDB_STATS" --progress "$SHOW_PROGRESS" > rocksdb_stats.log
     mv db/LOG LOG ; rm -rf db workload.txt ; cd "$REPO_ROOT" ; sleep 5
 
     ########################################
@@ -147,7 +92,7 @@ run_all_memtables() {
     "$BIN" \
         --memtable_factory=2 \
         -E "$ENTRY_SIZE" -B "$ENTRIES_PER_PAGE" -P "$PAGES_PER_FILE" -T "$SIZE_RATIO" \
-        --lowpri "$LP" --wal "$WAL" --stat "$ROCKSDB_STATS" --progress "$SHOW_PROGRESS" > rocksdb_stats.log
+        --lowpri "$LOW_PRI" --stat "$ROCKSDB_STATS" --progress "$SHOW_PROGRESS" > rocksdb_stats.log
     mv db/LOG LOG ; rm -rf db workload.txt ; cd "$REPO_ROOT" ; sleep 5
 
     ########################################
@@ -157,7 +102,7 @@ run_all_memtables() {
     "$BIN" \
         --memtable_factory=5 \
         -E "$ENTRY_SIZE" -B "$ENTRIES_PER_PAGE" -P "$PAGES_PER_FILE" -T "$SIZE_RATIO" \
-        --lowpri "$LP" --wal "$WAL" --stat "$ROCKSDB_STATS" --progress "$SHOW_PROGRESS" > rocksdb_stats.log
+        --lowpri "$LOW_PRI" --stat "$ROCKSDB_STATS" --progress "$SHOW_PROGRESS" > rocksdb_stats.log
     mv db/LOG LOG ; rm -rf db workload.txt ; cd "$REPO_ROOT" ; sleep 5
 
     ########################################
@@ -167,7 +112,7 @@ run_all_memtables() {
     "$BIN" \
         --memtable_factory=6 \
         -E "$ENTRY_SIZE" -B "$ENTRIES_PER_PAGE" -P "$PAGES_PER_FILE" -T "$SIZE_RATIO" \
-        --lowpri "$LP" --wal "$WAL" --stat "$ROCKSDB_STATS" --progress "$SHOW_PROGRESS" > rocksdb_stats.log
+        --lowpri "$LOW_PRI" --stat "$ROCKSDB_STATS" --progress "$SHOW_PROGRESS" > rocksdb_stats.log
     mv db/LOG LOG ; rm -rf db workload.txt ; cd "$REPO_ROOT" ; sleep 5
 
     ########################################
@@ -178,7 +123,7 @@ run_all_memtables() {
         --memtable_factory=3 \
         --bucket_count="$BUCKET_COUNT" --prefix_length="$PREFIX_LENGTH" \
         -E "$ENTRY_SIZE" -B "$ENTRIES_PER_PAGE" -P "$PAGES_PER_FILE" -T "$SIZE_RATIO" \
-        --lowpri "$LP" --wal "$WAL" --stat "$ROCKSDB_STATS" --progress "$SHOW_PROGRESS" > rocksdb_stats.log
+        --lowpri "$LOW_PRI" --stat "$ROCKSDB_STATS" --progress "$SHOW_PROGRESS" > rocksdb_stats.log
     mv db/LOG LOG ; rm -rf db workload.txt ; cd "$REPO_ROOT" ; sleep 5
 
     ########################################
@@ -189,7 +134,7 @@ run_all_memtables() {
         --memtable_factory=9 \
         --bucket_count="$BUCKET_COUNT" --prefix_length="$PREFIX_LENGTH" \
         -E "$ENTRY_SIZE" -B "$ENTRIES_PER_PAGE" -P "$PAGES_PER_FILE" -T "$SIZE_RATIO" \
-        --lowpri "$LP" --wal "$WAL" --stat "$ROCKSDB_STATS" --progress "$SHOW_PROGRESS" > rocksdb_stats.log
+        --lowpri "$LOW_PRI" --stat "$ROCKSDB_STATS" --progress "$SHOW_PROGRESS" > rocksdb_stats.log
     mv db/LOG LOG ; rm -rf db workload.txt ; cd "$REPO_ROOT" ; sleep 5
 
     ########################################
@@ -200,36 +145,93 @@ run_all_memtables() {
         --memtable_factory=4 \
         --bucket_count="$BUCKET_COUNT" --prefix_length="$PREFIX_LENGTH" \
         -E "$ENTRY_SIZE" -B "$ENTRIES_PER_PAGE" -P "$PAGES_PER_FILE" -T "$SIZE_RATIO" \
-        --lowpri "$LP" --wal "$WAL" --stat "$ROCKSDB_STATS" --progress "$SHOW_PROGRESS" \
+        --lowpri "$LOW_PRI" --stat "$ROCKSDB_STATS" --progress "$SHOW_PROGRESS" \
         --threshold_use_skiplist "$THRESHOLD_TO_CONVERT_TO_SKIPLIST" > rocksdb_stats.log
     mv db/LOG LOG ; rm -rf db workload.txt ; cd "$REPO_ROOT" ; sleep 5
 }
 
 
 ########################################
-# Sweep low_pri x WAL
+# Sweep scale factors
 ########################################
-for LP in "${LOW_PRI_VALUES[@]}"; do
-    for WAL in "${WAL_VALUES[@]}"; do
+for SCALE_ENTRY in "${SCALE_ENTRIES[@]}"; do
+    SCALE_LABEL=$(echo "$SCALE_ENTRY" | cut -d: -f1)
+    SCALE_NUM=$(echo "$SCALE_ENTRY"   | cut -d: -f2)
+    SCALE_DEN=$(echo "$SCALE_ENTRY"   | cut -d: -f3)
 
-        KNOB_DIR="$BASE_DIR/LP${LP}-WAL${WAL}"
-        mkdir -p "$KNOB_DIR"
+    SDIR="$BASE_DIR/SCALE${SCALE_LABEL}"
+    mkdir -p "$SDIR"
 
-        echo "========================================"
-        echo "LOW_PRI=$LP  WAL=$WAL"
-        echo "========================================"
+    echo "========================================"
+    echo "SCALE=${SCALE_LABEL}  (${SCALE_NUM}/${SCALE_DEN} of base workload)"
+    echo "========================================"
 
-        run_all_memtables "$BASE_DIR/workload.txt" "$KNOB_DIR" "$LP" "$WAL"
+    # Generate a scaled workload for this scale factor
+    python3 - <<EOF
+import json, math
+scale = $SCALE_NUM / $SCALE_DEN
+# Base: 80M bulk inserts | 10M inserts + 10K PQs | 10M inserts + 1K RQs
+g1_ins = round(80_000_000 * scale)
+g2_ins = round(10_000_000 * scale)
+g2_pq  = round(10_000     * scale)
+g3_ins = round(10_000_000 * scale)
+g3_rq  = round(1_000      * scale)
+spec = {
+  "sections": [{
+    "groups": [
+      {
+        "inserts": {
+          "op_count": g1_ins,
+          "key": {"uniform": {"len": $KEY_LEN}},
+          "val": {"uniform": {"len": $VAL_LEN}}
+        }
+      },
+      {
+        "inserts": {
+          "op_count": g2_ins,
+          "key": {"uniform": {"len": $KEY_LEN}},
+          "val": {"uniform": {"len": $VAL_LEN}}
+        },
+        "point_queries": {
+          "op_count": g2_pq,
+          "selection": {"uniform": {"min": 0, "max": 1}}
+        }
+      },
+      {
+        "inserts": {
+          "op_count": g3_ins,
+          "key": {"uniform": {"len": $KEY_LEN}},
+          "val": {"uniform": {"len": $VAL_LEN}}
+        },
+        "range_queries": {
+          "op_count": g3_rq,
+          "selection": {"uniform": {"min": 0, "max": 1}},
+          "selectivity": 0.0000001,
+          "range_format": "StartEnd"
+        }
+      }
+    ]
+  }]
+}
+with open("$SDIR/workload.specs.json", "w") as f:
+    json.dump(spec, f, indent=2)
+print(f"  Wrote workload.specs.json  (ins={g1_ins+g2_ins+g3_ins:,}  PQ={g2_pq:,}  RQ={g3_rq:,})")
+EOF
 
-        echo "  Done with LP${LP}-WAL${WAL}"
-        echo ""
-    done
+    pushd "$SDIR" > /dev/null
+    "$TECTONIC_CLI" generate -w workload.specs.json
+    popd > /dev/null
+
+    run_all_memtables "$SDIR/workload.txt" "$SDIR"
+
+    echo "  Done with SCALE${SCALE_LABEL}"
+    echo ""
 done
 
 
 cd "$REPO_ROOT"
 echo "Done."
-echo "All lowpri-wal experiments finished."
+echo "All scalability experiments finished."
 
 
 # shellcheck source=.env
@@ -237,7 +239,7 @@ source .env
 
 HOSTNAME=$(hostname)
 
-MESSAGE="lowpri-wal Experiments Completed on ${HOSTNAME}"
+MESSAGE="scalability Experiments Completed on ${HOSTNAME}"
 PAYLOAD="{\"text\": \"${MESSAGE}\"}"
 
 curl -X POST -H 'Content-type: application/json' --data "${PAYLOAD}" "${SLACK_WEBHOOK_URL}"
