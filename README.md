@@ -75,7 +75,6 @@ The above command will run the benchmark with default parameters. You can also p
 Some experimental bash scripts for reference are located in: `scripts/buffer`. You can use these scripts to run various experiments, such as varying buffer sizes, entry sizes, and other parameters. You can run them from the project root in this way: `bash scripts/buffer/vary-buffer-exp.sh`.
 
 
-
 ---
 > The `working_verion` takes few arguments as input. Here is the list of arguments:
 ```bash
