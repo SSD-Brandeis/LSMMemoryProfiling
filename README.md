@@ -1,8 +1,8 @@
 # Mind the Buffer: Dissecting the LSM-Buffer Design Space
 
-This repository contains benchmarking for different write buffer implementations in LSM-based systems. We use RocksDB source as base to profile four type of write buffers (i) V-Qsort, (ii) V-Qscan (iii) V-Sorted (iv) Link-L (v) Skip-L (vi)InSkip-L (vii)Hash-SL (viii)Hash-LL (iX)Hash-V. All 9 implemenations are already implemented in RocksDB.
+This repository contains benchmarking for different write buffer implementations in LSM-based systems. We use RocksDB source as base to profile nine types of write buffers (i) V-Qsort, (ii) V-Qscan (iii) V-Sorted (iv) Link-L (v) Skip-L (vi) InSkip-L (vii) Hash-SL (viii) Hash-LL (iX) Hash-V. All 9 implemenations are already implemented in RocksDB.
 
-We also use a `KV-WorkloadGenerator` and `Tectonic` as a submodule for generating different type of workloads with different compositions (inserts, updates, point queries and range queries etc) and different distributions (uniform, Beta, etc).
+We also use a `KV-WorkloadGenerator` and `Tectonic` as a submodule for generating different types of workloads with different compositions (inserts, updates, point queries and range queries etc) and different distributions (uniform, Beta, etc).
 
 ## Pre-requisites
 The first step is to clone this repository to your local machine. Run:
