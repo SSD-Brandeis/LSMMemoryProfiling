@@ -5,6 +5,7 @@ set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
 set(CMAKE_CXX_STANDARD 20)
 
 find_package(Threads REQUIRED)
+find_package(TBB REQUIRED)
 
 option(WITH_TESTS "Build with tests" OFF)
 option(WITH_TOOLS "Build with tools" OFF)
@@ -47,6 +48,7 @@ target_compile_definitions(working_version PRIVATE -DPER_OP_TIMER -DTOTAL_TIMER 
 target_link_libraries(working_version PRIVATE
     rocksdb
     Threads::Threads
+    TBB::tbb
 )
 
 set_target_properties(working_version PROPERTIES

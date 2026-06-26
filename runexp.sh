@@ -57,7 +57,7 @@ unsortedvector-preallocated \
 sortedvector-preallocated \
 hashskiplist-H100000-X6 \
 hashvector-H100000-X6 \
-hashlinkedlist-H100000-X6 \
+hashlinkedlist-H100000-X6
 # linkedlist
 # vector-dynamic \
 # unsortedvector-dynamic \
@@ -272,6 +272,34 @@ cp ../workload.txt .
     -E "$ENTRY_SIZE" -B "$ENTRIES_PER_PAGE" -P "$PAGES_PER_FILE" -T "$SIZE_RATIO" \
     --lowpri "$LOW_PRI" --stat "$ROCKSDB_STATS" --progress "$SHOW_PROGRESS" \
     --threshold_use_skiplist "$THRESHOLD_TO_CONVERT_TO_SKIPLIST" > rocksdb_stats.log
+mv db/LOG LOG
+rm -rf db workload.txt
+cd ..
+echo -e "\n"
+sleep 5
+
+echo "Running art ... "
+mkdir -p art
+cd art
+cp ../workload.txt .
+../../../bin/working_version \
+    --memtable_factory=11 \
+    -E "$ENTRY_SIZE" -B "$ENTRIES_PER_PAGE" -P "$PAGES_PER_FILE" -T "$SIZE_RATIO" \
+    --lowpri "$LOW_PRI" --stat "$ROCKSDB_STATS" --progress "$SHOW_PROGRESS" > rocksdb_stats.log
+mv db/LOG LOG
+rm -rf db workload.txt
+cd ..
+echo -e "\n"
+sleep 5
+
+echo "Running btree ... "
+mkdir -p btree
+cd btree
+cp ../workload.txt .
+../../../bin/working_version \
+    --memtable_factory=12 \
+    -E "$ENTRY_SIZE" -B "$ENTRIES_PER_PAGE" -P "$PAGES_PER_FILE" -T "$SIZE_RATIO" \
+    --lowpri "$LOW_PRI" --stat "$ROCKSDB_STATS" --progress "$SHOW_PROGRESS" > rocksdb_stats.log
 mv db/LOG LOG
 rm -rf db workload.txt
 cd ..

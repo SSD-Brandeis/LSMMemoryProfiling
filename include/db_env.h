@@ -151,6 +151,8 @@ public:
    * 8  for simple skip list
    * 9  for hash vector
    * 10 for dynamic (cost-model-driven buffer)
+   * 11 for ART Synchronized Tree
+   * 12 for TLX B+Tree
    */
   uint16_t memtable_factory = 1; // [m]
 

@@ -92,7 +92,8 @@ int parse_arguments(int argc, char *argv[], std::unique_ptr<DBEnv> &env) {
       group1, "memtable_factory",
       "[Memtable Factory: 1 for Skiplist, 2 for Vector, 3 for Hash Skiplist, 4 "
       "for Hash Linkedlist; 5 for Unsorted Vector; 6 for Always Sorted Vector; "
-      "7 for LinkList; 8 for Simple Skiplist; def: 1]",
+      "7 for LinkList; 8 for Simple Skiplist; 11 for ART Synchronized Tree; "
+      "12 for TLX B+Tree; def: 1]",
       {'m', "memtable_factory"});
   args::ValueFlag<int> prefix_length_cmd(
       group1, "prefix_length",

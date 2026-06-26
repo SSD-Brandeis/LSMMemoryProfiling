@@ -180,14 +180,14 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
 #endif // PER_OP_TIMER
       s = db->Get(read_options, key, &value);
       GlobalWorkloadMonitor().RecordPointQuery();
-      // if (s.IsNotFound()) {
-      //   std::cout << key << ", Not Found" << std::endl;
-      // } else if (s.ok()) {
-      //   std::cout << key << ", " << value << std::endl;
-      // } else {
-      //   std::cout << "Error reading key " << key << ": " << s.ToString()
-      //             << std::endl;
-      // }
+      if (s.IsNotFound()) {
+        std::cout << key << ", Not Found" << std::endl;
+      } else if (s.ok()) {
+        std::cout << key << ", " << value << std::endl;
+      } else {
+        std::cout << "Error reading key " << key << ": " << s.ToString()
+                  << std::endl;
+      }
 
 #ifdef PER_OP_TIMER
       auto stop = std::chrono::high_resolution_clock::now();
@@ -231,6 +231,8 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
         uint64_t steps = 0;
         for (it->Seek(start_key); it->Valid() && steps < scan_len;
              it->Next(), ++steps) {
+          std::cout << "Key: " << it->key().ToString()
+                    << " Value: " << it->value().ToString() << std::endl;
         }
       } else {
         // S <start_key> <end_key> — iterate until key >= end_key.
@@ -249,8 +251,8 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
           if (it->key().ToString() >= end_key) {
             break;
           }
-        // std::cout << "Key: " << it->key().ToString()
-        //           << " Value: " << it->value().ToString() << std::endl;
+        std::cout << "Key: " << it->key().ToString()
+                  << " Value: " << it->value().ToString() << std::endl;
         }
       }
 

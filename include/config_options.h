@@ -13,6 +13,12 @@
 #include "fluid_lsm.h"
 #include "workload_monitor.h"
 
+namespace rocksdb {
+  class MemTableRepFactory;
+  MemTableRepFactory* NewARTRepFactory();
+  MemTableRepFactory* NewTLXBTreeRepFactory();
+}
+
 class StringAppendOperator : public rocksdb::AssociativeMergeOperator {
 public:
   bool Merge(const rocksdb::Slice &key, const rocksdb::Slice *existing_value,
@@ -158,6 +164,12 @@ void configOptions(std::unique_ptr<DBEnv> &env, Options *options,
     }
     break;
   }
+  case 11:
+    options->memtable_factory.reset(rocksdb::NewARTRepFactory());
+    break;
+  case 12:
+    options->memtable_factory.reset(rocksdb::NewTLXBTreeRepFactory());
+    break;
   default:
     std::cerr << "Error[" << __FILE__ << " : " << __LINE__
               << "]: Invalid memtable factory!" << std::endl;
