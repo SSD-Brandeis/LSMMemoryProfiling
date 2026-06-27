@@ -1,6 +1,7 @@
 #ifndef DB_ENV_H_
 #define DB_ENV_H_
 
+#include <cstdlib>
 #include <memory>
 #include <mutex>
 
