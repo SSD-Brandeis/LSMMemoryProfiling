@@ -138,6 +138,10 @@ void configOptions(std::unique_ptr<DBEnv> &env, Options *options,
     options->prefix_extractor.reset(
         NewFixedPrefixTransform(env->prefix_length));
     break;
+  case 11:
+    options->memtable_factory.reset(
+        new StatefulVectorRepFactory(env->vector_preallocation_size_in_bytes));
+    break;
   case 10: {
     DynamicMemtableConfig cfg;
     cfg.vector_prealloc        = env->vector_preallocation_size_in_bytes;
