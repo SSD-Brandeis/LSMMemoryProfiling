@@ -68,3 +68,12 @@ workload.txt
 **/__pycache__/**
 **.pdf
 
+**.zip
+
+# RocksDB Logs and Specs
+**/LOG_rocksdb
+**/workload.specs.json
+**/rocksdb_stats.log
+**/workload_run.log
+**.npy
+LOG
