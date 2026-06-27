@@ -77,3 +77,5 @@ data_new/
 **/workload.specs.json
 **/rocksdb_stats.log
 **/workload_run.log
+**.npy
+LOG

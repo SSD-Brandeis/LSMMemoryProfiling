@@ -7,28 +7,22 @@ from plot import *
 from plot.utils import process_LOG_file
 from plot.style import line_styles
 
-# --- CONFIGURATION ---
+
 CURR_DIR = Path(__file__).parent
-# DATA_DIR = EXP_DIR / "fig8_vary_entrysize"
 DATA_DIR = EXP_DIR / "fig8_vary_entrysize"
 BUFFER_SIZE_IN_MB = 128
 PREFIX_LEN = 6
 BUCKET_COUNT = 100000
-FIGSIZE = (5, 3.8)
+FIGSIZE = (4, 3)
 
 USE_LOG_Y = False # Consistent with other plot
-
-# BUFFERS_TO_PLOT = [
-#     "vector-dynamic", "unsortedvector-dynamic", "alwayssortedVector-dynamic",
-#     "skiplist", "linkedlist", "hash_skip_list", "hash_linked_list", "hash_vector",
-#     "simple_skiplist",
-# ]
 
 BUFFERS_TO_PLOT = [
     ("vector-dynamic", "vector"),
     # "unsortedvector-dynamic",
     # "alwayssortedVector-dynamic",
     ("skiplist", "skiplist"),
+    ("simple_skiplist", "simpleskiplist"),
     # ("linkedlist", "linkedlist"),
     ("hash_skip_list", "hashskiplist"),
     ("hash_linked_list", "hashlinkedlist"),
@@ -85,7 +79,7 @@ def main():
         ax.plot(subset["entry_size"], subset["overhead_mb"], **style)
 
     ax.set_xlabel("entry size (B)")
-    ax.set_ylabel("metadata overhead (MB)", labelpad=-1, y=0.38) # Updated unit to MB
+    ax.set_ylabel("metadata overhead (MB)", labelpad=-1, y=0.35) # Updated unit to MB
     # ax.set_ylabel("overhead (KB)", labelpad=0.1, loc="top") 
     if USE_LOG_Y:
         ax.set_yscale("log")
@@ -101,7 +95,7 @@ def main():
 # Ticks at 8, 32, 128, 512, 2048
     ax.set_xticks([2**3, 2**5, 2**7, 2**9, 2**11])
     ax.set_xticklabels(["$8$", "$32$", "$128$", "$512$", "$2048$"])
-    plt.tight_layout()
+    # plt.tight_layout()
     
     save_dir = CURR_DIR / "output_plots"
     save_dir.mkdir(parents=True, exist_ok=True)

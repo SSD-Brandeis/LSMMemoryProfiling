@@ -11,6 +11,7 @@ import re
 import sys
 import csv
 import numpy as np
+from plot.style import bar_styles
 
 # Enforcement of font settings and abort logic as per saved preferences
 try:
@@ -54,7 +55,7 @@ WORKLOAD_INSERTS = 740000
 WORKLOAD_PQ = 100000  # 50k EmptyPQ + 50k nonEmptyPQ
 WORKLOAD_RQ = 1000
 
-EXP_DIR = Path("/Users/cba/Desktop/LSMMemoryBuffer/data")
+# EXP_DIR = Path("/Users/cba/Desktop/LSMMemoryBuffer/data")
 #old setting
 # RAWOP_DIR = EXP_DIR / "filter_result_mar15_multiphase_rawop"
 # INTERLEAVE_DIR = EXP_DIR / "filter_result_multiphase_interleave_inmemory_314"
@@ -69,14 +70,14 @@ PLOTS_DIR = CURR_DIR / "paper_plot" / SCRIPT_STEM
 PLOTS_DIR.mkdir(parents=True, exist_ok=True)
 
 FILTER_BUFFERS = [
-    "vector-preallocated",
-    "unsortedvector-preallocated",
-    "alwayssortedVector-preallocated",
-    "skiplist",
-    "simple_skiplist",
-    "hash_vector-X6-H100000",
-    "hash_skip_list-X6-H100000",
-    "hash_linked_list-X6-H100000",
+    ("vector-preallocated", "vector"),
+    ("unsortedvector-preallocated", "unsortedvector"),
+    ("alwayssortedVector-preallocated", "alwayssortedvector"),
+    ("skiplist", "skiplist"),
+    ("simple_skiplist", "simpleskiplist"),
+    ("hash_linked_list-X6-H100000", "hashlinkedlist"),
+    ("hash_skip_list-X6-H100000", "hashskiplist"),
+    ("hash_vector-X6-H100000","hashvector"),
 ]
 
 TIME_RE = re.compile(r"^(Inserts|PointQuery|RangeQuery) Execution Time:\s*(\d+)")
@@ -132,7 +133,8 @@ def bar_style(buf_name):
     if "bar_styles" not in globals():
         bar_styles = {}
     default_style = {"color": "None", "edgecolor": "black", "hatch": ""}
-    return bar_styles.get(buf_name, default_style).copy()
+    impl_name = [imp for b, imp in FILTER_BUFFERS if b==buf_name][0]
+    return bar_styles.get(impl_name, default_style).copy()
 
 def parse_workload_log(log_path):
     exec_out = {"Inserts": 0, "PointQuery": 0, "RangeQuery": 0, "Workload": 0}
@@ -207,7 +209,7 @@ def save_plot_legend(handles, labels, base_output_path):
     plt.close(legend_fig)
 
 def plot_combined_barchart(df, metric_cols, y_label, x_labels, filename_base, buffers, y_limit, is_latency_plot):
-    fig, ax = plt.subplots(1, 1, figsize=(5, 3.6))
+    fig, ax = plt.subplots(1, 1, figsize=(3.5, 2.5))
     if USE_LOG_SCALE: ax.set_yscale("log", base=10)
     num_groups, num_buffers = len(metric_cols), len(buffers)
     group_width, bar_width_ratio = 0.9, 0.9
@@ -234,8 +236,8 @@ def plot_combined_barchart(df, metric_cols, y_label, x_labels, filename_base, bu
     fig.savefig(filename_base.with_suffix(".pdf"), bbox_inches="tight")
     plt.close(fig)
 
-def plot_workload_latency_comparison(df_seq, df_interleave, buffers, filename_base, y_limit, is_latency_plot, metric="lat_workload", y_label="total wl latency (ns/op)"):
-    fig, ax = plt.subplots(figsize=(5, 3.6))
+def plot_workload_latency_comparison(df_seq, df_interleave, buffers, filename_base, y_limit, is_latency_plot, metric="lat_workload", y_label="total latency (ns)"):
+    fig, ax = plt.subplots(figsize=(3.5, 2.5))
     if USE_LOG_SCALE: ax.set_yscale("log", base=10)
     group_x_positions = np.arange(2)
     group_width, bar_width = 0.9, (0.9 / len(buffers)) * 0.9
@@ -254,7 +256,7 @@ def plot_workload_latency_comparison(df_seq, df_interleave, buffers, filename_ba
             ax.bar(bar_x_pos, value, width=bar_width, **bar_style(buf_name))
 
     ax.set_xticks(group_x_positions)
-    ax.set_xticklabels(["sequential", "interleaved"])
+    ax.set_xticklabels(["sequential", "interleaved"], fontsize=20)
     apply_axis_style(ax, y_limit, is_latency_plot)
     ax.set_ylabel(y_label)
     fig.savefig(filename_base.with_suffix(".pdf"), bbox_inches="tight")
@@ -265,7 +267,7 @@ def process_and_plot(data_dir, file_suffix, y_limit_thr, y_limit_lat):
     if raw_df.empty: return None, False
     grouped_df = raw_df.groupby("buffer", as_index=False).mean()
     if FILTER_BUFFERS:
-        grouped_df = grouped_df[grouped_df["buffer"].isin(FILTER_BUFFERS)]
+        grouped_df = grouped_df[grouped_df["buffer"].isin([b for b,_ in FILTER_BUFFERS])]
     if grouped_df.empty: return None, False
 
     # Dump data to CSV with clear naming
@@ -275,11 +277,11 @@ def process_and_plot(data_dir, file_suffix, y_limit_thr, y_limit_lat):
     metrics_to_analyze = ["thr_insert", "thr_pq", "thr_rq", "lat_insert", "lat_pq", "lat_rq"]
     perform_pairwise_analysis(grouped_df, metrics_to_analyze, file_suffix)
 
-    buffers_to_plot = [b for b in FILTER_BUFFERS if b in grouped_df["buffer"].values]
+    buffers_to_plot = [b for b, _ in FILTER_BUFFERS if b in grouped_df["buffer"].values]
     
     # Combined plots
-    plot_combined_barchart(grouped_df, ["thr_insert", "thr_pq", "thr_rq"], "throughput (ops/sec)", ["insert", "pq", "rq"], PLOTS_DIR / f"multi_thr_combined{file_suffix}", buffers_to_plot, y_limit_thr, False)
-    plot_combined_barchart(grouped_df, ["lat_insert", "lat_pq", "lat_rq"], "mean latency (ns/op)", ["insert", "pq", "rq"], PLOTS_DIR / f"multi_lat_combined{file_suffix}", buffers_to_plot, y_limit_lat, True)
+    plot_combined_barchart(grouped_df, ["thr_insert", "thr_pq", "thr_rq"], "throughput (OPS)", ["insert", "PQ", "RQ"], PLOTS_DIR / f"multi_thr_combined{file_suffix}", buffers_to_plot, y_limit_thr, False)
+    plot_combined_barchart(grouped_df, ["lat_insert", "lat_pq", "lat_rq"], "mean latency (ns)", ["insert", "PQ", "RQ"], PLOTS_DIR / f"multi_lat_combined{file_suffix}", buffers_to_plot, y_limit_lat, True)
     
     return grouped_df, True
 
@@ -298,13 +300,13 @@ def main():
     df_interleave, success_interleave = process_and_plot(INTERLEAVE_DIR, "_interleave", YLIM_LOG_THR_INTERLEAVE, YLIM_LOG_LAT_INTERLEAVE)
 
     if success_rawop and success_interleave:
-        common_buffers = [b for b in FILTER_BUFFERS if b in set(df_rawop["buffer"]).intersection(set(df_interleave["buffer"]))]
+        common_buffers = [b for b, _ in FILTER_BUFFERS if b in set(df_rawop["buffer"]).intersection(set(df_interleave["buffer"]))]
         if common_buffers:
             plot_workload_latency_comparison(df_rawop, df_interleave, common_buffers, PLOTS_DIR / "multi_latency_workload_comparison", YLIM_LOG_LAT_WORKLOAD, True)
 
     # Consolidated Legend Generation
     all_legend_handles, all_legend_labels = [], []
-    for b in FILTER_BUFFERS:
+    for b, _ in FILTER_BUFFERS:
         style = bar_style(b)
         all_legend_handles.append(plt.Rectangle((0, 0), 1, 1, facecolor=style.get("facecolor"), edgecolor=style.get("edgecolor"), hatch=style.get("hatch")))
         all_legend_labels.append(get_formatted_buffer_label(b))

@@ -343,17 +343,25 @@ data_n = compute_flush_ios_per_buffer(M_plot, E_small_total, N_axis)
 # baseline = data_n["vector"]["flushes"]
 for name in plot_order:
     ratio = data_n[name]["flushes"] # / baseline
-    ax.plot(N_axis, ratio, **line_styles[name])
+    style = line_styles[name]
+    del style["marker"]
+    ax.plot(N_axis, ratio, **style)
 
-ax.set_xlabel("entries count")
-ax.set_ylabel("flush I/Os")
+ax.set_xlabel("entries count (M)", labelpad=-1)
+ax.set_ylabel("flush I/Os", labelpad=-1)
 ax.set_xscale("log")
 # ax.set_yscale("log")
 ax.set_ylim(0)
-ax.set_yticks([])
-ax.set_yticklabels([])
-ax.set_xticks([])
-ax.set_xticklabels([])
+ax.minorticks_off()
+ax.set_yticks([0, 1e6, 2e6])
+ax.set_yticklabels(["0", "1", "2"])
+ax.set_xticks([1e6, 1e7, 1e8])
+ax.set_xticklabels(["1", "10", "100"])  # x in millions of entries
+
+# Move the y-axis offset (x10^6) inside the axes, top-left corner
+ax.yaxis.offsetText.set_visible(False)
+ax.text(0.02, 0.96, r"$\times 10^{6}$", transform=ax.transAxes,
+        ha="left", va="top", fontsize=18)
 
 # --- Equation annotations for flush I/Os ---
 # flush_ios = flushes * pages_per_flush = (N/K) * (K*E/P) = N*E/P
@@ -381,7 +389,7 @@ ax.set_xticklabels([])
 #         fontsize=6.5, va="top", ha="right",
 #         bbox=dict(boxstyle="round,pad=0.3", facecolor="white", edgecolor="gray", alpha=0.8))
 
-plt.savefig(f"{TAG}/flush_ratio_vs_N.pdf", bbox_inches="tight", pad_inches=0.06)
+plt.savefig(f"{TAG}/flush_ratio_vs_N.pdf", bbox_inches="tight", pad_inches=0.01)
 
 
 # # =========================
@@ -466,14 +474,16 @@ for name in plot_order:
     overhead_pct = effective_ov / E_total_axis * 100
     ax.plot(E_axis, overhead_pct, **line_styles[name])
 
-ax.set_xlabel("entry size")
-ax.set_ylabel("overhead (\\%)", loc="top")
+ax.set_xlabel("entry size", labelpad=-1)
+ax.set_ylabel("overhead (\\%)", loc="top", labelpad=-1)
 ax.set_xscale("log")
 ax.set_yscale("log")
-ax.set_yticks([])
-ax.set_yticklabels([])
-ax.set_xticks([])
-ax.set_xticklabels([])
+ax.set_ylim(1e0)
+ax.minorticks_off()  # remove log-scale minor ticks
+# ax.set_yticks([])
+# ax.set_yticklabels([])
+# ax.set_xticks([])
+# ax.set_xticklabels([])
 
 # --- Equation annotations for metadata overhead vs E ---
 # overhead% = (O + F/K) / E_total * 100

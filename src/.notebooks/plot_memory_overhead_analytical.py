@@ -51,23 +51,48 @@ hash_skip_mem = H * ptr_size + K * (
 # -------------------------
 _, ax = plt.subplots(figsize=(3, 2.5))
 
-ax.plot(K, vector_mem, **line_styles["vector"])
-ax.plot(K, linked_list_mem, **line_styles["linkedlist"])
-ax.plot(K, skip_list_mem, **line_styles["simpleskiplist"])
-ax.plot(K, inline_skip_mem, **line_styles["skiplist"])
+vector_style = line_styles["vector"]
+del vector_style["marker"]
+ax.plot(K, vector_mem, **vector_style)
 
-ax.plot(K, hash_vec_mem, **line_styles["hashvector"])
-ax.plot(K, hash_list_mem, **line_styles["hashlinkedlist"])
-ax.plot(K, hash_skip_mem, **line_styles["hashskiplist"])
+linked_list_style = line_styles["linkedlist"]
+del linked_list_style["marker"]
+ax.plot(K, linked_list_mem, **linked_list_style)
+
+simple_skip_style = line_styles["simpleskiplist"]
+del simple_skip_style["marker"]
+ax.plot(K, skip_list_mem, **simple_skip_style)
+
+skip_list_style = line_styles["skiplist"]
+del skip_list_style["marker"]
+ax.plot(K, inline_skip_mem, **skip_list_style)
+
+hash_vec_style = line_styles["hashvector"]
+del hash_vec_style["marker"]
+ax.plot(K, hash_vec_mem, **hash_vec_style)
+hash_list_style = line_styles["hashlinkedlist"]
+del hash_list_style["marker"]
+ax.plot(K, hash_list_mem, **hash_list_style)
+hash_skip_style = line_styles["hashskiplist"]
+del hash_skip_style["marker"]
+ax.plot(K, hash_skip_mem, **hash_skip_style)
 
 ax.set_ylim(0)
 
-ax.set_xlabel("buffer size")
-ax.set_ylabel("metadata overhead", y=0.425)
-ax.set_yticks([])
-ax.set_yticklabels([])
-ax.set_xticks([])
-ax.set_xticklabels([])
+ax.set_xlabel("buffer size (MB)", labelpad=-1)
+ax.set_ylabel("metadata overhead", y=0.425, labelpad=-1)
+# ax.set_yticks([])
+# ax.set_yticklabels([])
+# buffer size in MB = K * E / 1024 / 1024; show only 2 round ticks
+mb_tick_vals = [10, 50]  # MB values to mark (multiples of 10/5)
+k_positions = [v * 1024 * 1024 / E for v in mb_tick_vals]  # K positions for those MB values
+ax.set_xticks(k_positions)
+ax.set_xticklabels([str(v) for v in mb_tick_vals])
+
+# Move the y-axis offset (x10^6) inside the axes, top-left corner
+ax.yaxis.offsetText.set_visible(False)
+ax.text(0.02, 0.96, r"$\times 10^{6}$", transform=ax.transAxes,
+        ha="left", va="top", fontsize=18)
 
 # --- Equation annotations (color-coded, placed near right end of each line) ---
 # Place each label at the right end of the curve, offset to avoid overlap

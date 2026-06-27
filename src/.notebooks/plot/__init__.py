@@ -16,4 +16,7 @@ plt.rcParams["text.usetex"] = True
 plt.rcParams["font.weight"] = "bold"
 plt.rcParams["font.size"] = 22
 
-EXP_DIR = Path(__file__).parent.parent.parent.parent / ".vstats"
+EXP_DIR = Path(__file__).parent.parent.parent.parent / ".vstats-old" / "data_new"
+
+# "/Users/shubham/Dropbox/Apps/Overleaf/LSMBufferAnalysis/Figures"
+DROPBOX_PATH = Path("/Users/shubham/Dropbox/Apps/Overleaf/LSMBufferAnalysis/Figures")

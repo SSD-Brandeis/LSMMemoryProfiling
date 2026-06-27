@@ -167,14 +167,17 @@ plt.savefig(f"{TAG}/workload_cost.pdf", bbox_inches="tight", pad_inches=0.06)
 # -------------------------
 # Legend (all 9 buffers)
 # -------------------------
-_, legend_fig = plt.subplots(figsize=(2, 0.7))
+_, legend_fig = plt.subplots(figsize=(0.4, 0.2))
 
-legend_lines = {name: line_styles[name] for name in buf_order}
+legend_lines = {name: line_styles[name] for name in buf_order if name not in ["unsortedvector", "alwayssortedvector"]}
 for name, style in legend_lines.items():
+    del style["marker"]
     legend_fig.plot([], [], **style)
-legend_fig.legend(loc="center", ncol=5, frameon=False)
+legend_fig.legend(loc="center", ncol=4, frameon=False, labelspacing=0.2, handlelength=1.4,
+                  columnspacing=0.8, handletextpad=0.3)
 legend_fig.axis("off")
-plt.savefig(f"{TAG}/workload_cost_legend.pdf", bbox_inches="tight", pad_inches=0.06)
+output_path = f"{TAG}/workload_cost_legend.pdf"
+plt.savefig(output_path, bbox_inches="tight", pad_inches=0.02)
 
 # -------------------------
 # LaTeX table: total workload cost at a fixed K for 4 workloads
