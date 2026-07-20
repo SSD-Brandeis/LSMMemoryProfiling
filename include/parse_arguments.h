@@ -130,6 +130,22 @@ int parse_arguments(int argc, char *argv[], std::unique_ptr<DBEnv> &env) {
       "Enable Write-Ahead Log (1 = enabled / disableWAL=false, 0 = disabled "
       "/ disableWAL=true) [def: 0]",
       {"wal"});
+  args::ValueFlag<int> num_threads_cmd(
+      group1, "threads",
+      "Number of concurrent client threads issuing operations against a "
+      "shared DB handle (working_version_mt / runWorkloadMultithread only) "
+      "[def: 1]",
+      {"threads"});
+  args::ValueFlag<int> max_background_jobs_cmd(
+      group1, "max_background_jobs",
+      "Maximum concurrent background flush/compaction jobs [def: 1]",
+      {"bg_jobs"});
+  args::ValueFlag<int> duration_secs_cmd(
+      group1, "duration_secs",
+      "working_version_mt only: measure for this many wall-clock seconds "
+      "(each thread wraps its shard on EOF) instead of running each shard "
+      "once [def: 0 = run once]",
+      {"duration_secs"});
 
   try {
     parser.ParseCLI(argc, argv);
@@ -218,6 +234,13 @@ int parse_arguments(int argc, char *argv[], std::unique_ptr<DBEnv> &env) {
   // --wal 1 enables WAL (disableWAL=false); --wal 0 disables it (disableWAL=true)
   if (wal_cmd)
     env->disableWAL = !args::get(wal_cmd);
+  env->num_client_threads = num_threads_cmd ? args::get(num_threads_cmd)
+                                            : env->num_client_threads;
+  env->max_background_jobs = max_background_jobs_cmd
+                                 ? args::get(max_background_jobs_cmd)
+                                 : env->max_background_jobs;
+  env->duration_secs = duration_secs_cmd ? args::get(duration_secs_cmd)
+                                         : env->duration_secs;
 
   return 0;
 }

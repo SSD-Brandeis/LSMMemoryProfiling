@@ -30,6 +30,15 @@
 *.exe
 *.out
 *.app
+bench_memtable_scalability
+bench_read_scalability
+bench_rep_scalability
+test_art
+test_concurrent_pgs
+test_concurrent_pgs2
+test_memtable_concurrency
+test_memtable_concurrency2
+test_tlx_btree
 
 # files
 **.log
@@ -41,6 +50,7 @@ workload.txt
 
 **/bin**
 **/build/**
+build*/
 **result**
 **defaultRDB**
 
@@ -73,7 +83,12 @@ data_new/
 **.zip
 
 # RocksDB Logs and Specs
+**/LOG
+**/LOG.old.*
 **/LOG_rocksdb
 **/workload.specs.json
 **/rocksdb_stats.log
 **/workload_run.log
+
+# Experiment output directories
+experiment_data/

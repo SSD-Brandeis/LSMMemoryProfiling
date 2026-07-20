@@ -9,3 +9,10 @@
 [submodule "lib/Tectonic"]
 	path = lib/Tectonic
 	url = https://github.com/SSD-Brandeis/Tectonic.git
+[submodule "lib/ARTSynchronized"]
+	path = lib/ARTSynchronized
+	url = https://github.com/SSD-Brandeis/ARTSynchronized.git
+	branch = LSMMemoryProfiling
+[submodule "lib/tlx"]
+	path = lib/tlx
+	url = https://github.com/tlx/tlx.git

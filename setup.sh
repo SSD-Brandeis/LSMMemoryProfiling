@@ -7,7 +7,7 @@ echo "Installing system dependencies"
 
 if [[ "$OS" == "Linux" ]]; then
   sudo apt-get update -y
-  sudo apt-get install -y build-essential cmake libgflags-dev
+  sudo apt-get install -y build-essential cmake libgflags-dev libtbb-dev
   NPROC="$(nproc)"
 elif [[ "$OS" == "Darwin" ]]; then
   if ! command -v brew >/dev/null 2>&1; then
@@ -15,7 +15,7 @@ elif [[ "$OS" == "Darwin" ]]; then
     /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
   fi
   brew update
-  brew install cmake gflags
+  brew install cmake gflags tbb
   NPROC="$(sysctl -n hw.ncpu)"
 else
   echo "Unsupported OS: $OS"

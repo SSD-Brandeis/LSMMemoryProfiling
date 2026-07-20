@@ -4,6 +4,8 @@ project(LSMBufferAnalysis)
 set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
 set(CMAKE_CXX_STANDARD 20)
 
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules")
+
 find_package(Threads REQUIRED)
 find_package(TBB REQUIRED)
 
@@ -52,5 +54,33 @@ target_link_libraries(working_version PRIVATE
 )
 
 set_target_properties(working_version PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/bin
+)
+
+set(MT_SOURCES
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/buffer.cc
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/db_env.cc
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/event_listners.cc
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/utils.cc
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/run_workload_multithread.cc
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/working_version_mt.cc
+)
+
+add_executable(working_version_mt ${MT_SOURCES})
+
+target_include_directories(working_version_mt PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/lib/rocksdb/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+
+target_compile_definitions(working_version_mt PRIVATE -DPER_OP_TIMER -DTOTAL_TIMER -DPROFILE)
+
+target_link_libraries(working_version_mt PRIVATE
+    rocksdb
+    Threads::Threads
+    TBB::tbb
+)
+
+set_target_properties(working_version_mt PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/bin
 )
