@@ -140,6 +140,17 @@ int parse_arguments(int argc, char *argv[], std::unique_ptr<DBEnv> &env) {
       group1, "max_background_jobs",
       "Maximum concurrent background flush/compaction jobs [def: 1]",
       {"bg_jobs"});
+  args::ValueFlag<int> concurrent_memtable_write_cmd(
+      group1, "concurrent_memtable_write",
+      "Allow multiple writer threads to update the memtable in parallel "
+      "(rocksdb::Options::allow_concurrent_memtable_write) [def: 1]",
+      {"concurrent_memtable_write"});
+  args::ValueFlag<int> unordered_write_cmd(
+      group1, "unordered_write",
+      "rocksdb::Options::unordered_write -- trades snapshot immutability "
+      "for higher write throughput; requires concurrent_memtable_write=1 "
+      "[def: 0]",
+      {"unordered_write"});
   args::ValueFlag<int> duration_secs_cmd(
       group1, "duration_secs",
       "working_version_mt only: measure for this many wall-clock seconds "
@@ -239,6 +250,13 @@ int parse_arguments(int argc, char *argv[], std::unique_ptr<DBEnv> &env) {
   env->max_background_jobs = max_background_jobs_cmd
                                  ? args::get(max_background_jobs_cmd)
                                  : env->max_background_jobs;
+  env->allow_concurrent_memtable_write =
+      concurrent_memtable_write_cmd
+          ? static_cast<bool>(args::get(concurrent_memtable_write_cmd))
+          : env->allow_concurrent_memtable_write;
+  env->unordered_write = unordered_write_cmd
+                             ? static_cast<bool>(args::get(unordered_write_cmd))
+                             : env->unordered_write;
   env->duration_secs = duration_secs_cmd ? args::get(duration_secs_cmd)
                                          : env->duration_secs;
 

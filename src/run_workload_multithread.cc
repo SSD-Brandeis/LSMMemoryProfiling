@@ -310,7 +310,10 @@ int runWorkloadMultithread(std::unique_ptr<DBEnv> &env) {
 
   // Multi-writer memtable inserts require this; every memtable factory
   // exercised by this harness supports it (see MemTableRepFactory::
-  // IsInsertConcurrentlySupported() overrides).
+  // IsInsertConcurrentlySupported() overrides). This is a safety net on top
+  // of --concurrent_memtable_write (parse_arguments.h), which callers should
+  // still pass explicitly so it shows up in logs/manifests rather than only
+  // being implied here.
   if (T > 1) {
     env->allow_concurrent_memtable_write = true;
   }
@@ -340,9 +343,15 @@ int runWorkloadMultithread(std::unique_ptr<DBEnv> &env) {
   std::cerr << "Multithreaded run: " << T << " client thread(s)" << std::endl;
 
   Status s = DB::Open(options, env->kDBPath, &db);
-  if (!s.ok())
-    std::cerr << s.ToString() << std::endl;
-  assert(s.ok());
+  if (!s.ok()) {
+    // assert() is compiled out under this project's Release build
+    // (CMAKE_BUILD_TYPE Release => NDEBUG), so an invalid option
+    // combination (e.g. unordered_write=1 with
+    // concurrent_memtable_write=0) would otherwise silently continue with
+    // a null db and segfault on first use instead of failing cleanly.
+    std::cerr << "DB::Open failed: " << s.ToString() << std::endl;
+    return 1;
+  }
 
   if (env->clear_system_cache) {
 #ifdef __linux__

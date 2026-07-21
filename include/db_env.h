@@ -88,7 +88,13 @@ public:
   bool enable_thread_tracking = false;
 
   // if true, allow multi-writers to update mem tables in parallel.
-  bool allow_concurrent_memtable_write = false;
+  bool allow_concurrent_memtable_write = true;
+
+  // Trades snapshot immutability for higher write throughput by skipping
+  // the wait for lower-sequence-number writes before advancing the
+  // sequence number. Requires allow_concurrent_memtable_write=true (RocksDB
+  // rejects DB::Open otherwise, see db_impl_open.cc). [unordered_write]
+  bool unordered_write = false;
 
   // the memory size for stats snapshots, default is 1MB
   size_t stats_history_buffer_size = 1024 * 1024;

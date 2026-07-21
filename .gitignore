@@ -92,3 +92,10 @@ data_new/
 
 # Experiment output directories
 experiment_data/
+
+# Markdown files
+*.md
+!README.md
+
+# JSON files
+*.json

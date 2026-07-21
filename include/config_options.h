@@ -52,6 +52,7 @@ void configOptions(std::unique_ptr<DBEnv> &env, Options *options,
   options->enable_thread_tracking = env->enable_thread_tracking;
   options->allow_concurrent_memtable_write =
       env->allow_concurrent_memtable_write;
+  options->unordered_write = env->unordered_write;
   options->stats_history_buffer_size = env->stats_history_buffer_size;
   options->dump_malloc_stats = env->dump_malloc_stats;
   options->avoid_flush_during_shutdown = env->avoid_flush_during_shutdown;
