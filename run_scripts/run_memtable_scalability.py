@@ -18,8 +18,7 @@ PLOT_SCRIPT = "plot_scripts/plot_memtable_scalability.py"
 
 THREAD_COUNTS = [1, 2, 4, 8, 16]
 
-# The 7 concurrency-capable memtables (see include/config_options.h switch
-# and include/db_env.h memtable_factory doc comment for the full id map).
+
 MEMTABLES = {
     "skiplist": 1,
     "vector": 2,
@@ -349,7 +348,7 @@ def write_manifest(scenario, bg_jobs_list, unordered_write_list,
 
 
 def main():
-    global EXPERIMENT_ROOT, WORKLOAD_SCRATCH
+    global EXPERIMENT_ROOT, WORKLOAD_SCRATCH, WRITE_SPEC, WRITE_OP_COUNT
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--scenario", choices=["write", "read"], required=True,
@@ -373,11 +372,22 @@ def main():
                              "data/memtable_scalability_vs_threads). Use "
                              "this for sanity checks so they don't "
                              "overwrite real results/manifest.json.")
+    parser.add_argument("--write-spec", default=None,
+                        help="Override WRITE_SPEC path (write scenario "
+                             "only). Must be paired with --write-op-count.")
+    parser.add_argument("--write-op-count", type=int, default=None,
+                        help="Override WRITE_OP_COUNT to match "
+                             "--write-spec's op_count.")
     args = parser.parse_args()
 
     if args.data_root:
         EXPERIMENT_ROOT = Path(args.data_root).resolve()
         WORKLOAD_SCRATCH = EXPERIMENT_ROOT / "_workload"
+    if args.write_spec:
+        if args.write_op_count is None:
+            sys.exit("--write-spec requires --write-op-count")
+        WRITE_SPEC = Path(args.write_spec).resolve()
+        WRITE_OP_COUNT = args.write_op_count
 
     memtables = (args.only.split(",") if args.only
                 else list(MEMTABLES.keys()))

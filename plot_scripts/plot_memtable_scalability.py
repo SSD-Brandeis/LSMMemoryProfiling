@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import argparse
 import csv
 from collections import defaultdict
 from pathlib import Path
@@ -20,17 +21,11 @@ THREAD_COUNTS = [1, 2, 4, 8, 16]
 MEMTABLES = ["skiplist", "simple_skiplist", "vector", "unsorted_vector",
              "sorted_vector", "art", "tlx_btree"]
 
-# The write sweep's 6 (max_background_jobs, unordered_write) combinations.
-# allow_concurrent_memtable_write is always 1 (see module docstring) but is
-# still spelled out on every legend entry per the project's request that
-# all three DBOptions be visible, not just the two that vary.
+
 BG_JOBS_VALUES = [1, 8, 16]
 UNORDERED_WRITE_VALUES = [False, True]
 
-# Color encodes unordered_write (the dimension with the larger effect on
-# throughput -- see ANALYSIS.md); linestyle encodes max_background_jobs.
-# Both fixed, never reassigned, so the same combo is the same look in every
-# one of the 7 per-memtable figures.
+
 UW_COLOR = {False: "#2a78d6", True: "#eb6834"}  # blue / orange
 BG_LINESTYLE = {1: (0, (1, 1)), 8: (0, (5, 2)), 16: "solid"}  # dotted/dashed/solid
 
@@ -110,9 +105,7 @@ MEMTABLE_PALETTE = ["#2a78d6", "#008300", "#e87ba4", "#eda100", "#1baf7a",
 
 def plot_read(data, out_path):
     fig, ax = plt.subplots(figsize=(11, 8))
-    # Read-scenario colors: reuse the same fixed categorical order as
-    # before (memtable is the varying identity here, not uw/bg -- the read
-    # scenario runs a single fixed setting, named in the title below).
+
     for name, color in zip(MEMTABLES, MEMTABLE_PALETTE):
         v = data[name]
         ys = [v[t] for t in THREAD_COUNTS]
@@ -130,15 +123,7 @@ def plot_read(data, out_path):
 
 
 def plot_write_all(data, uw, out_path):
-    """All 7 memtables on one axis, one line each, at bg_jobs=8 with
-    unordered_write fixed at the given value -- bg=8 matches the read
-    scenario's fixed setting, so this is directly comparable to
-    read_throughput.pdf. The per-memtable files remain the source for the
-    full 6-combination sweep; this view trades that detail for
-    cross-memtable comparison. uw's value is stated in the title -- not
-    repeated on every legend entry, which at this label length would blow
-    the legend wider than the figure -- so it's never ambiguous which of
-    the two files (uw=0 or uw=1) a given plot is."""
+
     fig, ax = plt.subplots(figsize=(11, 8))
     for name, color in zip(MEMTABLES, MEMTABLE_PALETTE):
         v = data[name][(8, uw)]
@@ -147,10 +132,7 @@ def plot_write_all(data, uw, out_path):
                 color=color, label=name)
     style_x_axis(ax)
     ax.set_ylabel("throughput (ops/s)")
-    # Headroom reserved at the top for the legend -- every data line stays
-    # well clear of it (unlike a corner placement, which this data's
-    # crossing lines and near-zero sorted_vector line make hard to do
-    # without overlap).
+
     ax.set_ylim(0, ax.get_ylim()[1] * 1.32)
     ax.set_title(f"100% insert, cmw=1, uw={int(uw)}, bg=8: throughput")
     ax.legend(loc="upper center", frameon=True, framealpha=0.9, fontsize=16,
@@ -161,24 +143,41 @@ def plot_write_all(data, uw, out_path):
 
 
 def main():
+    global R, OUT
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--data-root", default=None,
+                        help="Override the data root (default: "
+                             "data/memtable_scalability_vs_threads).")
+    args = parser.parse_args()
+    if args.data_root:
+        R = Path(args.data_root).resolve()
+        OUT = R / "plots"
+
     OUT.mkdir(parents=True, exist_ok=True)
 
-    # Superseded: relative-speedup plots and the old single combined
-    # write_throughput.pdf (replaced by the uw0/uw1-split pair below).
+
     for stale in ["write_speedup.pdf", "write_throughput.pdf",
                   "write_speedup_uw0.pdf", "write_speedup_uw1.pdf",
                   "read_speedup.pdf"]:
         (OUT / stale).unlink(missing_ok=True)
 
-    write = load_write(R / "write_100pct" / "results.csv")
-    for memtable in MEMTABLES:
-        plot_write_memtable(write[memtable], memtable,
-                            OUT / f"write_throughput_{memtable}.pdf")
-    plot_write_all(write, False, OUT / "write_throughput_uw0.pdf")
-    plot_write_all(write, True, OUT / "write_throughput_uw1.pdf")
+    write_csv = R / "write_100pct" / "results.csv"
+    if write_csv.exists():
+        write = load_write(write_csv)
+        for memtable in MEMTABLES:
+            plot_write_memtable(write[memtable], memtable,
+                                OUT / f"write_throughput_{memtable}.pdf")
+        plot_write_all(write, False, OUT / "write_throughput_uw0.pdf")
+        plot_write_all(write, True, OUT / "write_throughput_uw1.pdf")
+    else:
+        print(f"skipping write plots: {write_csv} not found")
 
-    read = load_read(R / "read_100pct" / "results.csv")
-    plot_read(read, OUT / "read_throughput.pdf")
+    read_csv = R / "read_100pct" / "results.csv"
+    if read_csv.exists():
+        read = load_read(read_csv)
+        plot_read(read, OUT / "read_throughput.pdf")
+    else:
+        print(f"skipping read plot: {read_csv} not found")
 
 
 if __name__ == "__main__":
