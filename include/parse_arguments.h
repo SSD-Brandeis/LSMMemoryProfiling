@@ -151,13 +151,6 @@ int parse_arguments(int argc, char *argv[], std::unique_ptr<DBEnv> &env) {
       "for higher write throughput; requires concurrent_memtable_write=1 "
       "[def: 0]",
       {"unordered_write"});
-  args::ValueFlag<int> duration_secs_cmd(
-      group1, "duration_secs",
-      "working_version_mt only: measure for this many wall-clock seconds "
-      "(each thread wraps its shard on EOF) instead of running each shard "
-      "once [def: 0 = run once]",
-      {"duration_secs"});
-
   try {
     parser.ParseCLI(argc, argv);
   } catch (args::Help &) {
@@ -257,8 +250,6 @@ int parse_arguments(int argc, char *argv[], std::unique_ptr<DBEnv> &env) {
   env->unordered_write = unordered_write_cmd
                              ? static_cast<bool>(args::get(unordered_write_cmd))
                              : env->unordered_write;
-  env->duration_secs = duration_secs_cmd ? args::get(duration_secs_cmd)
-                                         : env->duration_secs;
 
   return 0;
 }

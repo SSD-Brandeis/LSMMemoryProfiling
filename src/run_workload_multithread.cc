@@ -50,22 +50,12 @@ struct ThreadResult {
   unsigned long ops = 0;
 };
 
-// Replays one shard file against the shared db. Mirrors the per-line
-// dispatch in runWorkload() exactly (same operation codes / semantics).
-//
-// When loop_enabled is set, the shard wraps back to its own first line on
-// EOF and keeps going until the shared `deadline` passes, instead of
-// stopping after one pass. This is the fixed-duration, ops-completed
-// methodology (matches db_bench's timed benchmarks): with only a few
-// million total ops, per-run fixed costs (DB::Open, dropping the system
-// page cache, background-thread warmup) are large enough relative to a
-// single short pass that thread-count comparisons become noisy; measuring
-// a longer, fixed wall-clock window instead amortizes that fixed cost away.
+// Replays one shard file against the shared db, once, start to end. Mirrors
+// the per-line dispatch in runWorkload() exactly (same operation codes /
+// semantics).
 void RunShard(int thread_idx, DB *db, const WriteOptions &write_options,
               const ReadOptions &read_options, bool use_prefix_seek,
-              std::unique_ptr<DBEnv> &env, bool loop_enabled,
-              std::chrono::steady_clock::time_point deadline,
-              ThreadResult *result) {
+              std::unique_ptr<DBEnv> &env, ThreadResult *result) {
   std::string shard_path = "shard_" + std::to_string(thread_idx) + ".txt";
   std::ifstream workload_file(shard_path);
   if (!workload_file) {
@@ -109,14 +99,7 @@ void RunShard(int thread_idx, DB *db, const WriteOptions &write_options,
   std::string line;
   unsigned long ith_op = 0;
   while (true) {
-    if (!std::getline(workload_file, line) || line.empty()) {
-      if (!loop_enabled) break;
-      workload_file.clear();
-      workload_file.seekg(0, std::ios::beg);
-      if (!std::getline(workload_file, line) || line.empty()) {
-        break; // empty shard; nothing to loop over
-      }
-    }
+    if (!std::getline(workload_file, line) || line.empty()) break;
 
     std::istringstream stream(line);
     char operation;
@@ -277,14 +260,6 @@ void RunShard(int thread_idx, DB *db, const WriteOptions &write_options,
     }
 
     ith_op += 1;
-
-    // Checked every op: clock_gettime is on the order of tens of
-    // nanoseconds, negligible next to any real DB operation (disk-bound
-    // point reads run in the hundreds of microseconds to milliseconds; even
-    // batched memtable inserts are microseconds). A coarser interval here
-    // previously let disk-bound read runs overshoot the deadline by
-    // several seconds per thread before the first check landed.
-    if (loop_enabled && std::chrono::steady_clock::now() >= deadline) break;
   }
   flush_pending();
 
@@ -378,15 +353,10 @@ int runWorkloadMultithread(std::unique_ptr<DBEnv> &env) {
   auto exec_start = std::chrono::high_resolution_clock::now();
 #endif // TOTAL_TIMER
 
-  const bool loop_enabled = env->duration_secs > 0;
-  const auto deadline = std::chrono::steady_clock::now() +
-                        std::chrono::seconds(env->duration_secs);
-
   for (unsigned int t = 0; t < T; t++) {
     threads.emplace_back(RunShard, static_cast<int>(t), db,
                          std::cref(write_options), std::cref(read_options),
-                         use_prefix_seek, std::ref(env), loop_enabled,
-                         deadline, &results[t]);
+                         use_prefix_seek, std::ref(env), &results[t]);
   }
   for (auto &th : threads) th.join();
 

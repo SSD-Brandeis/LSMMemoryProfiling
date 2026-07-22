@@ -131,15 +131,6 @@ public:
   // single-threaded runWorkload() ignores it. [threads]
   unsigned int num_client_threads = 1;
 
-  // When nonzero, runWorkloadMultithread() measures for this many wall-clock
-  // seconds instead of running each shard to exhaustion once: each thread
-  // wraps back to the start of its own shard file when it hits EOF, until a
-  // shared deadline passes. This avoids fixed per-run overhead (DB::Open,
-  // system cache clearing, background-thread warmup) dominating short,
-  // small-op-count comparisons across thread counts. 0 = legacy run-once
-  // behavior (every op in the shard executes exactly once). [threads only]
-  unsigned int duration_secs = 0;
-
   // The maximum number of write buffers that are built up in memory.
   // The default and the minimum number is 2, so that when 1 write buffer
   // is being flushed to storage, new writes can continue to the other
