@@ -1,44 +1,5 @@
 #!/usr/bin/env python3
-"""Memtable scalability-vs-thread-count experiment (reviewer comment R2.W2).
 
-Drives the project's real experiment harness — the same working_version
-binary used by runexp.sh — rather than a standalone benchmark. Two scenarios,
-run one at a time:
-
-  write : 100% insert. A single Tectonic-generated workload (3,000,000
-          unique random inserts) is re-sharded into T contiguous pieces for
-          each thread count; T client threads (working_version_mt --threads
-          T) each replay one shard concurrently against a FRESH empty DB, so
-          every thread count processes the identical total amount of work
-          and completion time is directly comparable.
-
-  read  : 100% read. Per memtable: load 1,500,000 keys once (single-threaded
-          working_version, ~1.4 GB > the 128 MB write buffer, so data is
-          flushed to disk — matches the project's standard on-disk buffer
-          geometry, see runexp_correctness.sh), then replay 200,000 point
-          queries T-way sharded against that same DB for each thread count
-          in turn (working_version_mt --threads T -d 0), reusing the loaded
-          DB across all thread counts.
-
-For every run: stdout/stderr -> rocksdb_stats.log, the RocksDB info LOG is
-moved out of db/ before db/ is deleted (kept even on failure), and the
-one-line throughput.csv the binary emits is folded into a per-scenario
-results.csv. Output layout:
-
-  experiment_data/memtable_scalability_vs_threads/
-    write_100pct/<memtable>/t<T>/{rocksdb_stats.log,LOG,throughput.csv}
-    write_100pct/results.csv
-    read_100pct/<memtable>/load/{rocksdb_stats.log,LOG}
-    read_100pct/<memtable>/t<T>/{rocksdb_stats.log,LOG,throughput.csv}
-    read_100pct/results.csv
-    manifest.json
-    ANALYSIS.md   (written separately, after inspecting results.csv)
-
-Usage:
-  python3 scripts/concurrency/run_scalability_experiment.py --scenario write
-  python3 scripts/concurrency/run_scalability_experiment.py --scenario read
-  python3 scripts/concurrency/run_scalability_experiment.py --scenario write --only skiplist,art
-"""
 import argparse
 import csv
 import json
@@ -48,10 +9,12 @@ import sys
 import time
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
+REPO_ROOT = Path(__file__).resolve().parents[1]
 BIN_DIR = REPO_ROOT / "bin"
-EXPERIMENT_ROOT = REPO_ROOT / "experiment_data" / "memtable_scalability_vs_threads"
+EXPERIMENT_ROOT = REPO_ROOT / "data" / "memtable_scalability_vs_threads"
 WORKLOAD_SCRATCH = EXPERIMENT_ROOT / "_workload"
+RUNNER_SCRIPT = "run_scripts/run_memtable_scalability.py"
+PLOT_SCRIPT = "plot_scripts/plot_memtable_scalability.py"
 
 THREAD_COUNTS = [1, 2, 4, 8, 16]
 
@@ -68,32 +31,31 @@ MEMTABLES = {
 }
 
 # 128 MB write buffer (E * B * P bytes), matching runexp_correctness.sh's
-# geometry convention. --bg_jobs raises max_background_jobs from the
-# project default of 1: at 1, a single flush/compaction thread cannot keep
-# up with several MB/s of concurrent inserts crossing repeated 128 MB
-# memtable boundaries, so RocksDB's own write-stall throttle
-# (WaitUntilFlushWouldNotStallWrites) throttles ALL client threads
-# regardless of the memtable's own insert concurrency -- a flush-pipeline
-# bottleneck, not a memtable-scalability result. Confirmed via the LOG
-# ("WaitUntilFlushWouldNotStallWrites waiting on stall conditions to
-# clear") on a first pass of this experiment before this flag was added.
-# Fixed-duration measurement (see run_workload_multithread.cc): each thread
-# wraps its shard on EOF and runs until this many wall-clock seconds have
-# elapsed, so ops-completed is compared at a common measurement window
-# instead of "how long did this fixed op count take" -- a handful of
-# seconds' worth of DB::Open / cache-clear / background-thread-warmup fixed
-# cost would otherwise dominate a short fixed-op-count run and make
-# thread-count comparisons noisy (confirmed on a first pass of this
-# experiment before this flag was added: T=4 came in below T=1).
-DURATION_SECS = 5
-COMMON_FLAGS = ["--bg_jobs", "8", "--duration_secs", str(DURATION_SECS)]
-WRITE_BUFFER_FLAGS = ["-E", "128", "-B", "32", "-P", "32768", "-T", "6"] + COMMON_FLAGS
-READ_BUFFER_FLAGS = ["-E", "1024", "-B", "4", "-P", "32768", "-T", "6"] + COMMON_FLAGS
+
+WRITE_BUFFER_GEOMETRY = ["-E", "128", "-B", "32", "-P", "32768", "-T", "6"]
+READ_BUFFER_GEOMETRY = ["-E", "1024", "-B", "4", "-P", "32768", "-T", "6"]
+
+
+WRITE_DEFAULT_BG_JOBS = [1, 8, 16]
+WRITE_DEFAULT_UNORDERED_WRITE = [False, True]
+
+READ_DEFAULT_BG_JOBS = [8]
+READ_DEFAULT_UNORDERED_WRITE = [False]
+
+
+def combo_flags(bg_jobs, unordered_write):
+    return ["--bg_jobs", str(bg_jobs),
+            "--concurrent_memtable_write", "1",
+            "--unordered_write", "1" if unordered_write else "0"]
+
+
+def combo_tag(bg_jobs, unordered_write):
+    return f"bg{bg_jobs}_uw{1 if unordered_write else 0}"
 
 WRITE_SPEC = REPO_ROOT / "lib/Tectonic/specs/concurrency_write.spec.json"
 READ_SPEC = REPO_ROOT / "lib/Tectonic/specs/concurrency_read.spec.json"
 WRITE_OP_COUNT = 3_000_000
-READ_LOAD_OP_COUNT = 1_500_000  # + 1 filler insert emitted by section 1
+READ_LOAD_OP_COUNT = 1_500_000  
 READ_QUERY_OP_COUNT = 200_000
 
 
@@ -158,7 +120,8 @@ def read_throughput_csv(run_dir: Path) -> dict:
     return row
 
 
-def run_write_scenario(memtables):
+def run_write_scenario(memtables, bg_jobs_list, unordered_write_list,
+                       thread_counts):
     scenario_dir = EXPERIMENT_ROOT / "write_100pct"
     scenario_dir.mkdir(parents=True, exist_ok=True)
 
@@ -170,35 +133,54 @@ def run_write_scenario(memtables):
         f"expected {WRITE_OP_COUNT} lines, got {len(lines)}")
 
     results = []
-    for name in memtables:
-        factory_id = MEMTABLES[name]
-        for T in THREAD_COUNTS:
-            run_dir = scenario_dir / name / f"t{T}"
-            write_shards(lines, run_dir, T)
+    for bg_jobs in bg_jobs_list:
+        for unordered_write in unordered_write_list:
+            tag = combo_tag(bg_jobs, unordered_write)
+            flags = WRITE_BUFFER_GEOMETRY + combo_flags(
+                bg_jobs, unordered_write)
+            for name in memtables:
+                factory_id = MEMTABLES[name]
+                for T in thread_counts:
+                    run_dir = scenario_dir / tag / name / f"t{T}"
+                    write_shards(lines, run_dir, T)
 
-            cmd = [str(BIN_DIR / "working_version_mt"), "--threads", str(T),
-                  "-m", str(factory_id)] + WRITE_BUFFER_FLAGS + [
-                  "--stat", "0", "--progress", "0"]
-            t0 = time.monotonic()
-            run(cmd, cwd=run_dir, log_path=run_dir / "rocksdb_stats.log")
-            wall = time.monotonic() - t0
+                    cmd = [str(BIN_DIR / "working_version_mt"), "--threads",
+                          str(T), "-m", str(factory_id)] + flags + [
+                          "--stat", "0", "--progress", "0"]
+                    t0 = time.monotonic()
+                    run(cmd, cwd=run_dir, log_path=run_dir / "rocksdb_stats.log")
+                    wall = time.monotonic() - t0
 
-            row = read_throughput_csv(run_dir)
-            row["memtable"] = name
-            row["wall_seconds"] = f"{wall:.3f}"
-            results.append(row)
-            print(f"  write {name:16s} T={T:<2d} "
-                  f"ops/s={float(row['ops_per_sec']):>10.1f} "
-                  f"(wall {wall:.1f}s)")
+                    row = read_throughput_csv(run_dir)
+                    row["memtable"] = name
+                    row["max_background_jobs"] = bg_jobs
+                    row["unordered_write"] = int(unordered_write)
+                    row["wall_seconds"] = f"{wall:.3f}"
+                    results.append(row)
+                    print(f"  write {tag:10s} {name:16s} T={T:<2d} "
+                          f"ops/s={float(row['ops_per_sec']):>10.1f} "
+                          f"(wall {wall:.1f}s)")
 
-            harvest_and_cleanup(run_dir)
-            for t in range(T):
-                (run_dir / f"shard_{t}.txt").unlink(missing_ok=True)
+                    harvest_and_cleanup(run_dir)
+                    for t in range(T):
+                        (run_dir / f"shard_{t}.txt").unlink(missing_ok=True)
 
-    write_results_csv(scenario_dir / "results.csv", results)
+    write_results_csv(scenario_dir / "results.csv", results, sweep=True)
 
 
-def run_read_scenario(memtables):
+def run_read_scenario(memtables, bg_jobs_list, unordered_write_list,
+                      thread_counts):
+    # No sweep here (see module docstring / WRITE_DEFAULT_* comment) -- the
+    # read scenario always uses a single bg_jobs/unordered_write setting, so
+    # directory layout stays flat (read_100pct/<memtable>/...), unlike the
+    # write scenario's bg<N>_uw<0|1>/<memtable>/... nesting.
+    if len(bg_jobs_list) > 1 or len(unordered_write_list) > 1:
+        print("  note: read scenario ignores all but the first --bg-jobs / "
+              "--unordered-write value (no sweep nesting for reads)")
+    bg_jobs = bg_jobs_list[0]
+    unordered_write = unordered_write_list[0]
+    read_flags = combo_flags(bg_jobs, unordered_write)
+
     scenario_dir = EXPERIMENT_ROOT / "read_100pct"
     scenario_dir.mkdir(parents=True, exist_ok=True)
 
@@ -221,7 +203,8 @@ def run_read_scenario(memtables):
         load_dir.mkdir(parents=True, exist_ok=True)
         (load_dir / "workload.txt").write_text("".join(load_lines))
         load_cmd = [str(BIN_DIR / "working_version"), "-m", str(factory_id)
-                   ] + READ_BUFFER_FLAGS + ["--stat", "0", "--progress", "0"]
+                   ] + READ_BUFFER_GEOMETRY + read_flags + [
+                   "--stat", "0", "--progress", "0"]
         print(f"  read  {name:16s} loading {READ_LOAD_OP_COUNT:,} keys ...")
         t0 = time.monotonic()
         run(load_cmd, cwd=load_dir, log_path=load_dir / "rocksdb_stats.log")
@@ -233,7 +216,7 @@ def run_read_scenario(memtables):
         if (load_dir / "db" / "LOG").exists():
             shutil.copy(str(load_dir / "db" / "LOG"), str(load_dir / "LOG"))
 
-        for T in THREAD_COUNTS:
+        for T in thread_counts:
             run_dir = scenario_dir / name / f"t{T}"
             run_dir.mkdir(parents=True, exist_ok=True)
             # Reopen the SAME db/ directory the load phase created, without
@@ -246,7 +229,8 @@ def run_read_scenario(memtables):
 
             cmd = [str(BIN_DIR / "working_version_mt"), "-d", "0",
                   "--threads", str(T), "-m", str(factory_id)
-                  ] + READ_BUFFER_FLAGS + ["--stat", "0", "--progress", "0"]
+                  ] + READ_BUFFER_GEOMETRY + read_flags + [
+                  "--stat", "0", "--progress", "0"]
             t0 = time.monotonic()
             run(cmd, cwd=run_dir, log_path=run_dir / "rocksdb_stats.log")
             wall = time.monotonic() - t0
@@ -268,9 +252,11 @@ def run_read_scenario(memtables):
     write_results_csv(scenario_dir / "results.csv", results)
 
 
-def write_results_csv(path: Path, rows: list):
-    fields = ["memtable", "threads", "total_ops", "seconds", "ops_per_sec",
-             "wall_seconds"]
+def write_results_csv(path: Path, rows: list, sweep: bool = False):
+    fields = ["memtable", "threads"]
+    if sweep:
+        fields += ["max_background_jobs", "unordered_write"]
+    fields += ["total_ops", "seconds", "ops_per_sec", "wall_seconds"]
     with open(path, "w", newline="") as f:
         w = csv.DictWriter(f, fieldnames=fields)
         w.writeheader()
@@ -279,27 +265,82 @@ def write_results_csv(path: Path, rows: list):
     print(f"wrote {path}")
 
 
-def write_manifest():
-    manifest = {
-        "memtables": MEMTABLES,
-        "thread_counts": THREAD_COUNTS,
-        "write_scenario": {
+def relative_to_repo_or_abs(path: Path) -> str:
+    """repo-relative path, or the absolute path if outside REPO_ROOT (e.g.
+    --data-root pointed at a scratch dir for a sanity check)."""
+    try:
+        return str(path.relative_to(REPO_ROOT))
+    except ValueError:
+        return str(path)
+
+
+def write_manifest(scenario, bg_jobs_list, unordered_write_list,
+                   thread_counts):
+    manifest_path = EXPERIMENT_ROOT / "manifest.json"
+    manifest = {}
+    if manifest_path.exists():
+        with open(manifest_path) as f:
+            manifest = json.load(f)
+
+    manifest["memtables"] = MEMTABLES
+    scenario_key = f"{scenario}_scenario"
+    scenario_record = {
+        "thread_counts": thread_counts,
+        "bg_jobs_swept": bg_jobs_list,
+        "unordered_write_swept": unordered_write_list,
+        "concurrent_memtable_write": True,
+    }
+    if scenario == "write":
+        scenario_record.update({
             "spec": str(WRITE_SPEC.relative_to(REPO_ROOT)),
             "op_count": WRITE_OP_COUNT,
-            "buffer_flags": WRITE_BUFFER_FLAGS,
+            "buffer_geometry": WRITE_BUFFER_GEOMETRY,
             "buffer_bytes": 128 * 1024 * 1024,
-        },
-        "read_scenario": {
+        })
+    else:
+        scenario_record.update({
             "spec": str(READ_SPEC.relative_to(REPO_ROOT)),
             "load_op_count": READ_LOAD_OP_COUNT,
             "query_op_count": READ_QUERY_OP_COUNT,
-            "buffer_flags": READ_BUFFER_FLAGS,
+            "buffer_geometry": READ_BUFFER_GEOMETRY,
             "buffer_bytes": 128 * 1024 * 1024,
+        })
+    manifest[scenario_key] = scenario_record
+
+    manifest["harness"] = {
+        "generator": "lib/Tectonic (tectonic-cli)",
+        "executor": "working_version / working_version_mt "
+                   "(src/run_workload.cc, src/run_workload_multithread.cc)",
+    }
+    manifest["provenance"] = {
+        "runner_script": RUNNER_SCRIPT,
+        "plot_script": PLOT_SCRIPT,
+        "data_dir": relative_to_repo_or_abs(EXPERIMENT_ROOT),
+        "plot_dir": relative_to_repo_or_abs(EXPERIMENT_ROOT / "plots"),
+        "artifact_dir": relative_to_repo_or_abs(EXPERIMENT_ROOT),
+        "command_setup": {
+            "write": "python3 run_scripts/run_memtable_scalability.py --scenario write",
+            "read": "python3 run_scripts/run_memtable_scalability.py --scenario read",
+            "plot": "python3 plot_scripts/plot_memtable_scalability.py",
         },
-        "harness": {
-            "generator": "lib/Tectonic (tectonic-cli)",
-            "executor": "working_version / working_version_mt "
-                       "(src/run_workload.cc, src/run_workload_multithread.cc)",
+        "metric_definitions": {
+            "ops_per_sec": "total_ops / seconds, where total_ops is the "
+                "fixed op count for the run (every thread replays its "
+                "shard exactly once) and seconds is however long that "
+                "took, as measured/reported by working_version_mt's "
+                "throughput.csv",
+            "wall_seconds": "end-to-end subprocess wall time for the "
+                "run as measured by the orchestrating Python script "
+                "(includes DB::Open/cache-drop overhead, unlike "
+                "'seconds' which is the binary's own measurement window)",
+            "speedup": "ops_per_sec(T) / ops_per_sec(T=1) for the same "
+                "memtable, computed at plot time (not stored in "
+                "results.csv)",
+            "max_background_jobs": "swept 1/8/16 for the write scenario "
+                "(rocksdb::Options::max_background_jobs, --bg_jobs)",
+            "unordered_write": "swept false/true for the write scenario "
+                "(rocksdb::Options::unordered_write, --unordered_write); "
+                "requires concurrent_memtable_write=true",
         },
     }
     EXPERIMENT_ROOT.mkdir(parents=True, exist_ok=True)
@@ -308,6 +349,7 @@ def write_manifest():
 
 
 def main():
+    global EXPERIMENT_ROOT, WORKLOAD_SCRATCH
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--scenario", choices=["write", "read"], required=True,
@@ -317,7 +359,25 @@ def main():
                              "(default: all 7).")
     parser.add_argument("--no-build", action="store_true",
                         help="Skip the cmake build step.")
+    parser.add_argument("--bg-jobs", default=None,
+                        help="Comma-separated max_background_jobs values to "
+                             "sweep (default: 1,8,16 for write; 8 for read).")
+    parser.add_argument("--unordered-write", default=None,
+                        help="Comma-separated 0/1 values to sweep (default: "
+                             "0,1 for write; 0 for read).")
+    parser.add_argument("--thread-counts", default=None,
+                        help="Comma-separated thread counts (default: "
+                             "1,2,4,8,16).")
+    parser.add_argument("--data-root", default=None,
+                        help="Override the data output root (default: "
+                             "data/memtable_scalability_vs_threads). Use "
+                             "this for sanity checks so they don't "
+                             "overwrite real results/manifest.json.")
     args = parser.parse_args()
+
+    if args.data_root:
+        EXPERIMENT_ROOT = Path(args.data_root).resolve()
+        WORKLOAD_SCRATCH = EXPERIMENT_ROOT / "_workload"
 
     memtables = (args.only.split(",") if args.only
                 else list(MEMTABLES.keys()))
@@ -325,15 +385,31 @@ def main():
         if name not in MEMTABLES:
             sys.exit(f"unknown memtable {name!r}; choices: {list(MEMTABLES)}")
 
+    default_bg_jobs = (WRITE_DEFAULT_BG_JOBS if args.scenario == "write"
+                      else READ_DEFAULT_BG_JOBS)
+    default_unordered_write = (WRITE_DEFAULT_UNORDERED_WRITE
+                              if args.scenario == "write"
+                              else READ_DEFAULT_UNORDERED_WRITE)
+    bg_jobs_list = ([int(x) for x in args.bg_jobs.split(",")]
+                    if args.bg_jobs else default_bg_jobs)
+    unordered_write_list = ([bool(int(x)) for x in
+                             args.unordered_write.split(",")]
+                           if args.unordered_write else default_unordered_write)
+    thread_counts = ([int(x) for x in args.thread_counts.split(",")]
+                     if args.thread_counts else THREAD_COUNTS)
+
     if not args.no_build:
         build_binaries()
 
-    write_manifest()
+    write_manifest(args.scenario, bg_jobs_list, unordered_write_list,
+                  thread_counts)
 
     if args.scenario == "write":
-        run_write_scenario(memtables)
+        run_write_scenario(memtables, bg_jobs_list, unordered_write_list,
+                          thread_counts)
     else:
-        run_read_scenario(memtables)
+        run_read_scenario(memtables, bg_jobs_list, unordered_write_list,
+                         thread_counts)
 
 
 if __name__ == "__main__":
