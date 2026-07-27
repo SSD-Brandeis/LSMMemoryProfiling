@@ -151,6 +151,14 @@ int parse_arguments(int argc, char *argv[], std::unique_ptr<DBEnv> &env) {
       "for higher write throughput; requires concurrent_memtable_write=1 "
       "[def: 0]",
       {"unordered_write"});
+  args::ValueFlag<std::string> load_file_cmd(
+      group1, "load_file",
+      "If set, replayed single-threaded immediately after DB::Open(), "
+      "before the --threads shard threads are spawned -- lets a "
+      "load-then-query experiment run in one process/DB (working_version_mt "
+      "only). This phase is timed (see workload.log's [load phase] block) "
+      "but excluded from throughput.csv/ops_per_sec [def: none]",
+      {"load_file"});
   try {
     parser.ParseCLI(argc, argv);
   } catch (args::Help &) {
@@ -250,6 +258,7 @@ int parse_arguments(int argc, char *argv[], std::unique_ptr<DBEnv> &env) {
   env->unordered_write = unordered_write_cmd
                              ? static_cast<bool>(args::get(unordered_write_cmd))
                              : env->unordered_write;
+  env->load_file = load_file_cmd ? args::get(load_file_cmd) : env->load_file;
 
   return 0;
 }

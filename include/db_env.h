@@ -3,6 +3,7 @@
 
 #include <memory>
 #include <mutex>
+#include <string>
 
 #include "buffer.h"
 
@@ -130,6 +131,14 @@ public:
   // shared DB handle. Only consumed by runWorkloadMultithread(); the
   // single-threaded runWorkload() ignores it. [threads]
   unsigned int num_client_threads = 1;
+
+  // If non-empty, runWorkloadMultithread() replays this file single-
+  // threaded, immediately after DB::Open() and strictly before spawning the
+  // num_client_threads shard threads -- so a load-then-query experiment
+  // never needs a second process/DB reopen (see the comment at its call
+  // site in run_workload_multithread.cc). This phase is timed but excluded
+  // from throughput.csv/ops_per_sec. [load_file]
+  std::string load_file;
 
   // The maximum number of write buffers that are built up in memory.
   // The default and the minimum number is 2, so that when 1 write buffer

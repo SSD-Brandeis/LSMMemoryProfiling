@@ -16,7 +16,7 @@
 namespace rocksdb {
   class MemTableRepFactory;
   MemTableRepFactory* NewARTRepFactory();
-  MemTableRepFactory* NewTLXBTreeRepFactory();
+  MemTableRepFactory* NewOLCBTreeRepFactory();
 }
 
 class StringAppendOperator : public rocksdb::AssociativeMergeOperator {
@@ -169,7 +169,7 @@ void configOptions(std::unique_ptr<DBEnv> &env, Options *options,
     options->memtable_factory.reset(rocksdb::NewARTRepFactory());
     break;
   case 12:
-    options->memtable_factory.reset(rocksdb::NewTLXBTreeRepFactory());
+    options->memtable_factory.reset(rocksdb::NewOLCBTreeRepFactory());
     break;
   default:
     std::cerr << "Error[" << __FILE__ << " : " << __LINE__

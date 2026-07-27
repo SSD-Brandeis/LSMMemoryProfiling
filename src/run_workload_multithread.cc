@@ -1,31 +1,6 @@
 // run_workload_multithread.cc
-//
-// Multithreaded counterpart to run_workload.cc, built for the R2.W2
-// scalability-vs-thread-count experiments. Structurally this is a copy of
-// runWorkload(): same DBEnv/configOptions setup, same DB::Open, and the same
-// per-line operation dispatch (identical switch-case semantics for
-// I/U/D/P|Q/S|SC/R/M). The difference is execution: env->num_client_threads
-// worker threads are spawned against one shared DB* handle, each replaying
-// its own workload shard file ("shard_<i>.txt" in the current directory) and
-// issuing real rocksdb::DB API calls (Put/Get/Delete/NewIterator/...)
-// concurrently — the same client-facing API surface a real multi-client
-// deployment would exercise.
-//
-// Each thread owns its own Buffer instances (workload_t<i>.log /
-// stats_t<i>.log) since Buffer is not internally synchronized for concurrent
-// writers. GlobalWorkloadMonitor()'s counters are atomic and are safe to
-// update from all threads; Configure() is called once up front, before any
-// thread starts.
-//
-// Consecutive I/U lines are coalesced into a WriteBatch (flushed every
-// kBatchSize entries, and immediately before any op that reads or deletes,
-// to preserve read-your-own-writes ordering for mixed workloads). A pure
-// per-line db->Put() issues one single-entry write group per call; at
-// microsecond-scale memtable insert costs, RocksDB's write-group
-// leader/follower coordination then dominates the measurement instead of
-// the memtable itself, which is what this harness is trying to isolate.
-// Batching is the standard RocksDB bulk-load practice, not a measurement
-// trick — see rocksdb/write_batch.h.
+
+
 #include "run_workload_multithread.h"
 
 #include <algorithm>
@@ -45,27 +20,31 @@
 
 namespace {
 
-// Per-thread result, aggregated after all threads join.
+
 struct ThreadResult {
   unsigned long ops = 0;
+  unsigned long inserts_exec_time = 0;
+  unsigned long updates_exec_time = 0;
+  unsigned long pq_exec_time = 0;
+  unsigned long pdelete_exec_time = 0;
+  unsigned long rq_exec_time = 0;
+  unsigned long merge_exec_time = 0;
 };
 
-// Replays one shard file against the shared db, once, start to end. Mirrors
-// the per-line dispatch in runWorkload() exactly (same operation codes /
-// semantics).
-void RunShard(int thread_idx, DB *db, const WriteOptions &write_options,
+
+void RunShard(const std::string &label, const std::string &shard_path, DB *db,
+              const WriteOptions &write_options,
               const ReadOptions &read_options, bool use_prefix_seek,
               std::unique_ptr<DBEnv> &env, ThreadResult *result) {
-  std::string shard_path = "shard_" + std::to_string(thread_idx) + ".txt";
   std::ifstream workload_file(shard_path);
   if (!workload_file) {
-    std::cerr << "Thread " << thread_idx << ": failed to open " << shard_path
+    std::cerr << "Shard " << label << ": failed to open " << shard_path
               << std::endl;
     return;
   }
 
-  std::string workload_log = "workload_t" + std::to_string(thread_idx) + ".log";
-  std::string stats_log = "stats_t" + std::to_string(thread_idx) + ".log";
+  std::string workload_log = "workload_t" + label + ".log";
+  std::string stats_log = "stats_t" + label + ".log";
   std::shared_ptr<Buffer> buffer = std::make_unique<Buffer>(workload_log);
   std::unique_ptr<Buffer> stats = std::make_unique<Buffer>(stats_log);
 
@@ -78,19 +57,21 @@ void RunShard(int thread_idx, DB *db, const WriteOptions &write_options,
   WriteBatch pending_batch;
   size_t pending_count = 0;
   Status s;
-  // Attributed to "insert time"; individual entries within a flushed batch
-  // are not separately timed (see file header comment).
-  auto flush_pending = [&]() {
+
+  auto write_pending_batch = [&]() {
     if (pending_count == 0) return;
+    size_t written_count = pending_count;
 #ifdef PER_OP_TIMER
     auto start = std::chrono::high_resolution_clock::now();
 #endif // PER_OP_TIMER
     s = db->Write(write_options, &pending_batch);
 #ifdef PER_OP_TIMER
     auto stop = std::chrono::high_resolution_clock::now();
-    inserts_exec_time +=
-        std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start)
-            .count();
+    auto duration =
+        std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+    (*stats) << "IB: " << duration.count() << " count=" << written_count
+            << std::endl;
+    inserts_exec_time += duration.count();
 #endif // PER_OP_TIMER
     pending_batch.Clear();
     pending_count = 0;
@@ -112,7 +93,7 @@ void RunShard(int thread_idx, DB *db, const WriteOptions &write_options,
       stream >> key >> value;
       pending_batch.Put(key, value);
       GlobalWorkloadMonitor().RecordInsert();
-      if (++pending_count >= kBatchSize) flush_pending();
+      if (++pending_count >= kBatchSize) write_pending_batch();
       break;
     }
       // [Update]
@@ -121,12 +102,12 @@ void RunShard(int thread_idx, DB *db, const WriteOptions &write_options,
       stream >> key >> value;
       pending_batch.Put(key, value);
       GlobalWorkloadMonitor().RecordUpdate();
-      if (++pending_count >= kBatchSize) flush_pending();
+      if (++pending_count >= kBatchSize) write_pending_batch();
       break;
     }
       // [PointDelete]
     case 'D': {
-      flush_pending();
+      write_pending_batch();
       std::string key;
       stream >> key;
 
@@ -147,7 +128,7 @@ void RunShard(int thread_idx, DB *db, const WriteOptions &write_options,
       // [ProbePointQuery]
     case 'P':
     case 'Q': {
-      flush_pending();
+      write_pending_batch();
       std::string key, value;
       stream >> key;
 
@@ -156,11 +137,14 @@ void RunShard(int thread_idx, DB *db, const WriteOptions &write_options,
 #endif // PER_OP_TIMER
       s = db->Get(read_options, key, &value);
       GlobalWorkloadMonitor().RecordPointQuery();
+   
       if (s.IsNotFound()) {
         (*buffer) << "PQ: " << key << ", Not Found" << std::endl;
       } else if (!s.ok()) {
         (*buffer) << "PQ: Error reading key " << key << ": " << s.ToString()
                   << std::endl;
+      } else {
+        (*buffer) << "PQ: " << key << ", " << value << std::endl;
       }
 #ifdef PER_OP_TIMER
       auto stop = std::chrono::high_resolution_clock::now();
@@ -173,7 +157,7 @@ void RunShard(int thread_idx, DB *db, const WriteOptions &write_options,
     }
       // [ScanRangeQuery] — same "S"/"SC" formats as runWorkload().
     case 'S': {
-      flush_pending();
+      write_pending_batch();
       const bool is_count_scan = (stream.peek() == 'C');
       if (is_count_scan) stream.get();
 
@@ -228,7 +212,7 @@ void RunShard(int thread_idx, DB *db, const WriteOptions &write_options,
     }
       // [RangeDelete]
     case 'R': {
-      flush_pending();
+      write_pending_batch();
       std::string start_key, end_key;
       stream >> start_key >> end_key;
       s = db->DeleteRange(write_options, start_key, end_key);
@@ -237,7 +221,7 @@ void RunShard(int thread_idx, DB *db, const WriteOptions &write_options,
     }
       // [ReadModifyWrite]
     case 'M': {
-      flush_pending();
+      write_pending_batch();
 #ifdef PER_OP_TIMER
       auto start = std::chrono::high_resolution_clock::now();
 #endif // PER_OP_TIMER
@@ -261,7 +245,7 @@ void RunShard(int thread_idx, DB *db, const WriteOptions &write_options,
 
     ith_op += 1;
   }
-  flush_pending();
+  write_pending_batch();
 
 #ifdef PER_OP_TIMER
   (*buffer) << "=====================" << std::endl;
@@ -271,6 +255,12 @@ void RunShard(int thread_idx, DB *db, const WriteOptions &write_options,
   (*buffer) << "PointDelete Execution Time: " << pdelete_exec_time << std::endl;
   (*buffer) << "RangeQuery Execution Time: " << rq_exec_time << std::endl;
   (*buffer) << "Merge Execution Time: " << merge_exec_time << std::endl;
+  result->inserts_exec_time = inserts_exec_time;
+  result->updates_exec_time = updates_exec_time;
+  result->pq_exec_time = pq_exec_time;
+  result->pdelete_exec_time = pdelete_exec_time;
+  result->rq_exec_time = rq_exec_time;
+  result->merge_exec_time = merge_exec_time;
 #endif // PER_OP_TIMER
 
   buffer->flush();
@@ -345,6 +335,36 @@ int runWorkloadMultithread(std::unique_ptr<DBEnv> &env) {
   if (env->IsIOStatEnabled())
     rocksdb::get_iostats_context()->Reset();
 
+  // Load phase: replayed single-threaded, in this same process/DB::Open(),
+  // strictly before the T-thread region below starts. Exists so a
+  // read/mixed-style "load N keys, then measure M queries against them"
+  // experiment never needs a second process to reopen the DB -- since WAL
+  // is disabled (disableWAL=true, db_env.h), a process restart would have
+  // no way to recover the loaded data short of a real flush to SST, which
+  // defeats an in-memory experiment's purpose. Doing the load here keeps
+  // everything in one memtable, one process lifetime.
+  //
+
+  ThreadResult load_result;
+  const bool did_load = !env->load_file.empty();
+#ifdef TOTAL_TIMER
+  unsigned long load_exec_time = 0;
+#endif // TOTAL_TIMER
+  if (did_load) {
+    std::cerr << "Loading " << env->load_file << " ..." << std::endl;
+#ifdef TOTAL_TIMER
+    auto load_start = std::chrono::high_resolution_clock::now();
+#endif // TOTAL_TIMER
+    RunShard("load", env->load_file, db, write_options, read_options,
+            use_prefix_seek, env, &load_result);
+#ifdef TOTAL_TIMER
+    load_exec_time = std::chrono::duration_cast<std::chrono::nanoseconds>(
+                         std::chrono::high_resolution_clock::now() - load_start)
+                         .count();
+#endif // TOTAL_TIMER
+    std::cerr << "Load done: " << load_result.ops << " ops" << std::endl;
+  }
+
   std::vector<ThreadResult> results(T);
   std::vector<std::thread> threads;
   threads.reserve(T);
@@ -354,11 +374,37 @@ int runWorkloadMultithread(std::unique_ptr<DBEnv> &env) {
 #endif // TOTAL_TIMER
 
   for (unsigned int t = 0; t < T; t++) {
-    threads.emplace_back(RunShard, static_cast<int>(t), db,
+    threads.emplace_back(RunShard, std::to_string(t),
+                         "shard_" + std::to_string(t) + ".txt", db,
                          std::cref(write_options), std::cref(read_options),
                          use_prefix_seek, std::ref(env), &results[t]);
   }
   for (auto &th : threads) th.join();
+
+#ifdef PER_OP_TIMER
+  // Consolidated dense per-op log: every thread's (plus the load phase's,
+  // if any) stats_t<label>.log gets merged into one stats_all.log here,
+  // each line prefixed with which shard it came from. This runs strictly
+  // after all threads have joined -- i.e. after the timed region ends --
+  // so it adds no synchronization between threads and cannot perturb any
+  // timing recorded above. The per-thread files are left in place too
+  // (this is an added convenience view, not a replacement); lines stay in
+  // per-thread chronological order but are grouped thread-by-thread, not
+  // globally interleaved by wall-clock time (no absolute timestamp is
+  // recorded per line, only durations).
+  {
+    std::ofstream consolidated("stats_all.log");
+    auto append_shard = [&](const std::string &label) {
+      std::ifstream in("stats_t" + label + ".log");
+      std::string line;
+      while (std::getline(in, line)) {
+        consolidated << "[t" << label << "] " << line << "\n";
+      }
+    };
+    if (!env->load_file.empty()) append_shard("load");
+    for (unsigned int t = 0; t < T; t++) append_shard(std::to_string(t));
+  }
+#endif // PER_OP_TIMER
 
 #ifdef TOTAL_TIMER
   auto total_exec_time =
@@ -388,6 +434,80 @@ int runWorkloadMultithread(std::unique_ptr<DBEnv> &env) {
   (*summary_buffer) << "=====================" << std::endl;
   LogTreeState(db, summary_buffer, env);
 #endif // PROFILE
+
+#ifdef TOTAL_TIMER
+  // Mirrors run_workload.cc's single-threaded "Workload Execution Time"
+  // line -- this is the one run-level (not per-thread) timing quantity
+  // that previously had no home in workload.log at all (only in
+  // throughput.csv/stderr).
+  (*summary_buffer) << "=====================" << std::endl;
+  (*summary_buffer) << "Workload Execution Time: " << total_exec_time
+                    << std::endl;
+  (*summary_buffer) << "Threads: " << T << std::endl;
+  (*summary_buffer) << "Total Ops: " << total_ops << std::endl;
+  (*summary_buffer) << "Ops Per Sec: " << ops_per_sec << std::endl;
+#endif // TOTAL_TIMER
+
+#ifdef PER_OP_TIMER
+  // End-to-end per-op-type execution time, same 6 labels run_workload.cc
+  // prints for its single thread, here summed across all T timed shard
+  // threads -- this is a real, meaningful total: inserts_exec_time already
+  // accumulates actual db->Write() time per written batch (write_pending_batch,
+  // above), batching only changes what counts as "one operation" for the
+  // dense per-op log, not whether the time is tracked. Note this is a SUM
+  // of concurrently-elapsed per-thread time, not wall-clock time, so it can
+  // (and usually will) exceed Workload Execution Time above when T > 1 --
+  // that's expected, not a bug: T threads doing real work in parallel for
+  // total_seconds each contribute up to total_seconds of their own time.
+  unsigned long total_inserts_exec_time = 0, total_updates_exec_time = 0,
+               total_pq_exec_time = 0, total_pdelete_exec_time = 0,
+               total_rq_exec_time = 0, total_merge_exec_time = 0;
+  for (const auto &r : results) {
+    total_inserts_exec_time += r.inserts_exec_time;
+    total_updates_exec_time += r.updates_exec_time;
+    total_pq_exec_time += r.pq_exec_time;
+    total_pdelete_exec_time += r.pdelete_exec_time;
+    total_rq_exec_time += r.rq_exec_time;
+    total_merge_exec_time += r.merge_exec_time;
+  }
+  (*summary_buffer) << "=====================" << std::endl;
+  (*summary_buffer) << "Inserts Execution Time: " << total_inserts_exec_time
+                    << std::endl;
+  (*summary_buffer) << "Updates Execution Time: " << total_updates_exec_time
+                    << std::endl;
+  (*summary_buffer) << "PointQuery Execution Time: " << total_pq_exec_time
+                    << std::endl;
+  (*summary_buffer) << "PointDelete Execution Time: " << total_pdelete_exec_time
+                    << std::endl;
+  (*summary_buffer) << "RangeQuery Execution Time: " << total_rq_exec_time
+                    << std::endl;
+  (*summary_buffer) << "Merge Execution Time: " << total_merge_exec_time
+                    << std::endl;
+
+  // The load phase's own timing, shown separately from the T-thread
+  // measurement above (not because it isn't measured -- it is, both wall
+  // clock and per-op-type -- but because it's a one-time setup step, not
+  // part of the per-thread-count throughput this harness plots).
+  if (did_load) {
+    (*summary_buffer) << "=====================" << std::endl;
+    (*summary_buffer) << "[load phase] Execution Time: " << load_exec_time
+                      << std::endl;
+    (*summary_buffer) << "[load phase] Inserts Execution Time: "
+                      << load_result.inserts_exec_time << std::endl;
+    (*summary_buffer) << "[load phase] Updates Execution Time: "
+                      << load_result.updates_exec_time << std::endl;
+    (*summary_buffer) << "[load phase] PointQuery Execution Time: "
+                      << load_result.pq_exec_time << std::endl;
+    (*summary_buffer) << "[load phase] PointDelete Execution Time: "
+                      << load_result.pdelete_exec_time << std::endl;
+    (*summary_buffer) << "[load phase] RangeQuery Execution Time: "
+                      << load_result.rq_exec_time << std::endl;
+    (*summary_buffer) << "[load phase] Merge Execution Time: "
+                      << load_result.merge_exec_time << std::endl;
+    (*summary_buffer) << "[load phase] Ops: " << load_result.ops
+                      << std::endl;
+  }
+#endif // PER_OP_TIMER
 
   if (!s.ok())
     std::cerr << s.ToString() << std::endl;
