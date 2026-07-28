@@ -72,6 +72,9 @@ workload.txt
 # .vscode
 .vscode/
 
+# python venvs used by plotting scripts
+.venv*/
+
 # .vstats
 .vstats/
 .DS_Store
