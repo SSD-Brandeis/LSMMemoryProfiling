@@ -26,9 +26,16 @@ MEMTABLES = {"skiplist": 1, "art": 11}
 # diagnostic run and to trigger memtable switches (and therefore stalls)
 # more often -- this experiment's point is to characterize the stall
 # mechanism, not to be directly comparable to the small/scaled experiments.
-BUFFER_BYTES = 2 * 1024 * 1024
-WRITE_BUFFER_GEOMETRY = ["-E", "32768", "-B", "32", "-P", "32768", "-T", "6",
-                        "-M", str(BUFFER_BYTES)]
+# P * B * E must equal BUFFER_BYTES (see AGENTS.md "Buffer Geometry"): E is
+# the real entry size (24B key + 100B val); P is derived from a target of
+# ~2 MiB and only approximates it since 124 does not divide a power of two
+# exactly. -M is omitted so write_buffer_size comes from P*B*E.
+ENTRY_SIZE = 24 + 100
+ENTRIES_PER_PAGE = 4
+BUFFER_SIZE_IN_PAGES = round(2 * 1024 * 1024 / (ENTRIES_PER_PAGE * ENTRY_SIZE))
+BUFFER_BYTES = BUFFER_SIZE_IN_PAGES * ENTRIES_PER_PAGE * ENTRY_SIZE
+WRITE_BUFFER_GEOMETRY = ["-E", str(ENTRY_SIZE), "-B", str(ENTRIES_PER_PAGE),
+                        "-P", str(BUFFER_SIZE_IN_PAGES), "-T", "10"]
 
 MAX_WRITE_BUFFER_NUMBER_VALUES = [2, 4, 8]
 BG_JOBS_VALUES = [1, 8, 16]
