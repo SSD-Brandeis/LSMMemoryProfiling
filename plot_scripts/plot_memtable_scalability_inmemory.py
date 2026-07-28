@@ -60,17 +60,15 @@ plt.rcParams.update({
 })
 
 
-def load_write(path):
-    """{memtable: {threads: ops/s}} -- single (bg_jobs, unordered_write)
-    config in this experiment, so no combo faceting is needed."""
-    d = defaultdict(dict)
-    bg = None
-    uw = None
+def load_sweep_by_uw(path):
+    """{unordered_write (0/1): ({memtable: {threads: ops/s}}, bg_jobs)} --
+    used for write and mixed, both of which now sweep unordered_write."""
+    out = {}
     for row in csv.DictReader(open(path)):
+        uw = int(row["unordered_write"])
+        d, _ = out.setdefault(uw, (defaultdict(dict), row["max_background_jobs"]))
         d[row["memtable"]][int(row["threads"])] = float(row["ops_per_sec"])
-        bg = row["max_background_jobs"]
-        uw = row["unordered_write"]
-    return d, bg, uw
+    return out
 
 
 def load_read(path):
@@ -236,12 +234,14 @@ def main():
 
     write_csv = R / "write_100pct" / "results.csv"
     if write_csv.exists():
-        write, bg, uw = load_write(write_csv)
-        config_str = f"cmw=1, uw={uw}, bg={bg}"
-        for memtable in WRITE_MEMTABLES:
-            plot_write_memtable(write[memtable], memtable, config_str,
-                                OUT / f"write_throughput_{memtable}.pdf")
-        plot_write_all(write, config_str, OUT / "write_throughput_all.pdf")
+        for uw, (write, bg) in sorted(load_sweep_by_uw(write_csv).items()):
+            config_str = f"cmw=1, uw={uw}, bg={bg}"
+            out_dir = OUT / "write" / f"uw{uw}"
+            out_dir.mkdir(parents=True, exist_ok=True)
+            for memtable in WRITE_MEMTABLES:
+                plot_write_memtable(write[memtable], memtable, config_str,
+                                    out_dir / f"write_throughput_{memtable}.pdf")
+            plot_write_all(write, config_str, out_dir / "write_throughput_all.pdf")
     else:
         print(f"skipping write plots: {write_csv} not found")
 
@@ -252,21 +252,25 @@ def main():
         # run_memtable_scalability_inmemory.py's READ_DEFAULT_* constants),
         # so the config is fixed and not read back out of results.csv.
         read_config_str = "cmw=1, uw=0, bg=8"
+        out_dir = OUT / "read"
+        out_dir.mkdir(parents=True, exist_ok=True)
         for memtable in READ_MEMTABLES:
             plot_read_memtable(read[memtable], memtable, read_config_str,
-                               OUT / f"read_throughput_{memtable}.pdf")
-        plot_read_all(read, read_config_str, OUT / "read_throughput_all.pdf")
+                               out_dir / f"read_throughput_{memtable}.pdf")
+        plot_read_all(read, read_config_str, out_dir / "read_throughput_all.pdf")
     else:
         print(f"skipping read plots: {read_csv} not found")
 
     mixed_csv = R / "mixed_50_50" / "results.csv"
     if mixed_csv.exists():
-        mixed = load_read(mixed_csv)  # same column shape as read_100pct
-        mixed_config_str = "cmw=1, uw=0, bg=8"
-        for memtable in MIXED_MEMTABLES:
-            plot_mixed_memtable(mixed[memtable], memtable, mixed_config_str,
-                                OUT / f"mixed_throughput_{memtable}.pdf")
-        plot_mixed_all(mixed, mixed_config_str, OUT / "mixed_throughput_all.pdf")
+        for uw, (mixed, bg) in sorted(load_sweep_by_uw(mixed_csv).items()):
+            mixed_config_str = f"cmw=1, uw={uw}, bg={bg}"
+            out_dir = OUT / "mixed" / f"uw{uw}"
+            out_dir.mkdir(parents=True, exist_ok=True)
+            for memtable in MIXED_MEMTABLES:
+                plot_mixed_memtable(mixed[memtable], memtable, mixed_config_str,
+                                    out_dir / f"mixed_throughput_{memtable}.pdf")
+            plot_mixed_all(mixed, mixed_config_str, out_dir / "mixed_throughput_all.pdf")
     else:
         print(f"skipping mixed plots: {mixed_csv} not found")
 

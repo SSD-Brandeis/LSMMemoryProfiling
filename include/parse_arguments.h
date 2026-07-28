@@ -140,6 +140,12 @@ int parse_arguments(int argc, char *argv[], std::unique_ptr<DBEnv> &env) {
       group1, "max_background_jobs",
       "Maximum concurrent background flush/compaction jobs [def: 1]",
       {"bg_jobs"});
+  args::ValueFlag<int> max_write_buffer_number_cmd(
+      group1, "max_write_buffer_number",
+      "Maximum number of memtables (active + immutable pending flush) "
+      "before writers stall (rocksdb::Options::max_write_buffer_number) "
+      "[def: 2]",
+      {"max_write_buffer_number"});
   args::ValueFlag<int> concurrent_memtable_write_cmd(
       group1, "concurrent_memtable_write",
       "Allow multiple writer threads to update the memtable in parallel "
@@ -251,6 +257,9 @@ int parse_arguments(int argc, char *argv[], std::unique_ptr<DBEnv> &env) {
   env->max_background_jobs = max_background_jobs_cmd
                                  ? args::get(max_background_jobs_cmd)
                                  : env->max_background_jobs;
+  env->max_write_buffer_number = max_write_buffer_number_cmd
+                                     ? args::get(max_write_buffer_number_cmd)
+                                     : env->max_write_buffer_number;
   env->allow_concurrent_memtable_write =
       concurrent_memtable_write_cmd
           ? static_cast<bool>(args::get(concurrent_memtable_write_cmd))

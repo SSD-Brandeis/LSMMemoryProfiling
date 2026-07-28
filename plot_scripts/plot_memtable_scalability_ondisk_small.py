@@ -12,13 +12,15 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-R = REPO_ROOT / "data" / "memtable_scalability_vs_threads_inmemory_lowpri0_uw1_scaled"
+R = REPO_ROOT / "data" / "memtable_scalability_vs_threads_ondisk_small"
 OUT = R / "plots"
 FONT_PATH = REPO_ROOT / "LinLibertine_Mah.ttf"
 
 THREAD_COUNTS = [1, 2, 4, 8, 16]
+MAX_WRITE_BUFFER_NUMBER = 8
 
-ALL_MEMTABLES = ["skiplist", "simple_skiplist", "art", "tlx_btree"]
+ALL_MEMTABLES = ["skiplist", "simple_skiplist", "vector", "unsorted_vector",
+                 "sorted_vector", "art", "tlx_btree"]
 WRITE_MEMTABLES = ALL_MEMTABLES
 READ_MEMTABLES = ALL_MEMTABLES
 MIXED_MEMTABLES = ALL_MEMTABLES
@@ -26,6 +28,9 @@ MIXED_MEMTABLES = ALL_MEMTABLES
 MEMTABLE_PALETTE = {
     "skiplist": "#2a78d6",
     "simple_skiplist": "#008300",
+    "vector": "#e87ba4",
+    "unsorted_vector": "#eda100",
+    "sorted_vector": "#8a5a2b",
     "art": "#1baf7a",
     "tlx_btree": "#4a3aa7",
 }
@@ -57,7 +62,7 @@ plt.rcParams.update({
 
 def load_sweep_by_uw(path):
     """{unordered_write (0/1): ({memtable: {threads: ops/s}}, bg_jobs)} --
-    used for write and mixed, both of which now sweep unordered_write."""
+    used for write and mixed, both of which sweep unordered_write."""
     out = {}
     for row in csv.DictReader(open(path)):
         uw = int(row["unordered_write"])
@@ -67,10 +72,8 @@ def load_sweep_by_uw(path):
 
 
 def load_read(path):
-    """{memtable: {threads: ops/s}} -- point-query-only throughput; the load
-    phase's time is excluded by the harness itself (run_workload_multithread.cc
-    times only the T-threaded query phase), so there's no "insert time" to
-    strip out here."""
+    """{memtable: {threads: ops/s}} -- read has no bg_jobs/unordered_write
+    sweep, so results.csv has no those columns."""
     d = defaultdict(dict)
     for row in csv.DictReader(open(path)):
         d[row["memtable"]][int(row["threads"])] = float(row["ops_per_sec"])
@@ -113,7 +116,7 @@ def plot_write_memtable(data, memtable, config_str, out_path):
     style_x_axis(ax)
     style_y_axis_throughput(ax, ys)
     ax.set_ylim(bottom=0)
-    ax.set_title(f"in-memory 100\\% insert, {latex_escape(memtable)}: "
+    ax.set_title(f"on-disk 100\\% insert, {latex_escape(memtable)}: "
                  f"throughput ({config_str})")
     fig.tight_layout()
     fig.savefig(out_path, bbox_inches="tight")
@@ -132,7 +135,7 @@ def plot_write_all(data, config_str, out_path):
     style_x_axis(ax)
     style_y_axis_throughput(ax, all_ys)
     ax.set_ylim(0, ax.get_ylim()[1] * 1.32)
-    ax.set_title(f"in-memory 100\\% insert, all memtables: "
+    ax.set_title(f"on-disk 100\\% insert, all memtables: "
                  f"throughput ({config_str})")
     ax.legend(loc="upper center", frameon=True, framealpha=0.9, fontsize=16,
               ncol=4, columnspacing=1.2, handletextpad=0.6, handlelength=2.2)
@@ -149,7 +152,7 @@ def plot_read_memtable(data, memtable, config_str, out_path):
     style_x_axis(ax)
     style_y_axis_throughput(ax, ys)
     ax.set_ylim(bottom=0)
-    ax.set_title(f"in-memory 100\\% point query, {latex_escape(memtable)}: "
+    ax.set_title(f"on-disk 100\\% point query, {latex_escape(memtable)}: "
                  f"throughput ({config_str})")
     fig.tight_layout()
     fig.savefig(out_path, bbox_inches="tight")
@@ -168,7 +171,7 @@ def plot_read_all(data, config_str, out_path):
     style_x_axis(ax)
     style_y_axis_throughput(ax, all_ys)
     ax.set_ylim(0, ax.get_ylim()[1] * 1.32)
-    ax.set_title(f"in-memory 100\\% point query, all memtables: "
+    ax.set_title(f"on-disk 100\\% point query, all memtables: "
                  f"throughput ({config_str})")
     ax.legend(loc="upper center", frameon=True, framealpha=0.9, fontsize=16,
               ncol=3, columnspacing=1.2, handletextpad=0.6, handlelength=2.2)
@@ -185,7 +188,7 @@ def plot_mixed_memtable(data, memtable, config_str, out_path):
     style_x_axis(ax)
     style_y_axis_throughput(ax, ys)
     ax.set_ylim(bottom=0)
-    ax.set_title(f"in-memory 50\\% insert / 50\\% point query, "
+    ax.set_title(f"on-disk 50\\% insert / 50\\% point query, "
                  f"{latex_escape(memtable)}: throughput ({config_str})")
     fig.tight_layout()
     fig.savefig(out_path, bbox_inches="tight")
@@ -204,7 +207,7 @@ def plot_mixed_all(data, config_str, out_path):
     style_x_axis(ax)
     style_y_axis_throughput(ax, all_ys)
     ax.set_ylim(0, ax.get_ylim()[1] * 1.32)
-    ax.set_title(f"in-memory 50\\% insert / 50\\% point query, all "
+    ax.set_title(f"on-disk 50\\% insert / 50\\% point query, all "
                  f"memtables: throughput ({config_str})")
     ax.legend(loc="upper center", frameon=True, framealpha=0.9, fontsize=16,
               ncol=3, columnspacing=1.2, handletextpad=0.6, handlelength=2.2)
@@ -218,8 +221,8 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--data-root", default=None,
                         help="Override the data root (default: "
-                             "data/memtable_scalability_vs_threads_inmemory_"
-                             "lowpri0_uw1_scaled).")
+                             "data/memtable_scalability_vs_threads_ondisk_"
+                             "small).")
     args = parser.parse_args()
     if args.data_root:
         R = Path(args.data_root).resolve()
@@ -230,7 +233,7 @@ def main():
     write_csv = R / "write_100pct" / "results.csv"
     if write_csv.exists():
         for uw, (write, bg) in sorted(load_sweep_by_uw(write_csv).items()):
-            config_str = f"cmw=1, uw={uw}, bg={bg}"
+            config_str = f"cmw=1, uw={uw}, bg={bg}, mwb={MAX_WRITE_BUFFER_NUMBER}"
             out_dir = OUT / "write" / f"uw{uw}"
             out_dir.mkdir(parents=True, exist_ok=True)
             for memtable in WRITE_MEMTABLES:
@@ -243,10 +246,7 @@ def main():
     read_csv = R / "read_100pct" / "results.csv"
     if read_csv.exists():
         read = load_read(read_csv)
-        # Read scenario doesn't sweep bg_jobs/unordered_write (see
-        # run_memtable_scalability_inmemory.py's READ_DEFAULT_* constants),
-        # so the config is fixed and not read back out of results.csv.
-        read_config_str = "cmw=1, uw=0, bg=8"
+        read_config_str = f"cmw=1, uw=0, bg=8, mwb={MAX_WRITE_BUFFER_NUMBER}"
         out_dir = OUT / "read"
         out_dir.mkdir(parents=True, exist_ok=True)
         for memtable in READ_MEMTABLES:
@@ -259,7 +259,7 @@ def main():
     mixed_csv = R / "mixed_50_50" / "results.csv"
     if mixed_csv.exists():
         for uw, (mixed, bg) in sorted(load_sweep_by_uw(mixed_csv).items()):
-            mixed_config_str = f"cmw=1, uw={uw}, bg={bg}"
+            mixed_config_str = f"cmw=1, uw={uw}, bg={bg}, mwb={MAX_WRITE_BUFFER_NUMBER}"
             out_dir = OUT / "mixed" / f"uw{uw}"
             out_dir.mkdir(parents=True, exist_ok=True)
             for memtable in MIXED_MEMTABLES:

@@ -72,13 +72,13 @@ READ_BUFFER_GEOMETRY = ["-E", "262144", "-B", "4", "-P", "32768", "-T", "6",
 MIXED_BUFFER_GEOMETRY = WRITE_BUFFER_GEOMETRY
 
 WRITE_DEFAULT_BG_JOBS = [8]
-WRITE_DEFAULT_UNORDERED_WRITE = [True]
+WRITE_DEFAULT_UNORDERED_WRITE = [False, True]
 
 READ_DEFAULT_BG_JOBS = [8]
 READ_DEFAULT_UNORDERED_WRITE = [False]
 
 MIXED_DEFAULT_BG_JOBS = [8]
-MIXED_DEFAULT_UNORDERED_WRITE = [False]
+MIXED_DEFAULT_UNORDERED_WRITE = [False, True]
 
 
 # In-memory experiment: no compaction ever runs during the timed window (see
@@ -413,58 +413,57 @@ def run_read_scenario(memtables, bg_jobs_list, unordered_write_list,
 
 def run_mixed_scenario(memtables, bg_jobs_list, unordered_write_list,
                        thread_counts):
-    # Same no-sweep pattern as run_read_scenario (see its comment).
-    if len(bg_jobs_list) > 1 or len(unordered_write_list) > 1:
-        print("  note: mixed scenario ignores all but the first --bg-jobs / "
-              "--unordered-write value (no sweep nesting for mixed)")
-    bg_jobs = bg_jobs_list[0]
-    unordered_write = unordered_write_list[0]
-    mixed_flags = combo_flags(bg_jobs, unordered_write)
-
     scenario_dir = EXPERIMENT_ROOT / "mixed_50_50"
     scenario_dir.mkdir(parents=True, exist_ok=True)
 
     total_mixed_ops = MIXED_INSERT_OP_COUNT + MIXED_QUERY_OP_COUNT
 
     results = []
-    for name in memtables:
-        factory_id = MEMTABLES[name]
+    for bg_jobs in bg_jobs_list:
+        for unordered_write in unordered_write_list:
+            tag = combo_tag(bg_jobs, unordered_write)
+            mixed_flags = combo_flags(bg_jobs, unordered_write)
+            for name in memtables:
+                factory_id = MEMTABLES[name]
+                for T in thread_counts:
+                    run_dir = scenario_dir / tag / name / f"t{T}"
+                    assert total_mixed_ops % T == 0, (
+                        f"total_mixed_ops={total_mixed_ops} not divisible "
+                        f"by T={T}")
+                    generate_thread_shards(MIXED_SPEC, run_dir, T,
+                                          total_mixed_ops // T)
 
-        for T in thread_counts:
-            run_dir = scenario_dir / name / f"t{T}"
-            assert total_mixed_ops % T == 0, (
-                f"total_mixed_ops={total_mixed_ops} not divisible by T={T}")
-            generate_thread_shards(MIXED_SPEC, run_dir, T,
-                                  total_mixed_ops // T)
+                    # No load phase, no --load_file: MIXED_SPEC's single
+                    # insert+point_query group is generated independently per
+                    # thread (see generate_thread_shards and the long comment
+                    # above WRITE_SPEC), so each thread's own file is already
+                    # fully self-contained -- every point_query in it
+                    # references a key that same thread inserts earlier in
+                    # that same file.
+                    cmd = [str(BIN_DIR / "working_version_mt"),
+                          "--threads", str(T), "-m", str(factory_id)
+                          ] + MIXED_BUFFER_GEOMETRY + mixed_flags + [
+                          "--stat", "1", "--perf", "1", "--iostat", "1",
+                          "--progress", "0"]
+                    t0 = time.monotonic()
+                    run(cmd, cwd=run_dir, log_path=run_dir / "rocksdb_stats.log")
+                    wall = time.monotonic() - t0
 
-            # No load phase, no --load_file: MIXED_SPEC's single insert+
-            # point_query group is generated independently per thread (see
-            # generate_thread_shards and the long comment above WRITE_SPEC),
-            # so each thread's own file is already fully self-contained --
-            # every point_query in it references a key that same thread
-            # inserts earlier in that same file.
-            cmd = [str(BIN_DIR / "working_version_mt"),
-                  "--threads", str(T), "-m", str(factory_id)
-                  ] + MIXED_BUFFER_GEOMETRY + mixed_flags + [
-                  "--stat", "1", "--perf", "1", "--iostat", "1",
-                  "--progress", "0"]
-            t0 = time.monotonic()
-            run(cmd, cwd=run_dir, log_path=run_dir / "rocksdb_stats.log")
-            wall = time.monotonic() - t0
+                    row = read_throughput(run_dir)
+                    row["memtable"] = name
+                    row["max_background_jobs"] = bg_jobs
+                    row["unordered_write"] = int(unordered_write)
+                    row["wall_seconds"] = f"{wall:.3f}"
+                    results.append(row)
+                    print(f"  mixed {tag:10s} {name:16s} T={T:<2d} "
+                          f"ops/s={float(row['ops_per_sec']):>10.1f} "
+                          f"(wall {wall:.1f}s)")
 
-            row = read_throughput(run_dir)
-            row["memtable"] = name
-            row["wall_seconds"] = f"{wall:.3f}"
-            results.append(row)
-            print(f"  mixed {name:16s} T={T:<2d} "
-                  f"ops/s={float(row['ops_per_sec']):>10.1f} "
-                  f"(wall {wall:.1f}s)")
+                    harvest_and_cleanup(run_dir)
+                    for t in range(T):
+                        (run_dir / f"shard_{t}.txt").unlink(missing_ok=True)
 
-            harvest_and_cleanup(run_dir)
-            for t in range(T):
-                (run_dir / f"shard_{t}.txt").unlink(missing_ok=True)
-
-    write_results_csv(scenario_dir / "results.csv", results)
+    write_results_csv(scenario_dir / "results.csv", results, sweep=True)
 
 
 def write_results_csv(path: Path, rows: list, sweep: bool = False):
@@ -571,9 +570,10 @@ def write_manifest(scenario, bg_jobs_list, unordered_write_list,
                 "(rocksdb::Options::max_background_jobs, --bg_jobs); "
                 "irrelevant here since no flush ever runs during the "
                 "timed window",
-            "unordered_write": "swept false/true for the write scenario "
-                "(rocksdb::Options::unordered_write, --unordered_write); "
-                "requires concurrent_memtable_write=true",
+            "unordered_write": "swept false/true for the write and mixed "
+                "scenarios (rocksdb::Options::unordered_write, "
+                "--unordered_write); requires concurrent_memtable_write="
+                "true",
             "low_pri": "fixed at 0/false for every run in this script "
                 "(write_options->low_pri, --lowpri; include/db_env.h's own "
                 "default is true) since no compaction ever runs during the "
@@ -646,7 +646,7 @@ def main():
                              "read/mixed).")
     parser.add_argument("--unordered-write", default=None,
                         help="Comma-separated 0/1 values to sweep (default: "
-                             "0,1 for write; 0 for read/mixed).")
+                             "0,1 for write and mixed; 0 for read).")
     parser.add_argument("--thread-counts", default=None,
                         help="Comma-separated thread counts (default: "
                              "1,2,4,8,16).")

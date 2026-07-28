@@ -14,13 +14,12 @@ from workload_log_metrics import read_metrics_from_workload_log
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 BIN_DIR = REPO_ROOT / "bin"
-EXPERIMENT_ROOT = REPO_ROOT / "data" / "memtable_scalability_vs_threads_inmemory_lowpri0_uw1_scaled"
+EXPERIMENT_ROOT = REPO_ROOT / "data" / "memtable_scalability_vs_threads_ondisk_scaled"
 WORKLOAD_SCRATCH = EXPERIMENT_ROOT / "_workload"
-RUNNER_SCRIPT = "run_scripts/run_memtable_scalability_inmemory_scaled.py"
-PLOT_SCRIPT = "plot_scripts/plot_memtable_scalability_inmemory_scaled.py"
+RUNNER_SCRIPT = "run_scripts/run_memtable_scalability_ondisk_scaled.py"
+PLOT_SCRIPT = "plot_scripts/plot_memtable_scalability_ondisk_scaled.py"
 
 THREAD_COUNTS = [1, 2, 4, 8, 16]
-
 
 MEMTABLES = {
     "skiplist": 1,
@@ -29,40 +28,9 @@ MEMTABLES = {
     "tlx_btree": 12,
 }
 
-# 4 GiB write buffer, set directly via -M (DBEnv::SetBufferSize, a 64-bit
-# `long`), NOT via E*B*P. DBEnv::GetBufferSize() computes
-# buffer_size_in_pages * entries_per_page * entry_size entirely in 32-bit
-# unsigned-int arithmetic before widening to size_t -- E=128,B=32,P=1048576
-# hits exactly 2^32 and silently wraps to 0, which sets write_buffer_size=0
-# and causes RocksDB to flush (and write-stall) almost immediately. -M
-# bypasses that expression entirely. E/B/P are kept at the on-disk
-# experiment's original small values so arena_block_size (B*E),
-# vector_preallocation_size_in_bytes (B*P), and the workload monitor's
-# window size (B*P) stay identical/small -- only write_buffer_size itself
-# (and derivatives that read it via GetBufferSize(), e.g.
-# max_bytes_for_level_base) change.
-BUFFER_BYTES = 4 * 1024 * 1024 * 1024
-# -E is bumped from 128 (the on-disk experiment's original, record-size-ish
-# value) to 32768 for a reason unrelated to write_buffer_size (that's -M's
-# job): arena_block_size = B*E (DBEnv::GetBlockSize()) feeds directly into
-# RocksDB's ConcurrentArena, whose per-core shard size is
-# min(128KB, arena_block_size/8). At the old B*E=4096, each shard was only
-# 512 bytes -- room for ~3-4 entries before EVERY thread had to refill from
-# one shared, mutex-protected pool, independent of and prior to any
-# memtable-rep-level locking. Confirmed via gdb thread sampling (most
-# threads parked in ConcurrentArena::Allocate/sched_yield at T=16) and
-# fixed empirically: with B*E=32*32768=1MiB (hitting the 128KB shard cap),
-# skiplist went from a declining 1.03M ops/s at T=16 back down near T=1's
-# 702K, to genuine scaling: 1.58M (T1) -> 3.23M (T16). B is left untouched
-# specifically because it also drives vector_preallocation_size_in_bytes
-# (B*P) for the vector-family memtables -- bumping E instead of B changes
-# only the arena shard size, not their preallocation behavior.
+BUFFER_BYTES = 128 * 1024 * 1024
 WRITE_BUFFER_GEOMETRY = ["-E", "32768", "-B", "32", "-P", "32768", "-T", "6",
                         "-M", str(BUFFER_BYTES)]
-# Same arena-shard-contention fix as WRITE_BUFFER_GEOMETRY above, applied to
-# the read scenario's B=4: E bumped from 1024 to 262144 so B*E=4*262144=1MiB
-# (hits the 128KB ConcurrentArena shard cap), instead of the original
-# B*E=4096 (512-byte shards, ~3-4 entries before a global-mutex refill).
 READ_BUFFER_GEOMETRY = ["-E", "262144", "-B", "4", "-P", "32768", "-T", "6",
                        "-M", str(BUFFER_BYTES)]
 MIXED_BUFFER_GEOMETRY = WRITE_BUFFER_GEOMETRY
@@ -76,18 +44,13 @@ READ_DEFAULT_UNORDERED_WRITE = [False]
 MIXED_DEFAULT_BG_JOBS = [8]
 MIXED_DEFAULT_UNORDERED_WRITE = [False, True]
 
-
-# In-memory experiment: no compaction ever runs during the timed window (see
-# module docstring), so there is nothing for compactions to need priority
-# over -- pin low_pri=0 (write_options->low_pri = false) so writes are never
-# artificially deprioritized. This is the opposite of the on-disk script,
-# which sets low_pri=1 since real flush/compaction contends with writes
-# there.
-LOW_PRI = 0
+LOW_PRI = 1
+MAX_WRITE_BUFFER_NUMBER = 8
 
 
 def combo_flags(bg_jobs, unordered_write):
     return ["--bg_jobs", str(bg_jobs),
+            "--max_write_buffer_number", str(MAX_WRITE_BUFFER_NUMBER),
             "--concurrent_memtable_write", "1",
             "--unordered_write", "1" if unordered_write else "0",
             "--lowpri", str(LOW_PRI)]
@@ -96,89 +59,21 @@ def combo_flags(bg_jobs, unordered_write):
 def combo_tag(bg_jobs, unordered_write):
     return f"bg{bg_jobs}_uw{1 if unordered_write else 0}"
 
-# Read uses its own in-memory spec: ONE section with TWO groups -- group 0
-# is the load (READ_LOAD_OP_COUNT inserts), group 1 is the point queries
-# (READ_QUERY_OP_COUNT). Two groups in the SAME section (not one group with
-# a "filler" insert, and not two separate sections) is deliberate and
-# load-bearing: tectonic emits group 0's ops as one contiguous block
-# followed by group 1's as another (so the split into "load" vs "query"
-# lines below is still clean), AND point_queries in group 1 correctly
-# reference the full diverse keyspace from group 0's inserts -- confirmed
-# empirically (169/200 unique keys referenced in a test run). The OLD
-# structure (a single group containing a 1-op "filler" insert plus the real
-# point_queries) was a real, previously undiscovered bug: RocksDB's own
-# schema docs state key-sharing is scoped to the group the operations are
-# in, so every one of those point queries only ever referenced that same 1
-# filler key, never any of the loaded keys -- confirmed empirically (only 1
-# unique key referenced out of 10,000 queries). This affected every prior
-# read_100pct result, independent of and prior to any threading concern.
-# The load section is replayed via working_version_mt's --load_file (added
-# specifically for this), single-threaded, in the SAME process as the timed
-# T-threaded query phase -- so nothing needs to persist across a process
-# restart, and (since WAL is disabled) no flush is ever needed. The load
-# phase is itself timed (workload.log's [load phase] block) but excluded
-# from throughput.csv/ops_per_sec/the plots. The query lines (only, not the
-# load lines) are then divided across the T thread-shard files -- safe to
-# split this way (unlike mixed, below) because every query only references
-# the load phase's keys, which are already fully and permanently present
-# before any thread starts, so there is no cross-thread ordering dependency.
-#
-# Write and mixed, by contrast, generate a SEPARATE, INDEPENDENT workload
-# per thread (via tectonic-cli's -s/--scale flag, scaling the full spec's
-# op counts by 1/T), rather than generating one combined workload and
-# chopping it into per-thread shards. This matters for mixed specifically:
-# its spec interleaves inserts and point_queries in one group, so a query
-# can reference a key inserted just a few lines earlier IN THE SAME STREAM.
-# If that combined stream is chopped into contiguous per-thread pieces
-# (the old approach), a query assigned to thread A can reference a key
-# whose insert landed in thread B's piece -- and since threads run
-# concurrently with no synchronization on relative progress, there is no
-# guarantee B has executed that insert before A executes the query.
-# Confirmed empirically: in a representative case, 159/200 (79.5%) of a
-# chopped mixed section's queries referenced a key inserted in a DIFFERENT
-# thread's chunk, and the real harness logged hundreds of silent "Not
-# Found" results per thread in this experiment's own already-collected
-# mixed_50_50 data (a Get() miss doesn't crash -- see
-# src/run_workload_multithread.cc:141-143 -- so the run reported a clean
-# ops_per_sec despite this). Generating each thread's workload
-# independently eliminates this: every query in a thread's own file only
-# ever references a key THAT SAME thread inserts earlier in THAT SAME file,
-# so correctness no longer depends on any other thread's timing at all.
-# Write has no queries, so it was never at risk of this specific bug, but
-# uses the same independent-per-thread generation for architectural
-# consistency (there is no correctness downside: fresh independent random
-# keys per thread are just as valid as one big chopped keyspace for a pure
-# insert workload).
-#
-# Mixed also no longer has a load phase at all: unlike read (whose timed
-# phase is pure queries, so it needs pre-existing data to query against),
-# mixed's timed phase already contains its own inserts, so tectonic can
-# generate a fully self-contained (insert, query) stream per thread with
-# nothing to pre-populate -- confirmed empirically (0 unfound keys in an
-# insert+point_query group with no preceding section at all).
-#
-# Specs live alongside the experiment data they produce (not in the shared
-# lib/Tectonic/specs/ pool used by unrelated specs), so a human looking at
-# e.g. write_100pct/ finds the exact spec that generated its workload right
-# there. Deliberately built from EXPERIMENT_ROOT's default value at module
-# load time, not re-evaluated -- a --data-root override (used for sanity
-# checks) changes where results go, not where these default specs live.
-WRITE_SPEC = EXPERIMENT_ROOT / "write_100pct" / "concurrency_write_inmemory_scaled.spec.json"
-READ_SPEC = EXPERIMENT_ROOT / "read_100pct" / "concurrency_read_inmemory_scaled.spec.json"
-MIXED_SPEC = EXPERIMENT_ROOT / "mixed_50_50" / "concurrency_mixed_inmemory_scaled.spec.json"
+WRITE_SPEC = EXPERIMENT_ROOT / "write_100pct" / "concurrency_write_ondisk_scaled.spec.json"
+READ_SPEC = EXPERIMENT_ROOT / "read_100pct" / "concurrency_read_ondisk_scaled.spec.json"
+# Mixed uses TWO specs: a load-only spec (replayed once, single-threaded, to
+# force a real flush before timing starts) and a timed spec (self-contained
+# insert+point_query group, generated independently per thread via
+# generate_thread_shards -- same structure as the in-memory mixed spec).
+MIXED_LOAD_SPEC = EXPERIMENT_ROOT / "mixed_50_50" / "concurrency_mixed_load_ondisk_scaled.spec.json"
+MIXED_SPEC = EXPERIMENT_ROOT / "mixed_50_50" / "concurrency_mixed_timed_ondisk_scaled.spec.json"
 
-# Data volumes below are all well under BUFFER_BYTES (4 GiB) even accounting
-# for per-entry memtable overhead (skiplist tower pointers etc.), which the
-# nominal key+val byte count doesn't include:
-#   write: 3,000,000 * (24+100) ~= 372 MB   (~9% of buffer)
-#   read:  1,500,000 * (24+900) ~= 1.32 GB  (~32% of buffer)
-#   mixed:   500,000 * (24+100) ~=  62 MB   (~2% of buffer, insert+query combined)
 WRITE_OP_COUNT = 3_000_000
 READ_LOAD_OP_COUNT = 1_500_000
 READ_QUERY_OP_COUNT = 200_000
-# Must match concurrency_mixed_inmemory_scaled.spec.json's op_counts exactly
-# (250,000 insert + 250,000 point_query in its one insert+query group -- no
-# load phase, see comment above).
+# ~124 MB load vs a 128 MiB buffer -- forces at least one real flush before
+# the timed window starts.
+MIXED_LOAD_OP_COUNT = 1_000_000
 MIXED_INSERT_OP_COUNT = 250_000
 MIXED_QUERY_OP_COUNT = 250_000
 
@@ -213,13 +108,10 @@ def generate_workload(spec_path: Path, out_path: Path):
 
 
 def write_shards(lines, run_dir: Path, num_threads: int):
-    """Splits `lines` into num_threads contiguous, balanced shard files
-    named shard_0.txt .. shard_{T-1}.txt inside run_dir. Only safe when
-    `lines` has no cross-line ordering dependency that could be split across
-    two different threads' files -- i.e. read scenario's pure-query lines
-    (every query only depends on the already-complete load phase, never on
-    another query/insert line). NOT used for write or mixed -- see
-    generate_thread_shards below."""
+    """Splits `lines` into num_threads contiguous, balanced shard files.
+    Only safe when `lines` has no cross-line ordering dependency that could
+    be split across two different threads' files -- i.e. read's pure-query
+    lines (every query only depends on the already-complete load phase)."""
     run_dir.mkdir(parents=True, exist_ok=True)
     n = len(lines)
     base, extra = divmod(n, num_threads)
@@ -237,8 +129,9 @@ def generate_thread_shards(spec_path: Path, run_dir: Path, num_threads: int,
     """Generates num_threads INDEPENDENT workloads directly via tectonic-cli
     (spec_path's op counts scaled by 1/num_threads via -s), one shard_t.txt
     per thread -- instead of generating one combined workload and chopping
-    it into per-thread pieces. See the long comment above WRITE_SPEC for why
-    this matters for mixed (and is harmless-but-consistent for write)."""
+    it into per-thread pieces. Needed for write (architectural consistency)
+    and mixed's timed section (correctness: avoids a query in one thread's
+    shard referencing a key inserted in a different thread's shard)."""
     run_dir.mkdir(parents=True, exist_ok=True)
     scale = 1.0 / num_threads
     for t in range(num_threads):
@@ -263,11 +156,6 @@ def harvest_and_cleanup(run_dir: Path):
 
 
 def read_throughput(run_dir: Path) -> dict:
-    """Reads threads/total_ops/seconds/ops_per_sec directly from
-    run_dir/workload.log's "Threads:"/"Total Ops:"/"Workload Execution
-    Time:"/"Ops Per Sec:" lines (see workload_log_metrics.py for exactly
-    which lines and why) -- NOT from throughput.csv. Plotted data must be
-    traceable to a specific line in the raw log a human can open and check."""
     return read_metrics_from_workload_log(run_dir)
 
 
@@ -319,10 +207,6 @@ def run_write_scenario(memtables, bg_jobs_list, unordered_write_list,
 
 def run_read_scenario(memtables, bg_jobs_list, unordered_write_list,
                       thread_counts):
-    # No sweep here (see module docstring / WRITE_DEFAULT_* comment) -- the
-    # read scenario always uses a single bg_jobs/unordered_write setting, so
-    # directory layout stays flat (read_100pct/<memtable>/...), unlike the
-    # write scenario's bg<N>_uw<0|1>/<memtable>/... nesting.
     if len(bg_jobs_list) > 1 or len(unordered_write_list) > 1:
         print("  note: read scenario ignores all but the first --bg-jobs / "
               "--unordered-write value (no sweep nesting for reads)")
@@ -337,10 +221,6 @@ def run_read_scenario(memtables, bg_jobs_list, unordered_write_list,
     generate_workload(READ_SPEC, workload_path)
     with open(workload_path) as f:
         lines = f.readlines()
-    # READ_SPEC's two groups (load inserts, then point_queries) are emitted
-    # as two clean contiguous blocks -- see the long comment above
-    # WRITE_SPEC -- so this is a plain positional split, no filler insert
-    # involved anymore.
     load_lines = lines[:READ_LOAD_OP_COUNT]
     query_lines = lines[READ_LOAD_OP_COUNT:]
     assert len(query_lines) == READ_QUERY_OP_COUNT, (
@@ -350,23 +230,32 @@ def run_read_scenario(memtables, bg_jobs_list, unordered_write_list,
     for name in memtables:
         factory_id = MEMTABLES[name]
 
+        load_dir = scenario_dir / name / "load"
+        load_dir.mkdir(parents=True, exist_ok=True)
+        (load_dir / "workload.txt").write_text("".join(load_lines))
+        load_cmd = [str(BIN_DIR / "working_version"), "-m", str(factory_id)
+                   ] + READ_BUFFER_GEOMETRY + read_flags + [
+                   "--stat", "1", "--perf", "1", "--iostat", "1",
+                   "--progress", "0"]
+        print(f"  read  {name:16s} loading {READ_LOAD_OP_COUNT:,} keys ...")
+        t0 = time.monotonic()
+        run(load_cmd, cwd=load_dir, log_path=load_dir / "rocksdb_stats.log")
+        load_wall = time.monotonic() - t0
+        print(f"    load done in {load_wall:.1f}s")
+        (load_dir / "workload.txt").unlink()
+        db_dir = load_dir / "db"
+        if (load_dir / "db" / "LOG").exists():
+            shutil.copy(str(load_dir / "db" / "LOG"), str(load_dir / "LOG"))
+
         for T in thread_counts:
             run_dir = scenario_dir / name / f"t{T}"
             run_dir.mkdir(parents=True, exist_ok=True)
-            load_path = run_dir / "load.txt"
-            load_path.write_text("".join(load_lines))
+            if (run_dir / "db").exists():
+                shutil.rmtree(run_dir / "db")
+            shutil.copytree(db_dir, run_dir / "db")
             write_shards(query_lines, run_dir, T)
 
-            # Single process: --load_file replays load.txt single-threaded
-            # right after DB::Open() (before the T query shard threads start
-            # and before the throughput timer begins), so the loaded data
-            # never leaves this one memtable/process -- no restart, no flush
-            # needed. The load phase is itself timed (workload.log's
-            # [load phase] block), but throughput.csv/ops_per_sec below
-            # covers ONLY the T-threaded query phase, per
-            # run_workload_multithread.cc.
-            cmd = [str(BIN_DIR / "working_version_mt"),
-                  "--load_file", str(load_path),
+            cmd = [str(BIN_DIR / "working_version_mt"), "-d", "0",
                   "--threads", str(T), "-m", str(factory_id)
                   ] + READ_BUFFER_GEOMETRY + read_flags + [
                   "--stat", "1", "--perf", "1", "--iostat", "1",
@@ -383,10 +272,11 @@ def run_read_scenario(memtables, bg_jobs_list, unordered_write_list,
                   f"ops/s={float(row['ops_per_sec']):>10.1f} "
                   f"(wall {wall:.1f}s)")
 
-            load_path.unlink(missing_ok=True)
             harvest_and_cleanup(run_dir)
             for t in range(T):
                 (run_dir / f"shard_{t}.txt").unlink(missing_ok=True)
+
+        shutil.rmtree(db_dir)
 
     write_results_csv(scenario_dir / "results.csv", results)
 
@@ -398,6 +288,13 @@ def run_mixed_scenario(memtables, bg_jobs_list, unordered_write_list,
 
     total_mixed_ops = MIXED_INSERT_OP_COUNT + MIXED_QUERY_OP_COUNT
 
+    load_workload_path = WORKLOAD_SCRATCH / "mixed_load_workload.txt"
+    generate_workload(MIXED_LOAD_SPEC, load_workload_path)
+    with open(load_workload_path) as f:
+        load_lines = f.readlines()
+    assert len(load_lines) == MIXED_LOAD_OP_COUNT, (
+        f"expected {MIXED_LOAD_OP_COUNT} load lines, got {len(load_lines)}")
+
     results = []
     for bg_jobs in bg_jobs_list:
         for unordered_write in unordered_write_list:
@@ -405,22 +302,38 @@ def run_mixed_scenario(memtables, bg_jobs_list, unordered_write_list,
             mixed_flags = combo_flags(bg_jobs, unordered_write)
             for name in memtables:
                 factory_id = MEMTABLES[name]
+
+                load_dir = scenario_dir / tag / name / "load"
+                load_dir.mkdir(parents=True, exist_ok=True)
+                (load_dir / "workload.txt").write_text("".join(load_lines))
+                load_cmd = [str(BIN_DIR / "working_version"), "-m", str(factory_id)
+                           ] + MIXED_BUFFER_GEOMETRY + mixed_flags + [
+                           "--stat", "1", "--perf", "1", "--iostat", "1",
+                           "--progress", "0"]
+                print(f"  mixed {tag:10s} {name:16s} loading "
+                      f"{MIXED_LOAD_OP_COUNT:,} keys ...")
+                t0 = time.monotonic()
+                run(load_cmd, cwd=load_dir, log_path=load_dir / "rocksdb_stats.log")
+                load_wall = time.monotonic() - t0
+                print(f"    load done in {load_wall:.1f}s")
+                (load_dir / "workload.txt").unlink()
+                db_dir = load_dir / "db"
+                if (load_dir / "db" / "LOG").exists():
+                    shutil.copy(str(load_dir / "db" / "LOG"), str(load_dir / "LOG"))
+
                 for T in thread_counts:
                     run_dir = scenario_dir / tag / name / f"t{T}"
+                    run_dir.mkdir(parents=True, exist_ok=True)
+                    if (run_dir / "db").exists():
+                        shutil.rmtree(run_dir / "db")
+                    shutil.copytree(db_dir, run_dir / "db")
                     assert total_mixed_ops % T == 0, (
                         f"total_mixed_ops={total_mixed_ops} not divisible "
                         f"by T={T}")
                     generate_thread_shards(MIXED_SPEC, run_dir, T,
                                           total_mixed_ops // T)
 
-                    # No load phase, no --load_file: MIXED_SPEC's single
-                    # insert+point_query group is generated independently per
-                    # thread (see generate_thread_shards and the long comment
-                    # above WRITE_SPEC), so each thread's own file is already
-                    # fully self-contained -- every point_query in it
-                    # references a key that same thread inserts earlier in
-                    # that same file.
-                    cmd = [str(BIN_DIR / "working_version_mt"),
+                    cmd = [str(BIN_DIR / "working_version_mt"), "-d", "0",
                           "--threads", str(T), "-m", str(factory_id)
                           ] + MIXED_BUFFER_GEOMETRY + mixed_flags + [
                           "--stat", "1", "--perf", "1", "--iostat", "1",
@@ -443,6 +356,8 @@ def run_mixed_scenario(memtables, bg_jobs_list, unordered_write_list,
                     for t in range(T):
                         (run_dir / f"shard_{t}.txt").unlink(missing_ok=True)
 
+                shutil.rmtree(db_dir)
+
     write_results_csv(scenario_dir / "results.csv", results, sweep=True)
 
 
@@ -460,8 +375,6 @@ def write_results_csv(path: Path, rows: list, sweep: bool = False):
 
 
 def relative_to_repo_or_abs(path: Path) -> str:
-    """repo-relative path, or the absolute path if outside REPO_ROOT (e.g.
-    --data-root pointed at a scratch dir for a sanity check)."""
     try:
         return str(path.relative_to(REPO_ROOT))
     except ValueError:
@@ -501,7 +414,9 @@ def write_manifest(scenario, bg_jobs_list, unordered_write_list,
         })
     else:
         scenario_record.update({
-            "spec": str(MIXED_SPEC.relative_to(REPO_ROOT)),
+            "load_spec": str(MIXED_LOAD_SPEC.relative_to(REPO_ROOT)),
+            "timed_spec": str(MIXED_SPEC.relative_to(REPO_ROOT)),
+            "load_op_count": MIXED_LOAD_OP_COUNT,
             "insert_op_count": MIXED_INSERT_OP_COUNT,
             "query_op_count": MIXED_QUERY_OP_COUNT,
             "buffer_geometry": MIXED_BUFFER_GEOMETRY,
@@ -521,10 +436,10 @@ def write_manifest(scenario, bg_jobs_list, unordered_write_list,
         "plot_dir": relative_to_repo_or_abs(EXPERIMENT_ROOT / "plots"),
         "artifact_dir": relative_to_repo_or_abs(EXPERIMENT_ROOT),
         "command_setup": {
-            "write": "python3 run_scripts/run_memtable_scalability_inmemory.py --scenario write",
-            "read": "python3 run_scripts/run_memtable_scalability_inmemory.py --scenario read",
-            "mixed": "python3 run_scripts/run_memtable_scalability_inmemory.py --scenario mixed",
-            "plot": "python3 plot_scripts/plot_memtable_scalability_inmemory.py",
+            "write": "python3 run_scripts/run_memtable_scalability_ondisk_scaled.py --scenario write",
+            "read": "python3 run_scripts/run_memtable_scalability_ondisk_scaled.py --scenario read",
+            "mixed": "python3 run_scripts/run_memtable_scalability_ondisk_scaled.py --scenario mixed",
+            "plot": "python3 plot_scripts/plot_memtable_scalability_ondisk_scaled.py",
         },
         "metric_definitions": {
             "ops_per_sec": "total_ops / seconds, where total_ops is the "
@@ -532,13 +447,7 @@ def write_manifest(scenario, bg_jobs_list, unordered_write_list,
                 "shard exactly once) and seconds is however long that "
                 "took. Parsed directly from each run's own workload.log "
                 "'Threads:'/'Total Ops:'/'Workload Execution Time:'/'Ops "
-                "Per Sec:' lines (see run_scripts/workload_log_metrics.py), "
-                "NOT from throughput.csv -- both are written from the same "
-                "in-memory variables (src/run_workload_multithread.cc:"
-                "467-494) so the values agree, but the log is the one "
-                "actually read here and the one a human can open to check. "
-                "The timer stops BEFORE db->Close() so the mandatory "
-                "flush-on-close does not pollute this number",
+                "Per Sec:' lines (see run_scripts/workload_log_metrics.py)",
             "wall_seconds": "end-to-end subprocess wall time for the "
                 "run as measured by the orchestrating Python script "
                 "(includes DB::Open/Close overhead, unlike 'seconds' "
@@ -546,56 +455,29 @@ def write_manifest(scenario, bg_jobs_list, unordered_write_list,
             "speedup": "ops_per_sec(T) / ops_per_sec(T=1) for the same "
                 "memtable, computed at plot time (not stored in "
                 "results.csv)",
-            "max_background_jobs": "swept 1/8/16 for the write scenario "
-                "(rocksdb::Options::max_background_jobs, --bg_jobs); "
-                "irrelevant here since no flush ever runs during the "
-                "timed window",
+            "max_background_jobs": "fixed at 8 for every scenario here "
+                "(rocksdb::Options::max_background_jobs, --bg_jobs)",
+            "max_write_buffer_number": "fixed at 8 for every scenario here "
+                "(rocksdb::Options::max_write_buffer_number, "
+                "--max_write_buffer_number; RocksDB default elsewhere in "
+                "this codebase is 2). See "
+                "data/ondisk_write_stall_diagnostic/ -- 2 caused write "
+                "stalls under concurrent writers with a small buffer; 8 "
+                "was confirmed to produce zero stall events",
             "unordered_write": "swept false/true for the write and mixed "
                 "scenarios (rocksdb::Options::unordered_write, "
                 "--unordered_write); requires concurrent_memtable_write="
                 "true",
-            "low_pri": "fixed at 0/false for every run in this script "
-                "(write_options->low_pri, --lowpri; include/db_env.h's own "
-                "default is true) since no compaction ever runs during the "
-                "timed window here, so there is nothing for writes to be "
-                "deprioritized behind",
-            "workload_uniformity": "read_100pct and mixed_50_50 each use "
-                "exactly one spec/op-count, applied identically to all 4 "
-                "memtables in this experiment -- vector/unsorted_vector/"
-                "sorted_vector are excluded entirely (see module "
-                "docstring), not run at a different op count, so there is "
-                "no cross-memtable op-count mismatch here.",
-        },
-        "in_memory_notes": {
-            "buffer_sizing": "write_buffer_size is set via -M "
-                "(DBEnv::SetBufferSize, a 64-bit long) to exactly 4 GiB, "
-                "NOT via E*B*P: DBEnv::GetBufferSize() "
-                "(include/db_env.h) computes "
-                "buffer_size_in_pages*entries_per_page*entry_size in "
-                "32-bit unsigned arithmetic before widening to size_t, so "
-                "E=128,B=32,P=1048576 (chosen to hit 4 GiB) wraps to "
-                "exactly 0 at 2^32 -- this was caught during the sanity "
-                "run below by gdb-attaching a hung process and seeing an "
-                "active CompactionJob + a writer blocked on the rate "
-                "limiter, i.e. constant flush/stall despite the intended "
-                "4 GiB buffer. E/B/P are kept at the on-disk experiment's "
-                "small values (only used for arena_block_size, "
-                "vector_preallocation_size_in_bytes, and the workload "
-                "monitor's window size, all B*E or B*P, safely small)",
-            "data_volume": "op counts are scaled down so nominal "
-                "key+val bytes stay well under 4 GiB (<10%), leaving "
-                "headroom for per-entry memtable overhead (e.g. skiplist "
-                "tower pointers) that GetBufferSize() doesn't itself "
-                "account for",
-            "final_flush_caveat": "avoid_flush_during_shutdown is "
-                "hardcoded false in include/db_env.h with no CLI flag, "
-                "so db->Close() always flushes whatever remains in the "
-                "memtable once, after the timed window ends -- this "
-                "experiment is not literally zero-disk-IO end-to-end, "
-                "but that unavoidable final flush cannot affect the "
-                "measured ops_per_sec",
-            "wal": "disableWAL defaults to true (include/db_env.h), so "
-                "WAL writes are not a disk-IO confound here either",
+            "low_pri": "fixed at 1/true for every run in this script "
+                "(write_options->low_pri, --lowpri; matches "
+                "include/db_env.h's own default) so writes are "
+                "deprioritized behind real flush/compaction, which does "
+                "run during the timed window here",
+            "buffer_bytes": "128 MiB, matching the original ondisk "
+                "experiment -- large enough that write/mixed still "
+                "flush multiple times given these op counts, but not so "
+                "small that read's single-threaded load phase spends "
+                "most of its time flushing rather than loading",
         },
     }
     EXPERIMENT_ROOT.mkdir(parents=True, exist_ok=True)
@@ -616,8 +498,7 @@ def main():
                         help="Skip the cmake build step.")
     parser.add_argument("--bg-jobs", default=None,
                         help="Comma-separated max_background_jobs values to "
-                             "sweep (default: 1,8,16 for write; 8 for "
-                             "read/mixed).")
+                             "sweep (default: 8 for all scenarios).")
     parser.add_argument("--unordered-write", default=None,
                         help="Comma-separated 0/1 values to sweep (default: "
                              "0,1 for write and mixed; 0 for read).")
@@ -626,10 +507,9 @@ def main():
                              "1,2,4,8,16).")
     parser.add_argument("--data-root", default=None,
                         help="Override the data output root (default: "
-                             "data/memtable_scalability_vs_threads_inmemory_"
-                             "lowpri0_uw1_scaled). Use this for sanity "
-                             "checks only, so they don't overwrite real "
-                             "results/manifest.json.")
+                             "data/memtable_scalability_vs_threads_ondisk_"
+                             "scaled). Use this for sanity checks only, so "
+                             "they don't overwrite real results/manifest.json.")
     args = parser.parse_args()
 
     if args.data_root:
