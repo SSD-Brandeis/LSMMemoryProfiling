@@ -63,6 +63,7 @@ cmake-build-release/
 *.log
 *.txt
 workload.txt
+!**/CMakeLists.txt
 
 # Exclude all SVG files
 *.svg

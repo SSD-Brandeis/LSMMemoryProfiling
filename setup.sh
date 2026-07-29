@@ -7,7 +7,8 @@ echo "Installing system dependencies"
 
 if [[ "$OS" == "Linux" ]]; then
   sudo apt-get update -y
-  sudo apt-get install -y build-essential cmake libgflags-dev libtbb-dev
+  sudo apt-get install -y build-essential cmake libgflags-dev libtbb-dev libjemalloc-dev \
+    python3-venv
   NPROC="$(nproc)"
 elif [[ "$OS" == "Darwin" ]]; then
   if ! command -v brew >/dev/null 2>&1; then
@@ -15,7 +16,7 @@ elif [[ "$OS" == "Darwin" ]]; then
     /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
   fi
   brew update
-  brew install cmake gflags tbb
+  brew install cmake gflags tbb jemalloc
   NPROC="$(sysctl -n hw.ncpu)"
 else
   echo "Unsupported OS: $OS"
@@ -32,6 +33,12 @@ rustup default nightly
 
 echo "Updating git submodules"
 git submodule update --init --recursive
+
+echo "Setting up Python virtual environment for plotting scripts (scripts/run/*.py)"
+if [ ! -d ".venv" ]; then
+  python3 -m venv .venv
+fi
+.venv/bin/pip install --quiet --upgrade pip matplotlib
 
 mkdir -p build
 
