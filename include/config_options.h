@@ -13,12 +13,6 @@
 #include "fluid_lsm.h"
 #include "workload_monitor.h"
 
-namespace rocksdb {
-  class MemTableRepFactory;
-  MemTableRepFactory* NewARTRepFactory();
-  MemTableRepFactory* NewOLCBTreeRepFactory();
-}
-
 class StringAppendOperator : public rocksdb::AssociativeMergeOperator {
 public:
   bool Merge(const rocksdb::Slice &key, const rocksdb::Slice *existing_value,
@@ -166,10 +160,10 @@ void configOptions(std::unique_ptr<DBEnv> &env, Options *options,
     break;
   }
   case 11:
-    options->memtable_factory.reset(rocksdb::NewARTRepFactory());
+    options->memtable_factory.reset(new ARTRepFactory);
     break;
   case 12:
-    options->memtable_factory.reset(rocksdb::NewOLCBTreeRepFactory());
+    options->memtable_factory.reset(new BTreeRepFactory);
     break;
   default:
     std::cerr << "Error[" << __FILE__ << " : " << __LINE__
