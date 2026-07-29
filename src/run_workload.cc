@@ -51,9 +51,10 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
   PrintExperimentalSetup(env, buffer);
 
   Status s = DB::Open(options, env->kDBPath, &db);
-  if (!s.ok())
-    std::cerr << s.ToString() << std::endl;
-  assert(s.ok());
+  if (!s.ok()) {
+    std::cerr << "ERROR: DB::Open failed: " << s.ToString() << std::endl;
+    std::exit(1);  // assert() is compiled out under -DNDEBUG
+  }
 
   // Clearing the system cache
   if (env->clear_system_cache) {
