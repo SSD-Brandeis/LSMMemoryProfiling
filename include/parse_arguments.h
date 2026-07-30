@@ -146,6 +146,12 @@ int parse_arguments(int argc, char *argv[], std::unique_ptr<DBEnv> &env) {
       "before writers stall (rocksdb::Options::max_write_buffer_number) "
       "[def: 2]",
       {"max_write_buffer_number"});
+  args::ValueFlag<int> max_subcompactions_cmd(
+      group1, "max_subcompactions",
+      "Maximum number of threads RocksDB may use WITHIN one compaction "
+      "job, splitting its key range into concurrent sub-ranges "
+      "(rocksdb::Options::max_subcompactions) [def: 1]",
+      {"max_subcompactions"});
   args::ValueFlag<int> concurrent_memtable_write_cmd(
       group1, "concurrent_memtable_write",
       "Allow multiple writer threads to update the memtable in parallel "
@@ -260,6 +266,9 @@ int parse_arguments(int argc, char *argv[], std::unique_ptr<DBEnv> &env) {
   env->max_write_buffer_number = max_write_buffer_number_cmd
                                      ? args::get(max_write_buffer_number_cmd)
                                      : env->max_write_buffer_number;
+  env->max_subcompactions = max_subcompactions_cmd
+                                ? args::get(max_subcompactions_cmd)
+                                : env->max_subcompactions;
   env->allow_concurrent_memtable_write =
       concurrent_memtable_write_cmd
           ? static_cast<bool>(args::get(concurrent_memtable_write_cmd))

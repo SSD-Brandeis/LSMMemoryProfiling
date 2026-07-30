@@ -478,7 +478,7 @@ def write_manifest(scenario, bg_jobs_list, unordered_write_list,
                 "include/db_env.h's own default) so writes are "
                 "deprioritized behind real flush/compaction, which does "
                 "run during the timed window here",
-            "buffer_bytes": "128 MiB, matching the original ondisk "
+            "buffer_bytes": "128 MB, matching the original ondisk "
                 "experiment -- large enough that write/mixed still "
                 "flush multiple times given these op counts, but not so "
                 "small that read's single-threaded load phase spends "

@@ -58,7 +58,7 @@ BUFFER_BYTES = 4 * 1024 * 1024 * 1024
 # one shared, mutex-protected pool, independent of and prior to any
 # memtable-rep-level locking. Confirmed via gdb thread sampling (most
 # threads parked in ConcurrentArena::Allocate/sched_yield at T=16) and
-# fixed empirically: with B*E=32*32768=1MiB (hitting the 128KB shard cap),
+# fixed empirically: with B*E=32*32768=1MB (hitting the 128KB shard cap),
 # skiplist went from a declining 1.03M ops/s at T=16 back down near T=1's
 # 702K, to genuine scaling: 1.58M (T1) -> 3.23M (T16). B is left untouched
 # specifically because it also drives vector_preallocation_size_in_bytes
@@ -67,7 +67,7 @@ BUFFER_BYTES = 4 * 1024 * 1024 * 1024
 WRITE_BUFFER_GEOMETRY = ["-E", "32768", "-B", "32", "-P", "32768", "-T", "6",
                         "-M", str(BUFFER_BYTES)]
 # Same arena-shard-contention fix as WRITE_BUFFER_GEOMETRY above, applied to
-# the read scenario's B=4: E bumped from 1024 to 262144 so B*E=4*262144=1MiB
+# the read scenario's B=4: E bumped from 1024 to 262144 so B*E=4*262144=1MB
 # (hits the 128KB ConcurrentArena shard cap), instead of the original
 # B*E=4096 (512-byte shards, ~3-4 entries before a global-mutex refill).
 READ_BUFFER_GEOMETRY = ["-E", "262144", "-B", "4", "-P", "32768", "-T", "6",

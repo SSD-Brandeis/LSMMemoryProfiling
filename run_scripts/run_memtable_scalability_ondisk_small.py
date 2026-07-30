@@ -33,7 +33,7 @@ MEMTABLES = {
 
 # Small enough that every scenario's total data volume (37MB write, 92MB
 # read-load, 12.4MB mixed-load) clearly exceeds it, forcing real flushes to
-# disk -- unlike the 128 MiB buffer used for the large-scale ondisk
+# disk -- unlike the 128 MB buffer used for the large-scale ondisk
 # experiment, which these small op counts would never fill.
 BUFFER_BYTES = 8 * 1024 * 1024
 WRITE_BUFFER_GEOMETRY = ["-E", "32768", "-B", "32", "-P", "32768", "-T", "6",
@@ -482,8 +482,8 @@ def write_manifest(scenario, bg_jobs_list, unordered_write_list,
                 "include/db_env.h's own default) so writes are "
                 "deprioritized behind real flush/compaction, which does "
                 "run during the timed window here",
-            "buffer_bytes": "8 MiB, deliberately much smaller than the "
-                "128 MiB used by the large-scale ondisk experiment, so "
+            "buffer_bytes": "8 MB, deliberately much smaller than the "
+                "128 MB used by the large-scale ondisk experiment, so "
                 "this experiment's small op counts (in-memory experiment "
                 "1's op counts, reused here) still force real flushes to "
                 "disk instead of fitting entirely in the memtable",

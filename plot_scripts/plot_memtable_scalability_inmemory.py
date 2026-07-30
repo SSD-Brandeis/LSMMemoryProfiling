@@ -35,6 +35,10 @@ MEMTABLE_PALETTE = {
     "tlx_btree": "#4a3aa7",
 }
 
+MEMTABLE_DISPLAY_NAMES = {
+    "tlx_btree": "b+tree",
+}
+
 fm.fontManager.addfont(str(FONT_PATH))
 FONT_NAME = fm.FontProperties(fname=str(FONT_PATH)).get_name()
 
@@ -86,7 +90,7 @@ def style_x_axis(ax):
     ax.set_xscale("log", base=2)
     ax.set_xticks(THREAD_COUNTS)
     ax.get_xaxis().set_major_formatter(mticker.ScalarFormatter())
-    ax.set_xlabel("client threads")
+    ax.set_xlabel(r"\# of threads")
     ax.margins(x=0.08)
 
 
@@ -118,7 +122,7 @@ def plot_write_memtable(data, memtable, config_str, out_path):
     style_x_axis(ax)
     style_y_axis_throughput(ax, ys)
     ax.set_ylim(bottom=0)
-    ax.set_title(f"in-memory 100\\% insert, {latex_escape(memtable)}: "
+    ax.set_title(f"in-memory 100\\% insert, {latex_escape(MEMTABLE_DISPLAY_NAMES.get(memtable, memtable))}: "
                  f"throughput ({config_str})")
     fig.tight_layout()
     fig.savefig(out_path, bbox_inches="tight")
@@ -133,7 +137,8 @@ def plot_write_all(data, config_str, out_path):
         ys = [data[name][t] for t in THREAD_COUNTS]
         all_ys.extend(ys)
         ax.plot(THREAD_COUNTS, ys, marker="o", markersize=7, linewidth=2.2,
-                color=MEMTABLE_PALETTE[name], label=latex_escape(name))
+                color=MEMTABLE_PALETTE[name],
+                label=latex_escape(MEMTABLE_DISPLAY_NAMES.get(name, name)))
     style_x_axis(ax)
     style_y_axis_throughput(ax, all_ys)
     ax.set_ylim(0, ax.get_ylim()[1] * 1.32)
@@ -154,7 +159,7 @@ def plot_read_memtable(data, memtable, config_str, out_path):
     style_x_axis(ax)
     style_y_axis_throughput(ax, ys)
     ax.set_ylim(bottom=0)
-    ax.set_title(f"in-memory 100\\% point query, {latex_escape(memtable)}: "
+    ax.set_title(f"in-memory 100\\% point query, {latex_escape(MEMTABLE_DISPLAY_NAMES.get(memtable, memtable))}: "
                  f"throughput ({config_str})")
     fig.tight_layout()
     fig.savefig(out_path, bbox_inches="tight")
@@ -169,7 +174,8 @@ def plot_read_all(data, config_str, out_path):
         ys = [data[name][t] for t in THREAD_COUNTS]
         all_ys.extend(ys)
         ax.plot(THREAD_COUNTS, ys, marker="o", markersize=7, linewidth=2.2,
-                color=MEMTABLE_PALETTE[name], label=latex_escape(name))
+                color=MEMTABLE_PALETTE[name],
+                label=latex_escape(MEMTABLE_DISPLAY_NAMES.get(name, name)))
     style_x_axis(ax)
     style_y_axis_throughput(ax, all_ys)
     ax.set_ylim(0, ax.get_ylim()[1] * 1.32)
@@ -191,7 +197,7 @@ def plot_mixed_memtable(data, memtable, config_str, out_path):
     style_y_axis_throughput(ax, ys)
     ax.set_ylim(bottom=0)
     ax.set_title(f"in-memory 50\\% insert / 50\\% point query, "
-                 f"{latex_escape(memtable)}: throughput ({config_str})")
+                 f"{latex_escape(MEMTABLE_DISPLAY_NAMES.get(memtable, memtable))}: throughput ({config_str})")
     fig.tight_layout()
     fig.savefig(out_path, bbox_inches="tight")
     plt.close(fig)
@@ -205,7 +211,8 @@ def plot_mixed_all(data, config_str, out_path):
         ys = [data[name][t] for t in THREAD_COUNTS]
         all_ys.extend(ys)
         ax.plot(THREAD_COUNTS, ys, marker="o", markersize=7, linewidth=2.2,
-                color=MEMTABLE_PALETTE[name], label=latex_escape(name))
+                color=MEMTABLE_PALETTE[name],
+                label=latex_escape(MEMTABLE_DISPLAY_NAMES.get(name, name)))
     style_x_axis(ax)
     style_y_axis_throughput(ax, all_ys)
     ax.set_ylim(0, ax.get_ylim()[1] * 1.32)

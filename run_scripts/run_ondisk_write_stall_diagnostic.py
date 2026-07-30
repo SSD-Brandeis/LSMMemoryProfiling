@@ -22,16 +22,19 @@ PLOT_SCRIPT = "plot_scripts/plot_ondisk_write_stall_diagnostic.py"
 THREAD_COUNTS = [1, 2, 4, 8, 16]
 MEMTABLES = {"skiplist": 1, "art": 11}
 
-# Deliberately smaller than the 8 MiB used in ondisk_small, to speed up this
+# Deliberately smaller than the 8 MB used in ondisk_small, to speed up this
 # diagnostic run and to trigger memtable switches (and therefore stalls)
 # more often -- this experiment's point is to characterize the stall
 # mechanism, not to be directly comparable to the small/scaled experiments.
-# P * B * E must equal BUFFER_BYTES (see AGENTS.md "Buffer Geometry"): E is
-# the real entry size (24B key + 100B val); P is derived from a target of
-# ~2 MiB and only approximates it since 124 does not divide a power of two
-# exactly. -M is omitted so write_buffer_size comes from P*B*E.
+# P * B * E must equal BUFFER_BYTES, and B * E (page size) must be as close
+# to 4096 bytes as integer division allows (see AGENTS.md "Buffer Geometry"):
+# E is the real entry size (24B key + 100B val), which does not evenly
+# divide 4096 (4096/124 = 33.03), so B=33 gives a 4092-byte page (4 bytes /
+# 0.1% short of 4 KiB). P is then derived from a target of ~2 MB and only
+# approximates it for the same reason. -M is omitted so write_buffer_size
+# comes from P*B*E.
 ENTRY_SIZE = 24 + 100
-ENTRIES_PER_PAGE = 4
+ENTRIES_PER_PAGE = round(4096 / ENTRY_SIZE)
 BUFFER_SIZE_IN_PAGES = round(2 * 1024 * 1024 / (ENTRIES_PER_PAGE * ENTRY_SIZE))
 BUFFER_BYTES = BUFFER_SIZE_IN_PAGES * ENTRIES_PER_PAGE * ENTRY_SIZE
 WRITE_BUFFER_GEOMETRY = ["-E", str(ENTRY_SIZE), "-B", str(ENTRIES_PER_PAGE),
@@ -218,8 +221,8 @@ def write_manifest(thread_counts):
                     "in include/db_env.h, with no override until now",
                 "max_background_jobs": "swept 1/8/16 "
                     "(rocksdb::Options::max_background_jobs, --bg_jobs)",
-                "buffer_bytes": "2 MiB -- deliberately smaller than "
-                    "ondisk_small's 8 MiB to keep this diagnostic fast and "
+                "buffer_bytes": "2 MB -- deliberately smaller than "
+                    "ondisk_small's 8 MB to keep this diagnostic fast and "
                     "to trigger memtable switches (and stalls) more often",
             },
         },

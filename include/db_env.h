@@ -146,6 +146,13 @@ public:
   // write buffer.
   int max_write_buffer_number = 2;
 
+  // Maximum number of threads RocksDB is allowed to use WITHIN one
+  // compaction job (i.e. splitting one job's key range into concurrent
+  // sub-ranges), on top of how many separate compaction jobs
+  // max_background_jobs allows to run at once. RocksDB default is 1
+  // (no splitting).
+  uint32_t max_subcompactions = 1;
+
   // bloom filter bits per key
   double bits_per_key = 10; // [b]
 

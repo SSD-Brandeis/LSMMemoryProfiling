@@ -13,6 +13,11 @@
 #include "fluid_lsm.h"
 #include "workload_monitor.h"
 
+
+namespace rocksdb {
+MemTableRepFactory* NewOLCBTreeRepFactory();
+}  // namespace rocksdb
+
 class StringAppendOperator : public rocksdb::AssociativeMergeOperator {
 public:
   bool Merge(const rocksdb::Slice &key, const rocksdb::Slice *existing_value,
@@ -64,6 +69,7 @@ void configOptions(std::unique_ptr<DBEnv> &env, Options *options,
   options->target_file_size_base = env->GetTargetFileSizeBase();
   options->max_bytes_for_level_base = env->GetMaxBytesForLevelBase();
   options->max_write_buffer_number = env->max_write_buffer_number;
+  options->max_subcompactions = env->max_subcompactions;
 
   if (env->bits_per_key == 0) {
     ; // do nothing
@@ -163,7 +169,7 @@ void configOptions(std::unique_ptr<DBEnv> &env, Options *options,
     options->memtable_factory.reset(new ARTRepFactory);
     break;
   case 12:
-    options->memtable_factory.reset(new BTreeRepFactory);
+    options->memtable_factory.reset(NewOLCBTreeRepFactory());
     break;
   default:
     std::cerr << "Error[" << __FILE__ << " : " << __LINE__

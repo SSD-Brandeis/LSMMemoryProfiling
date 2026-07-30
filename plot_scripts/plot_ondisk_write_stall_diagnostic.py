@@ -61,7 +61,7 @@ def style_x_axis(ax):
     ax.set_xscale("log", base=2)
     ax.set_xticks(THREAD_COUNTS)
     ax.get_xaxis().set_major_formatter(mticker.ScalarFormatter())
-    ax.set_xlabel("client threads")
+    ax.set_xlabel(r"\# of threads")
     ax.margins(x=0.08)
 
 

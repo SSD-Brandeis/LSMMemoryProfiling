@@ -11,16 +11,23 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-R = REPO_ROOT / "data" / "memtable_scalability_vs_threads_ondisk_small_l2_bgsweep"
+R = REPO_ROOT / "data" / "ondisk_bottleneck_sweep_all_memtables"
 OUT = R / "plots"
 FONT_PATH = REPO_ROOT / "LinLibertine_Mah.ttf"
 
 THREAD_COUNTS = [1, 2, 4, 8, 16]
-BG_JOBS_VALUES = [1, 4, 8, 16, 24]
-MEMTABLES = ["skiplist", "simple_skiplist", "vector", "unsorted_vector",
-             "sorted_vector", "art", "tlx_btree"]
-BG_COLOR = {1: "#c0392b", 4: "#e08a1e", 8: "#f0d000", 16: "#1a8a4a", 24: "#2a78d6"}
+MEMTABLES = ["skiplist", "simple_skiplist", "art", "tlx_btree", "vector",
+            "unsorted_vector", "sorted_vector"]
 MEMTABLE_DISPLAY_NAMES = {"tlx_btree": "b+tree"}
+MEMTABLE_PALETTE = {
+    "skiplist": "#2a78d6",
+    "simple_skiplist": "#008300",
+    "art": "#1baf7a",
+    "tlx_btree": "#4a3aa7",
+    "vector": "#c0392b",
+    "unsorted_vector": "#e08a1e",
+    "sorted_vector": "#8e44ad",
+}
 
 fm.fontManager.addfont(str(FONT_PATH))
 FONT_NAME = fm.FontProperties(fname=str(FONT_PATH)).get_name()
@@ -45,15 +52,6 @@ plt.rcParams.update({
     "figure.facecolor": "white",
     "axes.facecolor": "white",
 })
-
-
-def load(path):
-    """{bg_jobs: {memtable: {threads: ops/s}}}"""
-    d = defaultdict(lambda: defaultdict(dict))
-    for row in csv.DictReader(open(path)):
-        bg = int(row["max_background_jobs"])
-        d[bg][row["memtable"]][int(row["threads"])] = float(row["ops_per_sec"])
-    return d
 
 
 def style_x_axis(ax):
@@ -84,21 +82,53 @@ def style_y_axis_throughput(ax, values):
     ax.set_ylabel(f"throughput ({unit})")
 
 
+def load(path):
+    """{memtable: {threads: ops/s}}"""
+    d = defaultdict(dict)
+    for row in csv.DictReader(open(path)):
+        d[row["memtable"]][int(row["threads"])] = float(row["ops_per_sec"])
+    return d
+
+
 def plot_memtable(data, memtable, out_path):
     fig, ax = plt.subplots(figsize=(11, 8))
-    all_ys = []
-    for bg in BG_JOBS_VALUES:
-        ys = [data[bg][memtable][t] for t in THREAD_COUNTS]
-        all_ys.extend(ys)
-        ax.plot(THREAD_COUNTS, ys, marker="o", markersize=6, linewidth=2.2,
-                color=BG_COLOR[bg], label=f"bg\\_jobs={bg}")
+    xs = [t for t in THREAD_COUNTS if t in data[memtable]]
+    ys = [data[memtable][t] for t in xs]
+    ax.plot(xs, ys, marker="o", markersize=7, linewidth=2.2,
+            color=MEMTABLE_PALETTE[memtable])
     style_x_axis(ax)
-    style_y_axis_throughput(ax, all_ys)
+    style_y_axis_throughput(ax, ys)
     ax.set_ylim(bottom=0)
     ax.set_title(f"on-disk 100\\% insert, "
                  f"{latex_escape(MEMTABLE_DISPLAY_NAMES.get(memtable, memtable))}: "
-                 f"throughput (cmw=1, uw=1, mwb=8, key=128B, val=896B)")
-    ax.legend(loc="best", frameon=True, framealpha=0.9, ncol=2)
+                 "throughput (bg\\_jobs=8, mwb=16, buffer=128MB, uw=1, "
+                 "T=10, key=128B, val=896B, ops=6M)")
+    fig.tight_layout()
+    fig.savefig(out_path, bbox_inches="tight")
+    plt.close(fig)
+    print(f"wrote {out_path}")
+
+
+def plot_all(data, out_path):
+    fig, ax = plt.subplots(figsize=(11, 8))
+    all_ys = []
+    for name in MEMTABLES:
+        if name not in data:
+            continue
+        xs = [t for t in THREAD_COUNTS if t in data[name]]
+        ys = [data[name][t] for t in xs]
+        all_ys.extend(ys)
+        ax.plot(xs, ys, marker="o", markersize=7, linewidth=2.2,
+                color=MEMTABLE_PALETTE[name],
+                label=latex_escape(MEMTABLE_DISPLAY_NAMES.get(name, name)))
+    style_x_axis(ax)
+    style_y_axis_throughput(ax, all_ys)
+    ax.set_ylim(0, ax.get_ylim()[1] * 1.32)
+    ax.set_title("on-disk 100\\% insert, all memtables: throughput "
+                 "(bg\\_jobs=8, mwb=16, buffer=128MB, uw=1, T=10, "
+                 "key=128B, val=896B, ops=6M)")
+    ax.legend(loc="upper center", frameon=True, framealpha=0.9, fontsize=14,
+              ncol=4, columnspacing=1.2, handletextpad=0.6, handlelength=2.2)
     fig.tight_layout()
     fig.savefig(out_path, bbox_inches="tight")
     plt.close(fig)
@@ -109,8 +139,10 @@ def main():
     OUT.mkdir(parents=True, exist_ok=True)
     csv_path = R / "write_100pct" / "results.csv"
     data = load(csv_path)
-    for memtable in MEMTABLES:
-        plot_memtable(data, memtable, OUT / f"write_throughput_bgsweep_{memtable}.pdf")
+    for name in MEMTABLES:
+        if name in data:
+            plot_memtable(data, name, OUT / f"write_throughput_{name}.pdf")
+    plot_all(data, OUT / "write_throughput_all.pdf")
 
 
 if __name__ == "__main__":

@@ -33,7 +33,7 @@ MEMTABLES = {
     "tlx_btree": 12,
 }
 
-# 128 MiB write buffer,
+# 128 MB write buffer,
 BUFFER_BYTES = 128 * 1024 * 1024
 WRITE_BUFFER_GEOMETRY = ["-E", "32768", "-B", "32", "-P", "32768", "-T", "6",
                         "-M", str(BUFFER_BYTES)]
@@ -312,7 +312,7 @@ def run_mixed_scenario(memtables, bg_jobs_list, unordered_write_list,
         factory_id = MEMTABLES[name]
 
         # Load once (single-threaded, fresh DB), reused for every T -- this
-        # already forces at least one real flush (~124 MB load vs a 128 MiB
+        # already forces at least one real flush (~124 MB load vs a 128 MB
         # buffer).
         load_dir = scenario_dir / name / "load"
         load_dir.mkdir(parents=True, exist_ok=True)
@@ -457,7 +457,7 @@ def write_manifest(scenario, bg_jobs_list, unordered_write_list,
                 "shard exactly once) and seconds is however long that "
                 "took. Parsed directly from each run's own workload.log "
                 "'Threads:'/'Total Ops:'/'Workload Execution Time:'/'Ops "
-                "Per Sec:' lines (see run_scripts/workload_log_metrics.py), "
+                "Per Sec:' lines (see run_scripts/workload_log_metrics.py)",
             "wall_seconds": "end-to-end subprocess wall time for the "
                 "run as measured by the orchestrating Python script "
                 "(includes DB::Open/cache-drop overhead, unlike "

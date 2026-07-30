@@ -71,7 +71,7 @@ MIXED_SPEC = EXPERIMENT_ROOT / "mixed_50_50" / "concurrency_mixed_timed_ondisk_s
 WRITE_OP_COUNT = 3_000_000
 READ_LOAD_OP_COUNT = 1_500_000
 READ_QUERY_OP_COUNT = 200_000
-# ~124 MB load vs a 128 MiB buffer -- forces at least one real flush before
+# ~124 MB load vs a 128 MB buffer -- forces at least one real flush before
 # the timed window starts.
 MIXED_LOAD_OP_COUNT = 1_000_000
 MIXED_INSERT_OP_COUNT = 250_000
@@ -473,7 +473,7 @@ def write_manifest(scenario, bg_jobs_list, unordered_write_list,
                 "include/db_env.h's own default) so writes are "
                 "deprioritized behind real flush/compaction, which does "
                 "run during the timed window here",
-            "buffer_bytes": "128 MiB, matching the original ondisk "
+            "buffer_bytes": "128 MB, matching the original ondisk "
                 "experiment -- large enough that write/mixed still "
                 "flush multiple times given these op counts, but not so "
                 "small that read's single-threaded load phase spends "
