@@ -157,6 +157,12 @@ int parse_arguments(int argc, char *argv[], std::unique_ptr<DBEnv> &env) {
       "Allow multiple writer threads to update the memtable in parallel "
       "(rocksdb::Options::allow_concurrent_memtable_write) [def: 1]",
       {"concurrent_memtable_write"});
+  args::ValueFlag<int> auto_concurrent_memtable_write_cmd(
+      group1, "auto_concurrent_memtable_write",
+      "Silently force concurrent_memtable_write off when memtable_factory "
+      "doesn't support it, instead of DB::Open rejecting the combination "
+      "[def: 0]",
+      {"auto_concurrent_memtable_write"});
   args::ValueFlag<int> unordered_write_cmd(
       group1, "unordered_write",
       "rocksdb::Options::unordered_write -- trades snapshot immutability "
@@ -273,6 +279,10 @@ int parse_arguments(int argc, char *argv[], std::unique_ptr<DBEnv> &env) {
       concurrent_memtable_write_cmd
           ? static_cast<bool>(args::get(concurrent_memtable_write_cmd))
           : env->allow_concurrent_memtable_write;
+  env->auto_concurrent_memtable_write =
+      auto_concurrent_memtable_write_cmd
+          ? static_cast<bool>(args::get(auto_concurrent_memtable_write_cmd))
+          : env->auto_concurrent_memtable_write;
   env->unordered_write = unordered_write_cmd
                              ? static_cast<bool>(args::get(unordered_write_cmd))
                              : env->unordered_write;

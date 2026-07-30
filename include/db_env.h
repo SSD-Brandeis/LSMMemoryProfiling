@@ -91,6 +91,10 @@ public:
   // if true, allow multi-writers to update mem tables in parallel.
   bool allow_concurrent_memtable_write = true;
 
+  // Forces allow_concurrent_memtable_write off for factories that don't
+  // support it, instead of DB::Open rejecting the combination.
+  bool auto_concurrent_memtable_write = false;
+
   // Trades snapshot immutability for higher write throughput by skipping
   // the wait for lower-sequence-number writes before advancing the
   // sequence number. Requires allow_concurrent_memtable_write=true (RocksDB

@@ -176,6 +176,11 @@ void configOptions(std::unique_ptr<DBEnv> &env, Options *options,
               << "]: Invalid memtable factory!" << std::endl;
   }
 
+  if (env->auto_concurrent_memtable_write && options->memtable_factory &&
+      !options->memtable_factory->IsInsertConcurrentlySupported()) {
+    options->allow_concurrent_memtable_write = false;
+  }
+
   options->level_compaction_dynamic_level_bytes =
       env->level_compaction_dynamic_level_bytes;
 
