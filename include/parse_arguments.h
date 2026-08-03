@@ -136,6 +136,14 @@ int parse_arguments(int argc, char *argv[], std::unique_ptr<DBEnv> &env) {
       "shared DB handle (working_version_mt / runWorkloadMultithread only) "
       "[def: 1]",
       {"threads"});
+  args::ValueFlag<double> duration_seconds_cmd(
+      group1, "duration_seconds",
+      "If > 0, each shard thread wraps back to the start of its shard file "
+      "and keeps replaying it until this many wall-clock seconds have "
+      "elapsed, instead of stopping at end-of-file (working_version_mt / "
+      "runWorkloadMultithread only). 0 disables this -- fixed-op-count "
+      "behavior, unchanged from before this flag existed [def: 0]",
+      {"duration_seconds"});
   args::ValueFlag<int> max_background_jobs_cmd(
       group1, "max_background_jobs",
       "Maximum concurrent background flush/compaction jobs [def: 1]",
@@ -169,6 +177,12 @@ int parse_arguments(int argc, char *argv[], std::unique_ptr<DBEnv> &env) {
       "for higher write throughput; requires concurrent_memtable_write=1 "
       "[def: 0]",
       {"unordered_write"});
+  args::ValueFlag<int> enable_pipelined_write_cmd(
+      group1, "enable_pipelined_write",
+      "rocksdb::Options::enable_pipelined_write -- separates the write "
+      "thread queue into memtable-insertion and WAL-write stages so they "
+      "can overlap across writers [def: 0]",
+      {"enable_pipelined_write"});
   args::ValueFlag<std::string> load_file_cmd(
       group1, "load_file",
       "If set, replayed single-threaded immediately after DB::Open(), "
@@ -266,6 +280,8 @@ int parse_arguments(int argc, char *argv[], std::unique_ptr<DBEnv> &env) {
     env->disableWAL = !args::get(wal_cmd);
   env->num_client_threads = num_threads_cmd ? args::get(num_threads_cmd)
                                             : env->num_client_threads;
+  env->duration_seconds = duration_seconds_cmd ? args::get(duration_seconds_cmd)
+                                               : env->duration_seconds;
   env->max_background_jobs = max_background_jobs_cmd
                                  ? args::get(max_background_jobs_cmd)
                                  : env->max_background_jobs;
@@ -286,6 +302,10 @@ int parse_arguments(int argc, char *argv[], std::unique_ptr<DBEnv> &env) {
   env->unordered_write = unordered_write_cmd
                              ? static_cast<bool>(args::get(unordered_write_cmd))
                              : env->unordered_write;
+  env->enable_pipelined_write =
+      enable_pipelined_write_cmd
+          ? static_cast<bool>(args::get(enable_pipelined_write_cmd))
+          : env->enable_pipelined_write;
   env->load_file = load_file_cmd ? args::get(load_file_cmd) : env->load_file;
 
   return 0;

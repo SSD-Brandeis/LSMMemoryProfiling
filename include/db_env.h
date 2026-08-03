@@ -101,6 +101,12 @@ public:
   // rejects DB::Open otherwise, see db_impl_open.cc). [unordered_write]
   bool unordered_write = false;
 
+  // If true, separates the write thread queue into two stages: memtable
+  // insertion and WAL write, allowing them to overlap across writers
+  // instead of one combined critical section. (rocksdb::Options::
+  // enable_pipelined_write)
+  bool enable_pipelined_write = false;
+
   // the memory size for stats snapshots, default is 1MB
   size_t stats_history_buffer_size = 1024 * 1024;
   // print malloc stats together with rocksdb.stats
@@ -135,6 +141,15 @@ public:
   // shared DB handle. Only consumed by runWorkloadMultithread(); the
   // single-threaded runWorkload() ignores it. [threads]
   unsigned int num_client_threads = 1;
+
+  // 0 (default) = disabled: each shard thread stops at end-of-file on its
+  // shard, exactly as before this flag existed -- fixed-op-count mode.
+  // > 0: each shard thread instead wraps back to the start of its shard
+  // file and keeps replaying it (re-issuing the same ops) until this many
+  // wall-clock seconds have elapsed, mirroring db_bench's -duration flag.
+  // Only consumed by runWorkloadMultithread()/RunShard(); does not change
+  // fixed-op-count behavior at all when left at 0. [duration_seconds]
+  double duration_seconds = 0;
 
   // If non-empty, runWorkloadMultithread() replays this file single-
   // threaded, immediately after DB::Open() and strictly before spawning the
