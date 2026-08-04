@@ -151,6 +151,17 @@ public:
   // fixed-op-count behavior at all when left at 0. [duration_seconds]
   double duration_seconds = 0;
 
+  // false (default) = disabled: the TOTAL_TIMER stops exactly where it
+  // always has, immediately after all shard threads join -- i.e. as soon
+  // as the last insert call returns, regardless of any flush/compaction
+  // still in flight. true: before stopping the timer,
+  // runWorkloadMultithread() calls DB::WaitForCompact() (with
+  // WaitForCompactOptions.flush=true, so the still-resident active
+  // memtable is flushed too) and only then reads the clock -- so
+  // total_seconds/ops_per_sec reflect the time for the LSM tree to fully
+  // stabilize, not just for inserts to be issued. [wait_for_compact]
+  bool wait_for_compact_before_stop = false;
+
   // If non-empty, runWorkloadMultithread() replays this file single-
   // threaded, immediately after DB::Open() and strictly before spawning the
   // num_client_threads shard threads -- so a load-then-query experiment
@@ -233,6 +244,17 @@ public:
   // if it is 1, RocksDB still run 2 threads one for compaction and
   // another for flush
   int max_background_jobs = 1;
+
+  // -1 (default) = auto: RocksDB's GetBGJobLimits() splits
+  // max_background_jobs as max_flushes=max(1,max_background_jobs/4),
+  // max_compactions=max(1,max_background_jobs-max_flushes) (db_impl_
+  // compaction_flush.cc). Setting either of these two fields to anything
+  // other than -1 bypasses that auto-split entirely (Options.max_
+  // background_flushes/max_background_compactions, options.h:899,929) --
+  // if only ONE of the two is set explicitly, the OTHER silently
+  // collapses to max(1,-1)=1, so when testing one of these, set both.
+  int max_background_flushes = -1;
+  int max_background_compactions = -1;
 
   // No pending compaction anytime, try and see
   int soft_pending_compaction_bytes_limit = 0;

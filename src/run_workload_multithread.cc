@@ -79,8 +79,27 @@ void RunShard(const std::string &label, const std::string &shard_path, DB *db,
 
   std::string line;
   unsigned long ith_op = 0;
+
+  const double duration_seconds = env->duration_seconds;
+  const auto shard_start_time = std::chrono::steady_clock::now();
   while (true) {
-    if (!std::getline(workload_file, line) || line.empty()) break;
+    if (!std::getline(workload_file, line) || line.empty()) {
+      if (duration_seconds > 0 &&
+          std::chrono::duration<double>(std::chrono::steady_clock::now() -
+                                        shard_start_time)
+                  .count() < duration_seconds) {
+        workload_file.clear();
+        workload_file.seekg(0, std::ios::beg);
+        continue;
+      }
+      break;
+    }
+    if (duration_seconds > 0 &&
+        std::chrono::duration<double>(std::chrono::steady_clock::now() -
+                                      shard_start_time)
+                .count() >= duration_seconds) {
+      break;
+    }
 
     std::istringstream stream(line);
     char operation;
@@ -380,6 +399,13 @@ int runWorkloadMultithread(std::unique_ptr<DBEnv> &env) {
                          use_prefix_seek, std::ref(env), &results[t]);
   }
   for (auto &th : threads) th.join();
+
+
+  if (env->wait_for_compact_before_stop) {
+    WaitForCompactOptions wco;
+    wco.flush = true;
+    db->WaitForCompact(wco);
+  }
 
 #ifdef PER_OP_TIMER
   // Consolidated dense per-op log: every thread's (plus the load phase's,

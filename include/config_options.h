@@ -212,6 +212,8 @@ void configOptions(std::unique_ptr<DBEnv> &env, Options *options,
 
   options->target_file_size_multiplier = env->target_file_size_multiplier;
   options->max_background_jobs = env->max_background_jobs;
+  options->max_background_flushes = env->max_background_flushes;
+  options->max_background_compactions = env->max_background_compactions;
   // options->soft_pending_compaction_bytes_limit =
   //     env->soft_pending_compaction_bytes_limit;
   // options->hard_pending_compaction_bytes_limit =

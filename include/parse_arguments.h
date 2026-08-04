@@ -144,10 +144,34 @@ int parse_arguments(int argc, char *argv[], std::unique_ptr<DBEnv> &env) {
       "runWorkloadMultithread only). 0 disables this -- fixed-op-count "
       "behavior, unchanged from before this flag existed [def: 0]",
       {"duration_seconds"});
+  args::ValueFlag<int> wait_for_compact_cmd(
+      group1, "wait_for_compact",
+      "If 1, call DB::WaitForCompact() (flushing the active memtable first) "
+      "before stopping the TOTAL_TIMER, so total_seconds/ops_per_sec "
+      "reflect the time for the LSM tree to fully stabilize (flush + "
+      "compaction fully drained), not just for inserts to be issued. "
+      "0 disables this -- timer stops immediately after shard threads "
+      "join, unchanged from before this flag existed (working_version_mt "
+      "/ runWorkloadMultithread only) [def: 0]",
+      {"wait_for_compact"});
   args::ValueFlag<int> max_background_jobs_cmd(
       group1, "max_background_jobs",
       "Maximum concurrent background flush/compaction jobs [def: 1]",
       {"bg_jobs"});
+  args::ValueFlag<int> max_background_flushes_cmd(
+      group1, "max_background_flushes",
+      "Explicit flush thread pool size (rocksdb::Options::max_background_"
+      "flushes). -1 = auto (max(1,bg_jobs/4)). If set, max_background_"
+      "compactions should also be set explicitly, otherwise it silently "
+      "collapses to 1 [def: -1]",
+      {"max_background_flushes"});
+  args::ValueFlag<int> max_background_compactions_cmd(
+      group1, "max_background_compactions",
+      "Explicit compaction thread pool size (rocksdb::Options::max_"
+      "background_compactions). -1 = auto (max(1,bg_jobs-flushes)). If "
+      "set, max_background_flushes should also be set explicitly, "
+      "otherwise it silently collapses to 1 [def: -1]",
+      {"max_background_compactions"});
   args::ValueFlag<int> max_write_buffer_number_cmd(
       group1, "max_write_buffer_number",
       "Maximum number of memtables (active + immutable pending flush) "
@@ -282,9 +306,20 @@ int parse_arguments(int argc, char *argv[], std::unique_ptr<DBEnv> &env) {
                                             : env->num_client_threads;
   env->duration_seconds = duration_seconds_cmd ? args::get(duration_seconds_cmd)
                                                : env->duration_seconds;
+  env->wait_for_compact_before_stop =
+      wait_for_compact_cmd
+          ? static_cast<bool>(args::get(wait_for_compact_cmd))
+          : env->wait_for_compact_before_stop;
   env->max_background_jobs = max_background_jobs_cmd
                                  ? args::get(max_background_jobs_cmd)
                                  : env->max_background_jobs;
+  env->max_background_flushes = max_background_flushes_cmd
+                                     ? args::get(max_background_flushes_cmd)
+                                     : env->max_background_flushes;
+  env->max_background_compactions =
+      max_background_compactions_cmd
+          ? args::get(max_background_compactions_cmd)
+          : env->max_background_compactions;
   env->max_write_buffer_number = max_write_buffer_number_cmd
                                      ? args::get(max_write_buffer_number_cmd)
                                      : env->max_write_buffer_number;
