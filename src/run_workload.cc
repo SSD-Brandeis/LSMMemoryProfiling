@@ -181,14 +181,14 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
 #endif // PER_OP_TIMER
       s = db->Get(read_options, key, &value);
       GlobalWorkloadMonitor().RecordPointQuery();
-      if (s.IsNotFound()) {
-        std::cout << "PQ: " << key << ", Not Found" << std::endl;
-      } else if (s.ok()) {
-        std::cout << "PQ: " << key << ", " << value << std::endl;
-      } else {
-        std::cout << "PQ: Error reading key " << key << ": " << s.ToString()
-                  << std::endl;
-      }
+      // if (s.IsNotFound()) {
+      //   std::cout << "PQ: " << key << ", Not Found" << std::endl;
+      // } else if (s.ok()) {
+      //   std::cout << "PQ: " << key << ", " << value << std::endl;
+      // } else {
+      //   std::cout << "PQ: Error reading key " << key << ": " << s.ToString()
+      //             << std::endl;
+      // }
 
 #ifdef PER_OP_TIMER
       auto stop = std::chrono::high_resolution_clock::now();
