@@ -89,7 +89,7 @@ public:
   bool enable_thread_tracking = false;
 
   // if true, allow multi-writers to update mem tables in parallel.
-  bool allow_concurrent_memtable_write = true;
+  bool allow_concurrent_memtable_write = false;
 
   // Forces allow_concurrent_memtable_write off for factories that don't
   // support it, instead of DB::Open rejecting the combination.
