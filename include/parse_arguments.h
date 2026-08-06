@@ -187,7 +187,7 @@ int parse_arguments(int argc, char *argv[], std::unique_ptr<DBEnv> &env) {
   args::ValueFlag<int> concurrent_memtable_write_cmd(
       group1, "concurrent_memtable_write",
       "Allow multiple writer threads to update the memtable in parallel "
-      "(rocksdb::Options::allow_concurrent_memtable_write) [def: 1]",
+      "(rocksdb::Options::allow_concurrent_memtable_write) [def: 0]",
       {"concurrent_memtable_write"});
   args::ValueFlag<int> auto_concurrent_memtable_write_cmd(
       group1, "auto_concurrent_memtable_write",
