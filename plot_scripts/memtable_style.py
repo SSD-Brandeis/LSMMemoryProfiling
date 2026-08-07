@@ -40,6 +40,20 @@ MEMTABLE_LINESTYLES = {
     "tlx_btree": (0, (1, 2, 5, 2)),
 }
 
+MEMTABLE_HATCHES = {
+    "vector": "",
+    "unsorted_vector": "\\",
+    "sorted_vector": "/",
+    "skiplist": "-",
+    "simple_skiplist": "---",
+    "linklist": "\\.",
+    "hash_linklist": "////",
+    "hash_skiplist": "\\\\\\\\",
+    "hash_vector": "/.",
+    "art": "x",
+    "tlx_btree": "o",
+}
+
 MEMTABLE_MARKERS = {
     "vector": "x",
     "unsorted_vector": "v",
