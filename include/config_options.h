@@ -70,6 +70,8 @@ void configOptions(std::unique_ptr<DBEnv> &env, Options *options,
   options->target_file_size_base = env->GetTargetFileSizeBase();
   options->max_bytes_for_level_base = env->GetMaxBytesForLevelBase();
   options->max_write_buffer_number = env->max_write_buffer_number;
+  options->min_write_buffer_number_to_merge =
+      env->min_write_buffer_number_to_merge;
   options->max_subcompactions = env->max_subcompactions;
 
   if (env->bits_per_key == 0) {

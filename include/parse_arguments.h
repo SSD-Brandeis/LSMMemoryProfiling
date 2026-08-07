@@ -178,6 +178,12 @@ int parse_arguments(int argc, char *argv[], std::unique_ptr<DBEnv> &env) {
       "before writers stall (rocksdb::Options::max_write_buffer_number) "
       "[def: 2]",
       {"max_write_buffer_number"});
+  args::ValueFlag<int> min_write_buffer_number_to_merge_cmd(
+      group1, "min_write_buffer_number_to_merge",
+      "Minimum number of immutable memtables merged into one flush job "
+      "before flushing (rocksdb::Options::min_write_buffer_number_to_"
+      "merge) [def: 1]",
+      {"min_write_buffer_number_to_merge"});
   args::ValueFlag<int> max_subcompactions_cmd(
       group1, "max_subcompactions",
       "Maximum number of threads RocksDB may use WITHIN one compaction "
@@ -326,6 +332,10 @@ int parse_arguments(int argc, char *argv[], std::unique_ptr<DBEnv> &env) {
   env->max_subcompactions = max_subcompactions_cmd
                                 ? args::get(max_subcompactions_cmd)
                                 : env->max_subcompactions;
+  env->min_write_buffer_number_to_merge =
+      min_write_buffer_number_to_merge_cmd
+          ? args::get(min_write_buffer_number_to_merge_cmd)
+          : env->min_write_buffer_number_to_merge;
   env->allow_concurrent_memtable_write =
       concurrent_memtable_write_cmd
           ? static_cast<bool>(args::get(concurrent_memtable_write_cmd))

@@ -27,9 +27,9 @@ private:
 
   // buffer size in bytes
   size_t buffer_size_ = 0;         // [M]
-  bool rocksdb_stats_ = false;     // [stat]
-  bool perf_stats_ = false;        // [perf]
-  bool iostat_stats_ = false;      // [iostat]
+  bool rocksdb_stats_ = true;     // [stat]
+  bool perf_stats_ = true;        // [perf]
+  bool iostat_stats_ = true;      // [iostat]
   bool destroy_database_ = true;   // [d]
   bool show_progress_bar_ = false; // [progress]
 
@@ -175,6 +175,11 @@ public:
   // is being flushed to storage, new writes can continue to the other
   // write buffer.
   int max_write_buffer_number = 2;
+
+  // Minimum number of immutable memtables merged into one flush job before
+  // flushing (rocksdb::Options::min_write_buffer_number_to_merge). Default
+  // 1 = flush each immutable memtable as its own job (RocksDB default).
+  int min_write_buffer_number_to_merge = 1;
 
   // Maximum number of threads RocksDB is allowed to use WITHIN one
   // compaction job (i.e. splitting one job's key range into concurrent
