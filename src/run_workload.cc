@@ -4,7 +4,9 @@
 #include <fstream>
 #include <iomanip>
 #include <iostream>
+#include <sstream>
 #include <tuple>
+#include <vector>
 
 #include "config_options.h"
 #include "utils.h"
@@ -73,6 +75,10 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
   if (env->IsShowProgressEnabled()) {
     std::string line;
     while (std::getline(workload_file, line)) {
+      // Skip Tectonic's "FS"/"FE" granular-stats marker lines 
+
+      if (!line.empty() && line[0] == 'F')
+        continue;
       ++total_operations;
     }
   }
@@ -101,6 +107,23 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
       (env->common_prefix_len > 0 &&
        env->common_prefix_len >= env->prefix_length);
 
+  // Phase boundaries: see db_env.h for the flag contract. Parsed once,
+  // up front; empty when --phase_boundaries wasn't passed, which keeps this
+  // whole feature a no-op for every existing caller.
+  auto split_csv = [](const std::string &csv) {
+    std::vector<std::string> parts;
+    std::stringstream ss(csv);
+    std::string part;
+    while (std::getline(ss, part, ','))
+      parts.push_back(part);
+    return parts;
+  };
+  std::vector<unsigned long> phase_boundaries;
+  for (const std::string &s : split_csv(env->phase_boundaries))
+    phase_boundaries.push_back(std::stoul(s));
+  std::vector<std::string> phase_names = split_csv(env->phase_names);
+  size_t next_boundary_idx = 0;
+
   std::string line;
   unsigned long ith_op = 0;
   while (std::getline(workload_file, line)) {
@@ -111,6 +134,15 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
     std::istringstream stream(line);
     char operation;
     stream >> operation;
+
+    if (operation == 'F') {
+      // Tectonic granular-stats markers ("FS <O|S|G>" / "FE <O|S|G> <name>"),
+      // Not a DB operation -- skip without touching
+      // ith_op, without falling into the default case below (remove  "Case match NOT found" for every marker line).
+      if (is_last_line)
+        break;
+      continue;
+    }
 
     switch (operation) {
       // [Insert]
@@ -232,8 +264,8 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
         uint64_t steps = 0;
         for (it->Seek(start_key); it->Valid() && steps < scan_len;
              it->Next(), ++steps) {
-          std::cout << "RQ: Key: " << it->key().ToString()
-                    << " Value: " << it->value().ToString() << std::endl;
+          // std::cout << "RQ: Key: " << it->key().ToString()
+          //           << " Value: " << it->value().ToString() << std::endl;
         }
       } else {
         // S <start_key> <end_key> — iterate until key >= end_key.
@@ -252,8 +284,8 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
           if (it->key().ToString() >= end_key) {
             break;
           }
-        std::cout << "RQ: Key: " << it->key().ToString()
-                  << " Value: " << it->value().ToString() << std::endl;
+        // std::cout << "RQ: Key: " << it->key().ToString()
+        //           << " Value: " << it->value().ToString() << std::endl;
         }
       }
 
@@ -303,6 +335,70 @@ int runWorkload(std::unique_ptr<DBEnv> &env) {
     }
 
     ith_op += 1;
+
+    if (next_boundary_idx < phase_boundaries.size() &&
+        ith_op == phase_boundaries[next_boundary_idx]) {
+      const std::string phase_name =
+          next_boundary_idx < phase_names.size()
+              ? phase_names[next_boundary_idx]
+              : ("Phase " + std::to_string(next_boundary_idx + 1));
+
+#ifdef PROFILE
+      (*buffer) << "=====================" << std::endl;
+      LogTreeState(db, buffer, env);
+#endif // PROFILE
+      (*buffer) << "=====================" << std::endl;
+      (*buffer) << "Phase: " << phase_name << std::endl;
+#ifdef TOTAL_TIMER
+      auto phase_exec_time =
+          std::chrono::duration_cast<std::chrono::nanoseconds>(
+              std::chrono::high_resolution_clock::now() - exec_start)
+              .count();
+      (*buffer) << "Workload Execution Time: " << phase_exec_time << std::endl;
+#endif // TOTAL_TIMER
+#ifdef PER_OP_TIMER
+      (*buffer) << "Inserts Execution Time: " << inserts_exec_time << std::endl;
+      (*buffer) << "Updates Execution Time: " << updates_exec_time << std::endl;
+      (*buffer) << "PointQuery Execution Time: " << pq_exec_time << std::endl;
+      (*buffer) << "PointDelete Execution Time: " << pdelete_exec_time
+                << std::endl;
+      (*buffer) << "RangeQuery Execution Time: " << rq_exec_time << std::endl;
+      (*buffer) << "Merge Execution Time: " << merge_exec_time << std::endl;
+#endif // PER_OP_TIMER
+      PrintRocksDBPerfStats(env, buffer, options);
+
+      // Reset phase-local counters so every later block -- including the
+      // final one printed after the loop -- reflects only its own phase.
+      if (env->IsPerfStatEnabled())
+        rocksdb::get_perf_context()->Reset();
+      if (env->IsIOStatEnabled())
+        rocksdb::get_iostats_context()->Reset();
+      if (env->IsRocksDBStatEnabled())
+        options.statistics->Reset();
+      // PrintRocksDBPerfStats() force-disables the perf level as a side
+      // effect whenever RocksDB stats are enabled (see utils.cc); restore it
+      // here (mirrors configOptions()) so later phases keep recording.
+      rocksdb::PerfLevel perf_level = rocksdb::PerfLevel::kDisable;
+      if (env->IsPerfStatEnabled())
+        perf_level = rocksdb::PerfLevel::kEnableTimeAndCPUTimeExceptForMutex;
+      else if (env->IsIOStatEnabled())
+        perf_level = rocksdb::PerfLevel::kEnableCount;
+      rocksdb::SetPerfLevel(perf_level);
+#ifdef PER_OP_TIMER
+      inserts_exec_time = 0;
+      updates_exec_time = 0;
+      pq_exec_time = 0;
+      pdelete_exec_time = 0;
+      rq_exec_time = 0;
+      merge_exec_time = 0;
+#endif // PER_OP_TIMER
+#ifdef TOTAL_TIMER
+      exec_start = std::chrono::high_resolution_clock::now();
+#endif // TOTAL_TIMER
+
+      ++next_boundary_idx;
+    }
+
     UpdateProgressBar(env, ith_op, total_operations,
                       (int)total_operations * 0.02);
     if (is_last_line)

@@ -221,6 +221,20 @@ int parse_arguments(int argc, char *argv[], std::unique_ptr<DBEnv> &env) {
       "only). This phase is timed (see workload.log's [load phase] block) "
       "but excluded from throughput.csv/ops_per_sec [def: none]",
       {"load_file"});
+  args::ValueFlag<std::string> phase_boundaries_cmd(
+      group1, "phase_boundaries",
+      "Comma-separated cumulative op-count boundaries (e.g. \"1000000\") at "
+      "which runWorkload() flushes a phase-local stats block into "
+      "workload.log and resets perf/iostat/RocksDB-stats/per-op-timer "
+      "counters, so each phase's block (including the final one) reflects "
+      "only its own ops (working_version / runWorkload only) [def: none]",
+      {"phase_boundaries"});
+  args::ValueFlag<std::string> phase_names_cmd(
+      group1, "phase_names",
+      "Comma-separated phase labels, one more entry than phase_boundaries "
+      "-- purely cosmetic, printed as \"Phase: <name>\" above each flushed "
+      "block [def: none]",
+      {"phase_names"});
   try {
     parser.ParseCLI(argc, argv);
   } catch (args::Help &) {
@@ -352,6 +366,10 @@ int parse_arguments(int argc, char *argv[], std::unique_ptr<DBEnv> &env) {
           ? static_cast<bool>(args::get(enable_pipelined_write_cmd))
           : env->enable_pipelined_write;
   env->load_file = load_file_cmd ? args::get(load_file_cmd) : env->load_file;
+  env->phase_boundaries = phase_boundaries_cmd ? args::get(phase_boundaries_cmd)
+                                               : env->phase_boundaries;
+  env->phase_names =
+      phase_names_cmd ? args::get(phase_names_cmd) : env->phase_names;
 
   return 0;
 }

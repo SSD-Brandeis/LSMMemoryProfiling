@@ -170,6 +170,25 @@ public:
   // from throughput.csv/ops_per_sec. [load_file]
   std::string load_file;
 
+  // Comma-separated cumulative op-count boundaries (e.g. "1000000"), one
+  // less than the number of phases (the final phase's end is implicit at
+  // EOF). runWorkload() (single-threaded only) flushes a phase-local stats
+  // block -- tree state, perf/iostat/RocksDB Statistics, per-op timers --
+  // into workload.log when ith_op crosses each boundary, then resets those
+  // counters so every subsequent block (including the final one printed
+  // after the loop ends) reflects only its own phase, not the run so far.
+  // Boundaries are meant to be derived from the workload spec's per-group
+  // op_count (see scripts/revision/compute_phase_boundaries.py). Empty
+  // (default) = unchanged behaviour, a single cumulative summary at the end.
+  // [phase_boundaries]
+  std::string phase_boundaries;
+
+  // Comma-separated phase labels, one more entry than phase_boundaries (one
+  // per boundary crossed, plus the final phase). Purely cosmetic -- used for
+  // the "Phase: <name>" line above each flushed block. Falls back to
+  // "Phase <n>" for any missing entry. [phase_names]
+  std::string phase_names;
+
   // The maximum number of write buffers that are built up in memory.
   // The default and the minimum number is 2, so that when 1 write buffer
   // is being flushed to storage, new writes can continue to the other
