@@ -25,11 +25,17 @@ implementations = [
     "hashlinkedlist-H100000-X6",
     "hashskiplist-H100000-X6",
     "hashvector-H100000-X6",
+    "art",
+    "btree",
 ]
 
 
 def normalize_name(name):
     name = name.lower()
+    if name == "art":
+        return "art"
+    if name == "btree":
+        return "btree"
     if "hashlinkedlist" in name:
         return "hashlinkedlist"
     if "hashskiplist" in name:
@@ -163,9 +169,9 @@ def plot_legend():
     handles, labels = ax.get_legend_handles_labels()
     leg_fig, leg_ax = plt.subplots(figsize=(2, 0.5))
     leg_ax.axis("off")
-    leg_ax.legend(handles, labels, frameon=False, ncol=4,
+    leg_ax.legend(handles, labels, frameon=False, ncol=5,
                   loc="center", labelspacing=0.2, handlelength=1.4,
-                  columnspacing=2, handletextpad=0.3)
+                  columnspacing=1, handletextpad=0.3)
     plt.close(fig)
     output_file = DROPBOX_PATH / "size-ratio-legend.pdf"
     leg_fig.savefig(output_file, bbox_inches="tight", pad_inches=0.02)

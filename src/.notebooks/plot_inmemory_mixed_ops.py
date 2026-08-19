@@ -40,11 +40,17 @@ implementations = [
     "hashlinkedlist-H100000-X6",
     "hashskiplist-H100000-X6",
     "hashvector-H100000-X6",
+    "art",
+    "btree",
 ]
 
 
 def normalize_name(name):
     name = name.lower()
+    if name == "art":
+        return "art"
+    if name == "btree":
+        return "btree"
     if "hashlinkedlist" in name:
         return "hashlinkedlist"
     if "hashskiplist" in name:
@@ -534,11 +540,11 @@ def plot_legend(results):
         handles=legend_elements,
         loc="center",
         frameon=False,
-        ncol=4,
+        ncol=5,
         borderaxespad=0,
         labelspacing=0.1,
         borderpad=0,
-        columnspacing=2,
+        columnspacing=0.5,
         handletextpad=0.2,
     )
 
@@ -609,16 +615,16 @@ def dump_pq_latency_csv():
 
 if __name__ == "__main__":
     results = collect_data()
-    print(f"\nSequential: {len(results['sequential'])} implementations loaded")
-    print(f"Mixed:      {len(results['mixed'])} implementations loaded")
-    plot_insert_throughput(results)
+    # print(f"\nSequential: {len(results['sequential'])} implementations loaded")
+    # print(f"Mixed:      {len(results['mixed'])} implementations loaded")
+    # plot_insert_throughput(results)
     # plot_pq_throughput(results)
     # plot_rq_throughput(results)
-    # dump_csv(results)
+    dump_csv(results)
     # plot_workload_time(results)
     # plot_pq_latency_over_time()
-    # dump_pq_latency_csv()
-    plot_legend(results)
+    dump_pq_latency_csv()
+    # plot_legend(results)
     # plot_vector_boxplots_writes()
     # plot_vector_boxplots_gets()
     # plot_vector_boxplots_legend()

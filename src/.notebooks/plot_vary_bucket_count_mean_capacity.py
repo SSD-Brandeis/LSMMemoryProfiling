@@ -5,6 +5,7 @@ from plot import *
 
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.lines import Line2D
 
 from plot.style import line_styles
 
@@ -33,6 +34,8 @@ BASELINE_IMPLS = [
     ("vector",       "vector"),
     ("skiplist",     "skiplist"),
     # ("simpleskiplist", "simpleskiplist"),
+    ("art",          "art"),
+    ("btree",        "btree"),
 ]
 
 _FLUSH_RE = re.compile(r"num_entries\]:\s*(\d+)")
@@ -132,10 +135,21 @@ def plot_mean_capacity():
     ax.text(0.99, 0.83, "buffer", transform=ax.transAxes,
             va="bottom", ha="right", fontsize=19)
 
-    ax.legend(loc="center", bbox_to_anchor=(0.28, 0.28), frameon=False,
-                     ncol=1, borderaxespad=0,
+    # 2-column, column-major legend: baselines fill column 1 top-to-bottom;
+    # a blank spacer pushes the hash-hybrid entries into the *bottom* 3 rows
+    # of column 2 instead of matplotlib's default top-aligned fill.
+    handles, labels = ax.get_legend_handles_labels()
+    n_baselines = sum(1 for _, cap in [(k, baseline_data.get(k)) for k, _ in BASELINE_IMPLS] if cap is not None)
+    n_hash = len(handles) - n_baselines
+    spacer = Line2D([], [], color="none", label="")
+    for _ in range(n_baselines - n_hash):
+        handles.insert(n_baselines, spacer)
+        labels.insert(n_baselines, "")
+
+    ax.legend(handles, labels, loc="lower center", bbox_to_anchor=(0.5, 0.05), frameon=False,
+                     ncol=2, borderaxespad=0,
                      labelspacing=0.005, borderpad=0,
-                     columnspacing=0.2, handletextpad=0.2, handlelength=1.0, fontsize=18)
+                     columnspacing=0.5, handletextpad=0.2, handlelength=1.0, fontsize=18)
 
     output_file = DROPBOX_PATH / "vary-bucket-count-mean-capacity.pdf"
     fig.savefig(output_file, bbox_inches="tight", pad_inches=0.02)

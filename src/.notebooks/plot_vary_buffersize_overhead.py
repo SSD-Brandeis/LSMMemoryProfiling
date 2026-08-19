@@ -35,11 +35,17 @@ implementations = [
     "hashskiplist-H100000-X6",
     "hashvector-H100000-X6",
     "hashlinkedlist-H100000-X6",
+    "art",
+    "btree",
 ]
 
 
 def normalize_name(name):
     name = name.lower()
+    if name == "art":
+        return "art"
+    if name == "btree":
+        return "btree"
     if "hashlinkedlist" in name:
         return "hashlinkedlist"
     if "hashskiplist" in name:
@@ -196,11 +202,11 @@ def plot_legend():
         handles=legend_elements,
         loc="center",
         frameon=False,
-        ncol=3,
+        ncol=4,
         borderaxespad=0,
         labelspacing=0.2,
         borderpad=0,
-        columnspacing=2,
+        columnspacing=0.5,
         handletextpad=0.2,
     )
 
@@ -262,5 +268,5 @@ def dump_csv():
 
 if __name__ == "__main__":
     # plot_overhead()
-    plot_legend()
-    # dump_csv()
+    # plot_legend()
+    dump_csv()

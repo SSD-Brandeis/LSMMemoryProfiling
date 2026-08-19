@@ -37,6 +37,8 @@ IMPLS = [
     ("hashlinkedlist",       f"hashlinkedlist-H{BUCKET_COUNT}-X{PREFIX_LENGTH}"),
     ("hashskiplist",         f"hashskiplist-H{BUCKET_COUNT}-X{PREFIX_LENGTH}"),
     ("hashvector",           f"hashvector-H{BUCKET_COUNT}-X{PREFIX_LENGTH}"),
+    ("art",                  "art"),
+    ("btree",                "btree"),
 ]
 
 # Op counts from workload spec (hardcoded from bash script)
@@ -228,9 +230,9 @@ def plot_legend():
 
     leg_fig, leg_ax = plt.subplots(figsize=(2, 0.2))
     leg_ax.axis("off")
-    leg_ax.legend(handles, labels, frameon=False, ncol=4,
+    leg_ax.legend(handles, labels, frameon=False, ncol=5,
                   loc="center", labelspacing=0.1, handlelength=1.2,
-                  columnspacing=2, handletextpad=0.3, fontsize=22)
+                  columnspacing=0.5, handletextpad=0.3, fontsize=22)
     output_file = DROPBOX_PATH / "lowpri-wal-legend.pdf"
     leg_fig.savefig(output_file, bbox_inches="tight", pad_inches=0.01)
     plt.close(leg_fig)
@@ -249,6 +251,8 @@ IMPL_ABBREV = {
     "hashlinkedlist":     line_styles["hashlinkedlist"]["label"],
     "hashskiplist":       line_styles["hashskiplist"]["label"],
     "hashvector":         line_styles["hashvector"]["label"],
+    "art":                line_styles["art"]["label"],
+    "btree":              line_styles["btree"]["label"],
 }
 
 # Table-local ordering: simpleskiplist before skiplist
@@ -256,6 +260,7 @@ TABLE_IMPL_ORDER = [
     "vector", "unsortedvector", "alwayssortedvector",
     "simpleskiplist", "skiplist",
     "hashlinkedlist", "hashskiplist", "hashvector",
+    "art", "btree",
 ]
 
 

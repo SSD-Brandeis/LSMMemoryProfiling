@@ -46,11 +46,17 @@ implementations = [
     # "hashlinkedlist-H100000-X2",
     # "hashskiplist-H100000-X2",
     # "hashvector-H100000-X2",
+    "art",
+    "btree",
 ]
 
 
 def normalize_name(name):
     name = name.lower()
+    if name == "art":
+        return "art"
+    if name == "btree":
+        return "btree"
     if "hashlinkedlist" in name:
         return "hashlinkedlist"
     if "hashskiplist" in name:
@@ -229,6 +235,6 @@ def dump_csv():
 
 
 if __name__ == "__main__":
-    # plot_rq_latency_by_selectivity()
+    plot_rq_latency_by_selectivity()
     plot_rq_legend()
     # dump_csv()
