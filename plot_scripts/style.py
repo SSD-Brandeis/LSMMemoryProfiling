@@ -1,3 +1,33 @@
+FONT_PATH = "/home/cc/Tectonic/LinLibertine_Mah.ttf"
+MARKER_SIZE = 12
+LINE_WIDTH = 2
+BASE_FONT_SIZE = 28
+LEGEND_FONT_SIZE = 22
+
+def configure_matplotlib_style(plt, fm):
+    fm.fontManager.addfont(FONT_PATH)
+    font_name = fm.FontProperties(fname=FONT_PATH).get_name()
+    plt.rcParams.update({
+        "text.usetex": True,
+        "font.family": font_name,
+        "font.size": BASE_FONT_SIZE,
+        "axes.titlesize": BASE_FONT_SIZE,
+        "axes.labelsize": BASE_FONT_SIZE,
+        "xtick.labelsize": BASE_FONT_SIZE,
+        "ytick.labelsize": BASE_FONT_SIZE,
+        "legend.fontsize": LEGEND_FONT_SIZE,
+        "xtick.direction": "out",
+        "ytick.direction": "out",
+        "axes.spines.top": True,
+        "axes.spines.right": True,
+        "axes.spines.bottom": True,
+        "axes.spines.left": True,
+        "axes.grid": False,
+        "figure.facecolor": "white",
+        "axes.facecolor": "white",
+    })
+    return font_name
+
 bar_styles = {
     "vector":           {"label": "vector",           "color": "#006d2c", "edgecolor": "#006d2c", "hatch": ""},
     "unsortedvector":   {"label": "unsorted vector",  "color": "none", "edgecolor": "#4d4d4d", "hatch": "\\"},
