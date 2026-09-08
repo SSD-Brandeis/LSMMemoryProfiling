@@ -10,6 +10,7 @@ MEMTABLE_DISPLAY_NAMES = {
     "hash_vector": "Hash-V",
     "art": "ART",
     "tlx_btree": "B+-tree",
+    "adaptive": "Adapt",
 }
 
 MEMTABLE_COLORS = {
@@ -24,6 +25,7 @@ MEMTABLE_COLORS = {
     "hash_vector": "#ff7f0e",
     "art": "#17becf",
     "tlx_btree": "#bcbd22",
+    "adaptive": "#000000",
 }
 
 MEMTABLE_LINESTYLES = {
@@ -38,6 +40,7 @@ MEMTABLE_LINESTYLES = {
     "hash_vector": (0, (3, 1, 1, 1, 1, 1)),
     "art": (0, (5, 1)),
     "tlx_btree": (0, (1, 2, 5, 2)),
+    "adaptive": "solid",
 }
 
 MEMTABLE_HATCHES = {
@@ -52,6 +55,7 @@ MEMTABLE_HATCHES = {
     "hash_vector": "/.",
     "art": "x",
     "tlx_btree": "o",
+    "adaptive": "xx",
 }
 
 MEMTABLE_MARKERS = {
@@ -66,6 +70,7 @@ MEMTABLE_MARKERS = {
     "hash_vector": "H",
     "art": "*",
     "tlx_btree": "h",
+    "adaptive": "X",
 }
 
 

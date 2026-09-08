@@ -1,23 +1,35 @@
-FONT_PATH = "/home/cc/Tectonic/LinLibertine_Mah.ttf"
+from pathlib import Path
+
+# Font configuration: check repo root first, then fallback to /home/cc/Tectonic
+_LOCAL_FONT = Path(__file__).resolve().parent.parent / "LinLibertine_Mah.ttf"
+_TECTONIC_FONT = Path("/home/cc/Tectonic/LinLibertine_Mah.ttf")
+FONT_PATH = _LOCAL_FONT if _LOCAL_FONT.exists() else _TECTONIC_FONT
+
 MARKER_SIZE = 12
 LINE_WIDTH = 2
 BASE_FONT_SIZE = 28
 LEGEND_FONT_SIZE = 22
 
-def configure_matplotlib_style(plt, fm):
-    fm.fontManager.addfont(FONT_PATH)
-    font_name = fm.FontProperties(fname=FONT_PATH).get_name()
+
+def configure_matplotlib_style(plt, fm, base_font_size=None, legend_font_size=None):
+    base_size = base_font_size if base_font_size is not None else BASE_FONT_SIZE
+    legend_size = legend_font_size if legend_font_size is not None else LEGEND_FONT_SIZE
+
+    fm.fontManager.addfont(str(FONT_PATH))
+    font_name = fm.FontProperties(fname=str(FONT_PATH)).get_name()
     plt.rcParams.update({
         "text.usetex": True,
+        "text.latex.preamble": r"\usepackage{libertine}\renewcommand{\rmdefault}{LinuxLibertineDisplayT-TLF}\usepackage{libertinust1math}",
         "font.family": font_name,
-        "font.size": BASE_FONT_SIZE,
-        "axes.titlesize": BASE_FONT_SIZE,
-        "axes.labelsize": BASE_FONT_SIZE,
-        "xtick.labelsize": BASE_FONT_SIZE,
-        "ytick.labelsize": BASE_FONT_SIZE,
-        "legend.fontsize": LEGEND_FONT_SIZE,
+        "font.size": base_size,
+        "axes.titlesize": base_size,
+        "axes.labelsize": base_size,
+        "xtick.labelsize": base_size,
+        "ytick.labelsize": base_size,
+        "legend.fontsize": legend_size,
         "xtick.direction": "out",
         "ytick.direction": "out",
+        "axes.edgecolor": "black",
         "axes.spines.top": True,
         "axes.spines.right": True,
         "axes.spines.bottom": True,
@@ -27,6 +39,19 @@ def configure_matplotlib_style(plt, fm):
         "axes.facecolor": "white",
     })
     return font_name
+
+
+def latex_escape(s):
+    return s.replace("_", r"\_").replace("%", r"\%")
+
+
+def throughput_scale(max_value):
+    if max_value >= 1e6:
+        return 1e6, "Mops"
+    if max_value >= 1e3:
+        return 1e3, "Kops"
+    return 1.0, "ops"
+
 
 bar_styles = {
     "vector":           {"label": "vector",           "color": "#006d2c", "edgecolor": "#006d2c", "hatch": ""},
