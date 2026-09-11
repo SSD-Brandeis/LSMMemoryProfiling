@@ -204,6 +204,24 @@ line_styles = {
         "markerfacecolor": "none",
         "linewidth": 2,
     },
+    "art": {
+        "label": "ART",
+        "color": "#1baf7a",  # matches plot_scripts_concurrency/memtable_style.py
+        "linestyle": (0, (5, 1)),
+        "marker": "*",
+        "markersize": 12,
+        "markerfacecolor": "none",
+        "linewidth": 2,
+    },
+    "btree": {
+        "label": "B+tree",
+        "color": "#4a3aa7",  # matches plot_scripts_concurrency/memtable_style.py (tlx_btree)
+        "linestyle": (0, (1, 2, 3, 2)),
+        "marker": "d",
+        "markersize": 12,
+        "markerfacecolor": "none",
+        "linewidth": 2,
+    },
 }
 
 
@@ -217,4 +235,6 @@ hatch_map = {
     "hashlinkedlist": "////",
     "hashskiplist": "\\\\\\\\",
     "hashvector": "/.",
+    "art": "x",
+    "btree": "o",
 }
